@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linkage Disequilibrium</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" />
+  </head>
+  <body>
+    <div class="container my-5">
+      <div class="container">
+        <div class="row">
+          <h1>Linkage Disequilibrium</h1>
+          <p>Calculate pairwise linkage disequilibrium statistics.</p>
+        </div>
+
+        <div class="row">
+          <div class="col-md-4">
+            <form id="inputForm" class="mb-3">
+              <fieldset id="inputFormFieldset" name="inputFormFieldset">
+                <div class="mb-3">
+                  <label for="genomeBuild">Genome Build (1000G)</label>
+                  <select id="genomeBuld" name="genomeBuild" class="form-select" required>
+                    <option value="grch37">GRCh37</option>
+                    <option value="grch38" hidden>GRCh38</option>
+                    <option value="grch38HighCoverage" hidden>GRCh38 High Coverage</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="snps">SNPs</label>
+                  <button id="loadExampleSnpsButton" type="button" class="small link-primary bg-transparent border-0 p-0 text-decoration-underline">
+                    (Load Example)
+                  </button>
+                  <textarea id="snps" name="snps" class="form-control" rows="10" required></textarea>
+                  <div class="form-text">Please enter one SNP per line</div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="populations">Populations</label>
+                  <button id="toggleAllPopulationsButton" type="button" class="small link-primary bg-transparent border-0 p-0 text-decoration-underline">
+                    (Select/Deselect All)
+                  </button>
+                  <select id="populations" name="populations" class="form-select" multiple required size="10">
+                    <optgroup label="(AFR) African">
+                      <option value="YRI">(YRI) Yoruba in Ibadan, Nigera</option>
+                      <option value="LWK">(LWK) Luhya in Webuye, Kenya</option>
+                      <option value="GWD">(GWD) Gambian in Western Gambia</option>
+                      <option value="MSL">(MSL) Mende in Sierra Leone</option>
+                      <option value="ESN">(ESN) Esan in Nigera</option>
+                      <option value="ASW">(ASW) Americans of African Ancestry in SW USA</option>
+                      <option value="ACB">(ACB) African Carribbeans in Barbados</option>
+                    </optgroup>
+
+                    <optgroup label="(AMR) Ad Mixed American">
+                      <option value="MXL">(MXL) Mexican Ancestry from Los Angeles, USA</option>
+                      <option value="PUR">(PUR) Puerto Ricans from Puerto Rico</option>
+                      <option value="CLM">(CLM) Colombians from Medellin, Colombia</option>
+                      <option value="PEL">(PEL) Peruvians from Lima, Peru</option>
+                    </optgroup>
+
+                    <optgroup label="(EAS) East Asian">
+                      <option value="CHB" data-parent="EAS">&nbsp;&nbsp;(CHB) Han Chinese in Bejing, China</option>
+                      <option value="JPT" data-parent="EAS">&nbsp;&nbsp;(JPT) Japanese in Tokyo, Japan</option>
+                      <option value="CHS" data-parent="EAS">&nbsp;&nbsp;(CHS) Southern Han Chinese</option>
+                      <option value="CDX" data-parent="EAS">&nbsp;&nbsp;(CDX) Chinese Dai in Xishuangbanna, China</option>
+                      <option value="KHV" data-parent="EAS">&nbsp;&nbsp;(KHV) Kinh in Ho Chi Minh City, Vietnam</option>
+                    </optgroup>
+
+                    <optgroup label="(EUR) European">
+                      <option value="CEU" data-parent="EUR">&nbsp;&nbsp;(CEU) Utah Residents from North and West Europe</option>
+                      <option value="TSI" data-parent="EUR">&nbsp;&nbsp;(TSI) Toscani in Italia</option>
+                      <option value="FIN" data-parent="EUR">&nbsp;&nbsp;(FIN) Finnish in Finland</option>
+                      <option value="GBR" data-parent="EUR">&nbsp;&nbsp;(GBR) British in England and Scotland</option>
+                      <option value="IBS" data-parent="EUR">&nbsp;&nbsp;(IBS) Iberian population in Spain</option>
+                    </optgroup>
+
+                    <optgroup label="(SAS) South Asian">
+                      <option value="GIH" data-parent="SAS">&nbsp;&nbsp;(GIH) Gujarati Indian from Houston, Texas</option>
+                      <option value="PJL" data-parent="SAS">&nbsp;&nbsp;(PJL) Punjabi from Lahore, Pakistan</option>
+                      <option value="BEB" data-parent="SAS">&nbsp;&nbsp;(BEB) Bengali from Bangladesh</option>
+                      <option value="STU" data-parent="SAS">&nbsp;&nbsp;(STU) Sri Lankan Tamil from the UK</option>
+                      <option value="ITU" data-parent="SAS">&nbsp;&nbsp;(ITU) Indian Telugu from the UK</option>
+                    </optgroup>
+                  </select>
+                  <div class="form-text">Click and drag or hold down the ctrl or cmd key to select multiple populations</div>
+                </div>
+              </fieldset>
+
+              <button type="reset" id="reset" class="btn btn-secondary">Reset</button>
+              <button type="submit" id="submit" class="btn btn-primary">Submit</button>
+            </form>
+          </div>
+
+          <div class="col-md-8">
+            <pre id="results"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      new EventSource("/esbuild").addEventListener("change", () => location.reload());
+    </script>
+  </body>
+</html>
