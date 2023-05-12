@@ -14,8 +14,7 @@ export const exampleSnps = [
 export const sources = {
   grch37: {
     assembly: "grch37",
-    url: (chr) => `https://s3.amazonaws.com/1000genomes/release/20130502/ALL.chr${chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz`,
-    // url: chr => `http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr${chr}.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz`
+    url: chr => `http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr${chr}.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz`
   },
   grch38: {
     assembly: "grch38",
