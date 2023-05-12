@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linkage Disequilibrium</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" />
+    <style>
+      td, th { vertical-align: middle; }
+      td { font-variant-numeric: tabular-nums; font-family: monospace; }
+    </style>
   </head>
   <body>
     <div class="container my-5">
@@ -23,8 +27,8 @@
                   <label for="genomeBuild">Genome Build (1000G)</label>
                   <select id="genomeBuld" name="genomeBuild" class="form-select" required>
                     <option value="grch37">GRCh37</option>
-                    <option value="grch38" hidden>GRCh38</option>
-                    <option value="grch38HighCoverage" hidden>GRCh38 High Coverage</option>
+                    <option value="grch38">GRCh38</option>
+                    <!-- <option value="grch38HighCoverage">GRCh38 High Coverage</option> -->
                   </select>
                 </div>
 
@@ -95,6 +99,7 @@
 
           <div class="col-md-8">
             <pre id="results"></pre>
+            <div id="resultsTable" class="table-responsive"></div>
           </div>
         </div>
       </div>
