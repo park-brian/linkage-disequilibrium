@@ -26,7 +26,7 @@ async function handleSubmit(event) {
     form.inputFormFieldset.disabled = true;
     form.submit.disabled = true;
     form.reset.disabled = true;
-    resultsElement.innerHTML = "";
+    resultsElement.innerHTML = "Loading...";
     resultsTableElement.innerHTML = "";
     resultsDownloadLinks.hidden = true;
   
@@ -37,7 +37,7 @@ async function handleSubmit(event) {
     const results = await getLinkageDisequilibrium(snps, populations, genomeBuild);
     const tableOptions = getTableOptions(results);
 
-    resultsTableElement.innerHTML = "";
+    resultsElement.innerHTML = "";
     resultsTableElement.append(createTable(tableOptions));
     downloadDprimeResultsButton.onclick = () => exportDelimitedTextFile(tableOptions.dPrimeData, "ld-dprime.txt");
     downloadRsquaredResultsButton.onclick = () => exportDelimitedTextFile(tableOptions.rSquaredData, "ld-rsquared.txt");
