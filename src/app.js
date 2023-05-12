@@ -1,4 +1,4 @@
-import { getLinkageDisequilibrium } from "./utils";
+import { getTableOptions, getLinkageDisequilibrium, createTable } from "./utils";
 import { exampleSnps } from "./sources";
 
 const loadExampleSnpsButton = document.querySelector("#loadExampleSnpsButton");
@@ -11,6 +11,7 @@ const inputForm = document.querySelector("#inputForm");
 inputForm.addEventListener("submit", handleSubmit);
 inputForm.addEventListener("reset", handleReset);
 const resultsElement = document.querySelector("#results");
+const resultsTableElement = document.querySelector("#resultsTable");
 
 async function handleSubmit(event) {
   event.preventDefault();
@@ -22,14 +23,15 @@ async function handleSubmit(event) {
     form.submit.disabled = true;
     form.reset.disabled = true;
     resultsElement.innerHTML = "";
-
+    resultsTableElement.innerHTML = "";
+  
     const genomeBuild = form.genomeBuild.value;
     const snps = form.snps.value.split(/\s+/).filter(Boolean);
     const populations = Array.from(form.populations.selectedOptions).map((option) => option.value);
-    console.log(populations);
 
     const results = await getLinkageDisequilibrium(snps, populations, genomeBuild);
-    resultsElement.innerHTML = JSON.stringify(results, null, 2);
+    resultsTableElement.innerHTML = "";
+    resultsTableElement.append(createTable(getTableOptions(results)));
     console.log(results);
   } catch (e) {
     console.error(e);
@@ -46,6 +48,8 @@ async function handleSubmit(event) {
 
 function handleReset(event) {
   console.log("reset");
+  resultsElement.innerHTML = "";
+  resultsTableElement.innerHTML = "";
 }
 
 function loadExampleSnps() {
