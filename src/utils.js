@@ -1,8 +1,14 @@
 import { RemoteFile } from "generic-filehandle";
 import { TabixIndexedFile } from "@gmod/tabix";
 import VCF from "@gmod/vcf";
+// import chi2gof from "@stdlib/stats/chi2gof";
 import { sources, populationSamples } from "./sources";
 
+/**
+ * Loads a remote tabix-indexed vcf file
+ * @param {string} url
+ * @returns {Promise<{tbiIndexed: any; tbiVCFParser: any}>} tabix indexed file and parser
+ */
 export async function loadTabixIndexedFile(url) {
   const tbiIndexed = new TabixIndexedFile({
     filehandle: new RemoteFile(url),
@@ -10,13 +16,7 @@ export async function loadTabixIndexedFile(url) {
   });
   const headerText = await tbiIndexed.getHeader();
   const tbiVCFParser = new VCF({ header: headerText });
-
-  console.log(headerText, tbiIndexed, tbiVCFParser);
-
-  return {
-    tbiIndexed,
-    tbiVCFParser,
-  };
+  return { tbiIndexed, tbiVCFParser };
 }
 
 /**
@@ -24,7 +24,7 @@ export async function loadTabixIndexedFile(url) {
  * @param {string[]} rsids
  * @returns {Promise<{rsid: string, chromosome: string, grch37Position: number, grch38Position: number}[]}>} snp coordinates
  */
-export async function getCoordinates(rsids) {
+export async function getRsidCoordinates(rsids) {
   const ids = rsids.map((rsid) => rsid.replace(/^rs/, "")).filter((rsid) => rsid.length && !isNaN(rsid));
   const endpoint = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
   const params = {
@@ -61,17 +61,96 @@ export async function getCoordinates(rsids) {
  * @param {string} genomeBuild
  */
 export async function getLinkageDisequilibrium(rsids, populations, genomeBuild) {
-  const snpCoordinates = await getCoordinates(rsids);
-  validateSnps(snpCoordinates);
+  const coords = await getRsidCoordinates(rsids);
+  validateSnps(coords);
 
-  const chromosome = snpCoordinates[0].chromosome;
+  const chromosome = coords[0].chromosome;
   const source = sources[genomeBuild];
   const vcfUrl = source.url(chromosome);
   const assembly = source.assembly;
-  const variants = await getVariants(snpCoordinates, assembly, vcfUrl, true);
+  const variants = await getVariants(coords, assembly, vcfUrl, false);
   const samples = [...new Set(populations.map((population) => populationSamples[population]).flat())];
 
-  console.log(variants, samples);
+  // calculate allele frequencies
+  for (const variant of variants) {
+    const ref = variant.REF;
+    const alt = variant.ALT[0];
+    variant.haplotypes = [];
+
+    // collect haplotypes for each sample
+    for (const sample of samples) {
+      const genotype = variant.SAMPLES[sample]?.GT?.at(0);
+      if (genotype) {
+        // assume phased, bi-allelic variants
+        switch (genotype) {
+          case "0|0":
+            variant.haplotypes.push([ref, ref]);
+            break;
+          case "0|1":
+            variant.haplotypes.push([ref, alt]);
+            break;
+          case "1|0":
+            variant.haplotypes.push([alt, ref]);
+            break;
+          case "1|1":
+            variant.haplotypes.push([alt, alt]);
+            break;
+          default:
+            throw new Error(`Unexpected genotype: ${genotype}`);
+        }
+      }
+    }
+  }
+
+  // calculate pairwise linkage disequilibrium
+  const ldResults = [];
+
+  for (let i = 0; i < variants.length; i++) {
+    for (let j = i; j < variants.length; j++) {
+      const variant1 = variants[i];
+      const variant2 = variants[j];
+      const hap1 = variant1.haplotypes;
+      const hap2 = variant2.haplotypes;
+
+      const haplotypes = hap1
+        .map((_, i) => [
+          [hap1[i][0], hap2[i][0]],
+          [hap1[i][1], hap2[i][1]],
+        ])
+        .flat();
+
+      const haplotypeFrequencies = haplotypes
+        .map((a) => a.join(""))
+        .reduce(
+          (acc, curr) => ({
+            ...acc,
+            [curr]: (acc[curr] || 0) + 1,
+          }),
+          {}
+        );
+
+      const [p1, p2, q1, q2] = Object.entries(haplotypeFrequencies)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map((a) => a[1]);
+
+      const { dPrime, rSquared } = calculateLD(p1, p2, q1, q2);
+
+      ldResults.push({
+        variant1: variant1,
+        variant2: variant2,
+        dPrime,
+        rSquared,
+      });
+    }
+  }
+
+  return asMatrix(
+    ldResults, 
+    record => record.variant1.ID[0], 
+    record => record.dPrime,
+    record => record.variant2.ID[0],
+    record => record.rSquared
+  );
 }
 
 /**
@@ -91,58 +170,141 @@ export function validateSnps(snps) {
 }
 
 /**
- * Retrieves a list of variants from a VCF file.
+ * Retrieves a list of variants from a VCF file given a list of snp coordinates.
  * @param {{rsid: string, chromosome: string, grch37Position: number, grch38Position: number}[]} snps
  * @param {string} genomeBuild
  * @param {string} vcfUrl
  * @returns {Promise<any[]>} variants
  */
 export async function getVariants(snps, assembly, vcfUrl, parallel = false) {
-  const variants = [];
   const { tbiIndexed, tbiVCFParser } = await loadTabixIndexedFile(vcfUrl);
 
   const getVariant = async (snp) => {
+    const matches = [];
     const position = snp[`${assembly}Position`];
-    await tbiIndexed.getLines(snp.chromosome, position - 1, position, function (line, fileOffset) {
+    const range = 10;
+    await tbiIndexed.getLines(snp.chromosome, position - range, position + range, function (line, fileOffset) {
       const variant = tbiVCFParser.parseLine(line);
-      if (variant.ID[0] === snp.rsid) {
-        variants.push(variant);
+      // only add the variant if it matches the rsid (or exact position) and is bi-allelic
+      if ((variant.ID?.[0] === snp.rsid || variant.POS === position) && variant.ALT.length === 1) {
+        if (!variant.ID) variant.ID = [snp.rsid];
+        matches.push(variant);
       }
     });
-    return variants[0];
+    return matches[0];
   };
 
+  let variants = [];
+
   if (parallel) {
-    const promises = snps.map(getVariant);
-    return Promise.all(promises);
+    variants = await Promise.all(snps.map(getVariant));
   } else {
-    const variants = [];
     for (const snp of snps) {
       variants.push(await getVariant(snp));
     }
-    return variants;
   }
+
+  return variants.sort((a, b) => a.POS - b.POS);
 }
 
 /**
- * Calculates pairwise linkage disequilibrium between two variants.
- * @param {number} p11 - frequency of haplotype carrying the two variants
+ * Calculates dPrime and rSquared between two variants.
  * @param {number} p1 - frequency of one variant at site 1
- * @param {number} p2 -  frequency of one variant at site 2
+ * @param {number} p2 - frequency of one variant at site 2
+ * @param {number} q1 - frequency of other variant at site 1
+ * @param {number} q2 - frequency of other variant at site 2
  * @returns {{dPrime: number, rSquared: number}} LD coefficients
  */
-export function calculateLD(p11, p1, p2) {
-  // frequencies of other variants at each site
-  var q1 = 1 - p1;
-  var q2 = 1 - p2;
+function calculateLD(p1, p2, q1, q2) {
+  // Calculate the numerator of the coefficient of linkage disequilibrium
+  const d = p1 * q2 - p2 * q1;
 
-  // coefficient of Linkage Disequilibrium
-  const d = p11 - p1 * p2;
-  const rSquared = Math.pow(d, 2) / (p1 * q1 * p2 * q2);
+  // Calculate the denominator of the coefficient of linkage disequilibrium
+  const ms = (p1 + q1) * (p2 + q2) * (p1 + p2) * (q1 + q2);
 
-  // maximum possible coefficient of Linkage Disequilibrium
-  const dMax = d < 0 ? Math.min(p1 * q2, p2 * q1) : Math.min(p1 * p2, q1 * q2);
-  const dPrime = d / dMax;
+  // Calculate rSquared, which is the squared coefficient of linkage disequilibrium
+  const rSquared = d ** 2 / ms;
+
+  // Calculate the maximum possible coefficient of linkage disequilibrium (dMax)
+  const dMax = d < 0 ? Math.min((p1 + q1) * (p1 + p2), (p2 + q2) * (q1 + q2)) : Math.min((p1 + q1) * (q1 + q2), (p1 + p2) * (p2 + q2));
+
+  // Calculate dPrime, which is the absolute value of d divided by dMax
+  const dPrime = Math.abs(d / dMax);
+
+  return { 
+    dPrime: isNaN(dPrime) ? 1 : dPrime, 
+    rSquared: isNaN(rSquared) ? 1 : rSquared, 
+  };
+}
+
+
+export function asMatrix(records, xKey, xValue, yKey, yValue) {
+  const matrix = {};
+  const columns = [];
+  const rows = [];
+  for (const record of records) {
+    const x = xKey(record);
+    const y = yKey(record);
+    if (!columns.includes(x)) columns.push(x);
+    if (!rows.includes(y)) rows.push(y);
+
+    if (!matrix[x]) matrix[x] = {};
+    if (!matrix[y]) matrix[y] = {};
+    matrix[x][y] = (record);
+    matrix[y][x] = (record);
+  }
+  return { columns, rows, matrix };
+}
+
+export function getTableOptions({ columns, matrix }) {
+  const columnDefs = [
+    {
+      title: "rsid",
+      content: row => row.id,
+    }
+  ].concat(
+    columns.map(column => ({
+      title: column,
+      content: row => `
+        <div class="text-end">
+          <div class="text-nowrap">D' = ${row[column].dPrime.toFixed(3)}</div>
+          <div class="text-nowrap">R² = ${row[column].rSquared.toFixed(3)}</div>
+        </div>
+      `,
+    }))
+  );
   
-  return { dPrime, rSquared };
+  const data = Object.entries(matrix).map(([key, value]) => ({ id: key, ...value }));
+  return { columns: columnDefs, data };
+}
+
+export function createTable({columns, data}) {
+  const table = document.createElement("table");
+  table.className = "table table-striped table-bordered table-hover";
+
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+  const headerRow = document.createElement("tr");
+  const headerCells = columns.map((column) => {
+    const cell = document.createElement("th");
+    cell.textContent = column.title;
+    return cell;
+  });
+  headerRow.append(...headerCells);
+  thead.append(headerRow);
+  table.append(thead);
+
+  for (let rowIndex = 0; rowIndex < data.length; rowIndex ++) {
+    const row = data[rowIndex];
+    const tr = document.createElement("tr");
+    const cells = columns.map((column, columnIndex) => {
+      const cell = document.createElement(columnIndex === 0 ? "th" : "td");
+      cell.innerHTML = column.content(row, rowIndex, columnIndex);
+      return cell;
+    });
+    tr.append(...cells);
+    tbody.append(tr);
+  }
+  table.append(tbody);
+  return table;
 }
