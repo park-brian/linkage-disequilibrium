@@ -145,11 +145,11 @@ export async function getLinkageDisequilibrium(rsids, populations, genomeBuild) 
   }
 
   return asMatrix(
-    ldResults, 
-    record => record.variant1.ID[0], 
-    record => record.dPrime,
-    record => record.variant2.ID[0],
-    record => record.rSquared
+    ldResults,
+    (record) => record.variant1.ID[0],
+    (record) => record.dPrime,
+    (record) => record.variant2.ID[0],
+    (record) => record.rSquared
   );
 }
 
@@ -231,12 +231,11 @@ function calculateLD(p1, p2, q1, q2) {
   // Calculate dPrime, which is the absolute value of d divided by dMax
   const dPrime = Math.abs(d / dMax);
 
-  return { 
-    dPrime: isNaN(dPrime) ? 1 : dPrime, 
-    rSquared: isNaN(rSquared) ? 1 : rSquared, 
+  return {
+    dPrime: isNaN(dPrime) ? 1 : dPrime,
+    rSquared: isNaN(rSquared) ? 1 : rSquared,
   };
 }
-
 
 export function asMatrix(records, xKey, xValue, yKey, yValue) {
   const matrix = {};
@@ -250,8 +249,8 @@ export function asMatrix(records, xKey, xValue, yKey, yValue) {
 
     if (!matrix[x]) matrix[x] = {};
     if (!matrix[y]) matrix[y] = {};
-    matrix[x][y] = (record);
-    matrix[y][x] = (record);
+    matrix[x][y] = record;
+    matrix[y][x] = record;
   }
   return { columns, rows, matrix };
 }
@@ -259,13 +258,13 @@ export function asMatrix(records, xKey, xValue, yKey, yValue) {
 export function getTableOptions({ columns, matrix }) {
   const columnDefs = [
     {
-      title: "rsid",
-      content: row => row.id,
-    }
+      title: "id",
+      content: (row) => row.id,
+    },
   ].concat(
-    columns.map(column => ({
+    columns.map((column) => ({
       title: column,
-      content: row => `
+      content: (row) => `
         <div class="text-end">
           <div class="text-nowrap">D' = ${row[column].dPrime.toFixed(3)}</div>
           <div class="text-nowrap">R² = ${row[column].rSquared.toFixed(3)}</div>
@@ -273,12 +272,23 @@ export function getTableOptions({ columns, matrix }) {
       `,
     }))
   );
-  
+
   const data = Object.entries(matrix).map(([key, value]) => ({ id: key, ...value }));
-  return { columns: columnDefs, data };
+
+  // generate data for export
+  const header = columnDefs.map((column) => column.title);
+  const dPrimeData = [header].concat(data.map((row) => header.map((column) => row[column]?.dPrime?.toFixed(3) || row[column])));
+  const rSquaredData = [header].concat(data.map((row) => header.map((column) => row[column]?.rSquared?.toFixed(3) || row[column])));
+
+  return {
+    columns: columnDefs,
+    data,
+    dPrimeData,
+    rSquaredData,
+  };
 }
 
-export function createTable({columns, data}) {
+export function createTable({ columns, data }) {
   const table = document.createElement("table");
   table.className = "table table-striped table-bordered table-hover";
 
@@ -294,7 +304,7 @@ export function createTable({columns, data}) {
   thead.append(headerRow);
   table.append(thead);
 
-  for (let rowIndex = 0; rowIndex < data.length; rowIndex ++) {
+  for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
     const row = data[rowIndex];
     const tr = document.createElement("tr");
     const cells = columns.map((column, columnIndex) => {
@@ -307,4 +317,15 @@ export function createTable({columns, data}) {
   }
   table.append(tbody);
   return table;
+}
+
+export function exportDelimitedTextFile(data, filename, delimiter = "\t") {
+  const content = data.map((row) => row.join(delimiter)).join("\r\n");
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
