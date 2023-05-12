@@ -56,9 +56,9 @@ async function handleSubmit(event) {
 }
 
 function handleReset(event) {
-  console.log("reset");
   resultsElement.innerHTML = "";
   resultsTableElement.innerHTML = "";
+  resultsDownloadLinks.hidden = true;
 }
 
 function loadExampleSnps() {
