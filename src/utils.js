@@ -186,7 +186,7 @@ export async function getVariants(snps, assembly, vcfUrl, parallel = false) {
     await tbiIndexed.getLines(snp.chromosome, position - range, position + range, function (line, fileOffset) {
       const variant = tbiVCFParser.parseLine(line);
       // only add the variant if it matches the rsid (or exact position) and is bi-allelic
-      if ((variant.ID?.[0] === snp.rsid || variant.POS === position) && variant.ALT.length === 1) {
+      if ((variant.ID?.[0] === snp.rsid || variant.POS === position) && variant.REF && variant.ALT.length === 1) {
         if (!variant.ID) variant.ID = [snp.rsid];
         matches.push(variant);
       }
@@ -204,7 +204,7 @@ export async function getVariants(snps, assembly, vcfUrl, parallel = false) {
     }
   }
 
-  return variants.sort((a, b) => a.POS - b.POS);
+  return variants.filter(Boolean).sort((a, b) => a.POS - b.POS);
 }
 
 /**
