@@ -10,6 +10,13 @@
       td, th { vertical-align: middle; }
       td { font-variant-numeric: tabular-nums; font-family: monospace; }
     </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "https://esm.sh/v120/pako@1.0.11/es2022/pako.mjs": "https://esm.sh/pako@1.0.11?cjs-exports=Inflate,Z_SYNC_FLUSH&exports=Z_SYNC_FLUSH,Inflate"
+        }
+      }
+    </script>
   </head>
   <body>
     <div class="container my-5">
@@ -116,9 +123,6 @@
       </div>
     </div>
 
-    <script src="app.js"></script>
-    <script>
-      new EventSource("/esbuild").addEventListener("change", () => location.reload());
-    </script>
+    <script src="app.js" type="module"></script>
   </body>
 </html>

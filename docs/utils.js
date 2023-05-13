@@ -1,8 +1,7 @@
-import { RemoteFile } from "generic-filehandle";
-import { TabixIndexedFile } from "@gmod/tabix";
-import VCF from "@gmod/vcf";
-// import chi2gof from "@stdlib/stats/chi2gof";
-import { sources, populationSamples } from "./sources";
+import { RemoteFile } from "https://esm.sh/generic-filehandle@3.0.1";
+import { TabixIndexedFile } from 'https://esm.sh/@gmod/tabix@1.5.10';
+import VCF from "https://esm.sh/@gmod/vcf@5.0.10";
+import { sources, populationSamples } from "./sources.js";
 
 /**
  * Loads a remote tabix-indexed vcf file
