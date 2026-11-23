@@ -98,9 +98,9 @@ Yes, and it is the right long-term shape. Today LDlink's rules sit inside the co
 - **Release columns:** some (`vcf_id`, `rsid_source`, `rsid_pos_delta`) exist only for LDlink's labels.
 
 **Target:**
-- **A core directory (proposed `src/core`)** returns *every* match in file order: variants by ID or position, genotype rows overlapping a
+- **A core directory (proposed: src/core)** returns *every* match in file order: variants by ID or position, genotype rows overlapping a
   position, annotations, the LD kernel, the generic numerics.
-- **A parity directory (proposed `src/parity`)** chooses from those lists (first, last, "Multiple rsIDs") and holds everything LDlink-shaped:
+- **A parity directory (proposed: src/parity)** chooses from those lists (first, last, "Multiple rsIDs") and holds everything LDlink-shaped:
   - input parsing and Python `int()` / `float()` acceptors;
   - messages;
   - `pyfmt`, and the ldsc `log` and `pandas` emulation;
