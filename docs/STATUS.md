@@ -27,7 +27,7 @@
 | G2 | `npm run verify` | planner, parity (12 checks), annotations (incl. 34,805 range-track rows): 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 (final code) |
 | G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 416/429 + 13 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 · LDherit 29/29 · LDcorrelation 19/20 + 1 degenerate_z (rg = 1, se ≈ 1e-7) · LDscore 19/19 | 2026-11-23 (final code) |
 | G3s | `npm run verify:snapshot` | 1,440 / 1,440 hashes, taken from the code that passed G3 above and reproduced; over HTTP (`--http`, dev server): LDmatrix, LDassoc, LDscore, LDherit 99 / 99 | 2026-11-23 |
-| G4 | the app | (before the cleanup, with the now-deleted `check.html`: 18/18) all 14 views run, locus plots on GRCh37 / GRCh38 / High Coverage, links open and run, region track hashes unchanged | 2026-11-23 (final code) |
+| G4 | `npm run verify:app` | 14 / 14 views in headless Chromium, no page or console errors, every figure drawn, a run abandoned by a module switch shows nothing, back returns to the inputs; coverage `app/` 94.9%, `src/` 87.2% (snapshot: `src/` 92.1%) | 2026-11-23 |
 
 ## Speed (cold, browser, local dev server)
 

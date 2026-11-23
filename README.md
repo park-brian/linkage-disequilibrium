@@ -37,6 +37,7 @@ See `tools/config.js` for every path and its environment variable.
 | `npm test` | unit tests (seconds; needs the release unless `LD_SKIP_DATA=1`) |
 | `npm run verify` | data verifiers: planner, parity, annotations, kernel (chr1, chrX), selection, ldsc (about 20 min) |
 | `npm run verify:snapshot` | the parity snapshot: every LDlink comparison case through our ports, hashed against `verify/ldlink/snapshot.json` (about 13 min, no Docker; `-- --http <url>` reads the release over HTTP) |
+| `npm run verify:app` | every view in headless Chromium against the dev server (about 1 min): fails on page or console errors, error results, missing figures, a stale run shown after a switch; prints `app/` and `src/` coverage (Playwright; once: `npx playwright install chromium`) |
 | `npm run coverage` | line coverage of `src/` from the unit tests (`coverage:snapshot`: from the parity snapshot, about 92%; `tools/coverage.js`) |
 | `npm run verify:ldlink` | the thirteen module comparisons against a local LDlink (about 1.5 h; `tools/ldlink-local/README.md`) |
 | `npm run bench` | WASM vs JS kernel benchmark (`bench/` has the others) |

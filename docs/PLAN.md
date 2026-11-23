@@ -11,7 +11,7 @@ green on its gates and is one commit. When done, this file and REVIEW.md move to
 | G2 | `npm run verify` (data) | ~20 min |
 | G3s | **new** `npm run verify:snapshot`: every G3 case through our ports, hashed and compared with the committed hashes | ~5 min, no Docker |
 | G3 | `npm run verify:ldlink` against the local LDlink | ~1.5 h |
-| G4 | the app (dev server and the built site) | minutes |
+| G4 | `npm run verify:app`: every view in headless Chromium (and a look at the built site) | ~1 min |
 
 G3s is valid because its hashes are taken from code that G3 has just passed. A slice that changes `src/` runs G1 and
 G3s; G2 and G3 run in full at slices 2, 6, 10 and the end. A G3s difference is investigated with G3 on that module.

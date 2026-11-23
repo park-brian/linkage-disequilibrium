@@ -41,7 +41,7 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 | `src/ld/*` | `npm test` (K tests, both backends) + `npm run verify` (kernel chr1 + chrX) |
 | `src/ldsc/*` | `npm run verify` (ldsc steps) |
 | `src/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.js <module>`) |
-| `app/*` | `npm run serve`, then `npm run verify:snapshot -- --http http://127.0.0.1:8095/release` and the views you touched |
+| `app/*` | `npm run verify:app` (every view in Chromium), and a look at the views you touched |
 | `pipeline/*` | the stage on one chromosome, then `node pipeline/release/check.js <root>` |
 
 Reports land in `$LD_DATA/verify/`; `summary.txt` has one line per step.
