@@ -81,7 +81,7 @@ release on another origin; `.github/workflows/pages.yml` deploys it once Pages u
 - **Going live on Pages:** set the repository variable `LD_DATA_URL` to `https://d2x2yo644ey89o.cloudfront.net`,
   switch Pages to the Actions workflow, then push `restructure` to `main` (a fast-forward). Switch before pushing, or
   in the same step: the legacy build would serve `app/` with an import map into the untracked `node_modules/`.
-- **The test bucket's older prefixes** (`ldlink-parquet/v2/`–`v4/`, about 80 GB): keep or delete. `v4/` still has
+- **The test bucket's older prefixes** (`ldlink-parquet/v2/`–`v4/`, 94 GB: 24.5 + 34.8 + 34.8): keep or delete. `v4/` still has
   manifest version 1.
 - **About 870 GB of regenerable intermediates** in `$LD_DATA` (`ncbi_dbsnp`, `dbsnp_dump`, `phaseB` build copies):
   keep or delete.
