@@ -1,13 +1,13 @@
 // LD kernel (WASM backend): pairwise haplotype counts by popcount, then r² and D′ with LDlink's formulas
 // (server/LDmatrix.py:303-318, LDcommon.LD_calcs; counted by allele index). Built standalone (no libc) by build.sh into
 // kernel.wasm (scalar i64.popcnt — V8's SIMD popcount is not faster, docs/CORE_REVIEW.md §2).
-// kernel_js.mjs is the plain-JS backend with the same entry points and results; kernel.mjs is the shared API.
+// kernel_js.js is the plain-JS backend with the same entry points and results; kernel.js is the shared API.
 //
-// Data layout (prepared by kernel.mjs):
+// Data layout (prepared by kernel.js):
 //   alt   : n variants × W u64 words (W = ceil(hn / 64)), alt-allele bit per population haplotype (valid haplotypes only)
 //   valid : same shape, 1 bit per called haplotype (masked entry point only: chrX males, '.' calls)
 //   pa    : alt count per variant (over its valid haplotypes: alt bits are only set where valid)
-//   nv,cls: masked only: valid count per variant, and a mask class (equal class <=> identical valid rows; kernel.mjs)
+//   nv,cls: masked only: valid count per variant, and a mask class (equal class <=> identical valid rows; kernel.js)
 //   pos   : position per variant (ascending)
 // Counts are exact integers; stats() is bit-identical to Python (integer products < 2^53, one rounding per op).
 #include <stdint.h>

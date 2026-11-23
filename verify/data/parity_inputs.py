@@ -1,11 +1,11 @@
-# V3 (ROADMAP §2.2): LDlink's input handling, as ground truth for resolve.mjs.
+# V3 (ROADMAP §2.2): LDlink's input handling, as ground truth for resolve.js.
 # Re-implements, expression for expression, server/LDcommon.py:
 #   validsnp            snp = snp_raw.lower().strip().split()           (one entry per input line; modules use snp[0])
 #   replace_coord_rsid  rs* kept; else get_rsnum: coord.strip("chr").split(":"), CHROMOSOME_LOOKUP, int(), find()
 #                       → first doc / first id==ref_id doc, "Multiple rsIDs (...) map to genomic coordinates <snp>"
 #   get_coords          rsid.strip("rs"); str(int(rsid)); find_one({"id"})  (first doc in dump order)
 # and records LDmatrix's extra gate (LDmatrix.py:69-72: len > 2, starts with rs/chr, last char a digit) separately,
-# because it is module logic, not resolver logic. Dump lookups go through DuckDB on dbsnp_dump/work.duckdb (relative to LD_DATA: verify/data/parity.mjs runs it there)
+# because it is module logic, not resolver logic. Dump lookups go through DuckDB on dbsnp_dump/work.duckdb (relative to LD_DATA: verify/data/parity.js runs it there)
 # (table d: ord = dump order, Mongo semantics as in parity_expected.sql). Stdlib only; run with python -I.
 # usage (cwd = LD_DATA): python -I verify/data/parity_inputs.py <inputs.json> <build grch37|grch38> <out.json>
 import json

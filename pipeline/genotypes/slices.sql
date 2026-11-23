@@ -1,4 +1,4 @@
--- Phase B inputs for pipeline/genotypes/build.mjs, per chromosome (one statement per process: tools/run_sql.py).
+-- Phase B inputs for pipeline/genotypes/build.js, per chromosome (one statement per process: tools/run_sql.py).
 --   phaseB/dbsnp_src/pos{37,38}_chr{N}.parquet  key{37,38}, rsid, ref_rsid, type, function — LDlink's dump docs with
 --       a position 1..999,999,999 (the dbSNP index rule; drops the corrupt HGVS-concatenation positions), sorted
 --       (key, rsid, dump order): duplicates of one rsID at one position keep LDlink's find_one order (DuckDB sorts are unstable)

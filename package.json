@@ -4,12 +4,12 @@
   "type": "module",
   "description": "Browser-only LDlink: 1000 Genomes LD from static Parquet files (hyparquet), WASM + JS kernel, byte-for-byte LDlink parity",
   "scripts": {
-    "serve": "node tools/serve.mjs",
-    "build:site": "node tools/build_site.mjs",
-    "test": "node --test \"test/*.test.mjs\"",
+    "serve": "node tools/serve.js",
+    "build:site": "node tools/build_site.js",
+    "test": "node --test \"test/*.test.js\"",
     "verify": "bash verify/run.sh data",
     "verify:ldlink": "bash verify/run.sh ldlink",
-    "bench": "node bench/js_vs_wasm.mjs",
+    "bench": "node bench/js_vs_wasm.js",
     "build:kernel": "bash src/ld/build.sh"
   },
   "dependencies": {

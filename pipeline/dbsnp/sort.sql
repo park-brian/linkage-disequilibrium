@@ -1,5 +1,5 @@
 -- External sort of the dbSNP dump TSV into intermediates (DuckDB; intermediates only — final files are written
--- by hyparquet-writer in pipeline/dbsnp/build.mjs). Run:
+-- by hyparquet-writer in pipeline/dbsnp/build.js). Run:
 --   (cd $LD_DATA && duckdb -no-agent dbsnp_dump/work.duckdb < <repo>/pipeline/dbsnp/sort.sql)
 -- Order matters for parity, so: keep insertion order on, materialize sorted tables, then write each partition with
 -- its own explicit ORDER BY (PARTITION_BY writes do not guarantee row order).

@@ -20,10 +20,10 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 2. **`src/` is browser code.**
    - No Node imports; the only bare imports are `hyparquet` and `hyparquet-compressors`.
    - Data access goes through a caller-supplied `open(path, byteLength?)`.
-3. **The kernel chain stays dependency-free.** `src/ld/kernel.mjs`, `kernel_js.mjs`, `haps.mjs` and `pyfmt.mjs`
+3. **The kernel chain stays dependency-free.** `src/ld/kernel.js`, `kernel_js.js`, `haps.js` and `pyfmt.js`
    import nothing else, because `app/workers/` loads them without an import map.
 4. **WASM and JS backends give identical results.**
-   - Change `kernel.c` and `kernel_js.mjs` together.
+   - Change `kernel.c` and `kernel_js.js` together.
    - Rebuild with `npm run build:kernel`; commit `kernel.wasm`.
 5. **No machine paths, no outputs in the repo.**
    - Every path comes from `tools/config.{mjs,sh}`.
@@ -37,12 +37,12 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 | you changed | run |
 |---|---|
 | anything | `npm test` |
-| `src/parquet.mjs`, `dbsnp.mjs`, `genotypes.mjs`, `planner.mjs`, `annotations.mjs` | `npm run verify` (planner, parity, annotations, select) |
+| `src/parquet.js`, `dbsnp.js`, `genotypes.js`, `planner.js`, `annotations.js` | `npm run verify` (planner, parity, annotations, select) |
 | `src/ld/*` | `npm test` (K tests, both backends) + `npm run verify` (kernel chr1 + chrX) |
 | `src/ldsc/*` | `npm run verify` (ldsc steps) |
-| `src/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.mjs <module>`) |
+| `src/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.js <module>`) |
 | `app/*` | `npm run serve`, then `/app/check.html` (18/18) and the views you touched |
-| `pipeline/*` | the stage on one chromosome, then `node pipeline/release/check.mjs <root>` |
+| `pipeline/*` | the stage on one chromosome, then `node pipeline/release/check.js <root>` |
 
 Reports land in `$LD_DATA/verify/`; `summary.txt` has one line per step.
 

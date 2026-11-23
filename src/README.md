@@ -12,9 +12,9 @@
 **Using a module port:**
 
 ```js
-import { loadKernel, KERNEL_WASM } from "./ld/kernel.mjs";
-import { createContext } from "./ldlink/context.mjs";
-import { ldpair } from "./ldlink/ldpair.mjs";
+import { loadKernel, KERNEL_WASM } from "./ld/kernel.js";
+import { createContext } from "./ldlink/context.js";
+import { ldpair } from "./ldlink/ldpair.js";
 const kernel = await loadKernel(new Uint8Array(await (await fetch(KERNEL_WASM)).arrayBuffer()));
 const ctx = await createContext({ root, open, readPanel, kernel }); // readPanel(pop) → sample IDs
 const out = await ldpair(ctx, { var1: "rs3", var2: "rs4", pop: "CEU", build: "grch37" });

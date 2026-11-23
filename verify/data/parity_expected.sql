@@ -1,4 +1,4 @@
--- Expected LDlink answers computed directly from the dump (Mongo semantics), for verify_parity.mjs.
+-- Expected LDlink answers computed directly from the dump (Mongo semantics), for verify_parity.js.
 -- Run after pipeline/dbsnp/sort.sql:  python -I tools/run_sql.py dbsnp_dump/work.duckdb verify/data/parity_expected.sql
 -- (one DuckDB process per statement: DuckDB 2.0.0 segfaulted running these in one session)
 -- Note: DuckDB applies USING SAMPLE to the FROM source before WHERE, so every filtered case is sampled from an

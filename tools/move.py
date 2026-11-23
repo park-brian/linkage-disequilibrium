@@ -44,7 +44,7 @@ def rewrite(rel_old, text):
 code = []
 for d, dirs, fs in os.walk(ROOT):
     dirs[:] = [x for x in dirs if x not in SKIP]
-    code += [os.path.relpath(os.path.join(d, f), ROOT).replace("\\", "/") for f in fs if f.endswith((".mjs", ".js", ".html"))]
+    code += [os.path.relpath(os.path.join(d, f), ROOT).replace("\\", "/") for f in fs if f.endswith((".js", ".js", ".html"))]
 edited = 0
 for rel in code:
     path = os.path.join(ROOT, rel); text = open(path, encoding="utf8").read(); new = rewrite(rel, text)

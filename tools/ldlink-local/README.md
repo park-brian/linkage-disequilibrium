@@ -40,4 +40,4 @@ This folder is the kit; the running copy lives in `$LDLINK_HOME` (default `../ld
 6. **Check it.** `curl "http://127.0.0.1:8090/LDlinkRest/ldpair?var1=rs3&var2=rs4&pop=CEU&genome_build=grch37&json_out=true"`
    should return the rs3/rs4 table. In Git Bash, prefix `docker compose exec` commands with `MSYS_NO_PATHCONV=1`.
 
-The comparers exchange files with the container through `$LDLINK_HOME/data/tmp` (`tools/config.mjs`: `LDLINK_TMP`).
+The comparers exchange files with the container through `$LDLINK_HOME/data/tmp` (`tools/config.js`: `LDLINK_TMP`).

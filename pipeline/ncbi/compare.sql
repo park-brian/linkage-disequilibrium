@@ -1,7 +1,7 @@
 -- Compare LDlink's 2023 dbsnp dump (table d in dbsnp_dump/work.duckdb) with an NCBI dbSNP VCF rebuild.
 -- Run with tools/run_sql.py (one statement per process; paths are relative to LD_DATA):
 --   python -I tools/run_sql.py ncbi_dbsnp/<build>/compare.duckdb <compare.sql with {B} replaced>   (after sed s/{B}/<build>/)
--- Inputs: ncbi_dbsnp/{B}/vcf37.parquet, vcf38.parquet (pipeline/ncbi/vcf2tsv.mjs → DuckDB COPY), merged.tsv (pipeline/ncbi/merged2tsv.py).
+-- Inputs: ncbi_dbsnp/{B}/vcf37.parquet, vcf38.parquet (pipeline/ncbi/vcf2tsv.js → DuckDB COPY), merged.tsv (pipeline/ncbi/merged2tsv.py).
 -- LDlink's import (scripts/dbSNP_mongo_update/rsjson_parse_data_mongo.py) per refSNP JSON record:
 --   one doc per rsID in [refsnp_id] + dbsnp1_merges, ref_id = refsnp_id; position = first number of the REF allele
 --   HGVS on the GRCh37.p13 / GRCh38.p13 chromosome placement; type = variant_type; function = set of protein SO terms.

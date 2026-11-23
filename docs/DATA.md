@@ -12,7 +12,7 @@ A release is a directory of Parquet files plus `manifest.json`, served as static
 - **Compression and indexes:** ZSTD; page indexes on the sort column.
 - **Metadata:** `source`, `order` and other provenance keys in the key-value metadata.
 - **Builds:** `grch37`, `grch38` and `grch38_high_coverage`. High Coverage uses GRCh38 positions, so its dbSNP and
-  annotation files are the `grch38` ones (`src/genome.mjs` `BUILDS`).
+  annotation files are the `grch38` ones (`src/genome.js` `BUILDS`).
 
 ## manifest.json
 
@@ -21,8 +21,8 @@ kv, rowGroups } } }`. `rowGroups` is stored column-wise, one array entry per row
 keyIndex?: [], payloadOffsetIndex?: [], colBytes?: { <column>: [] } }`.
 - `min` / `max`: the key column's statistics (`null`: none). `keyIndex`: `[columnIndexOffset, length, offsetIndexOffset,
   length]` of the key column. `payloadOffsetIndex`: `[offset, length]` of the `haps` offset index.
-- `colBytes`: genotype files only, for the columns the planner prices (`PRICED_COLUMNS` in `src/planner.mjs`).
-- `src/planner.mjs` `expandManifest` turns it back into one object per row group, and also reads version 1 (one object
+- `colBytes`: genotype files only, for the columns the planner prices (`PRICED_COLUMNS` in `src/planner.js`).
+- `src/planner.js` `expandManifest` turns it back into one object per row group, and also reads version 1 (one object
   per row group, `colBytes` for every column), which is what the bucket's `v4/` still holds.
 - The planner prices reads from it. Each file opens with its `byteLength` (no size probe) and its footer in one exact
   Range request.
@@ -30,7 +30,7 @@ keyIndex?: [], payloadOffsetIndex?: [], colBytes?: { <column>: [] } }`.
   download. The version 1 file is kept at `$LD_DATA/release_v4_manifest.v1.json`.
 - A path that is not in the manifest is absent (`exists`).
 
-Built by `pipeline/release/manifest.mjs`.
+Built by `pipeline/release/manifest.js`.
 
 ## genotypes/<build>/chr<N>.<tier>.parquet: 1000 Genomes haplotypes
 
@@ -45,13 +45,13 @@ Built by `pipeline/release/manifest.mjs`.
 **Column semantics:**
 - **`haps`:** one bit per haplotype. In `common`/`low` it is a fixed-length bitset (2 × samples bits, 626 bytes for
   2,504 samples). In `rare` it is a sparse varint list: byte 0 is `listRef`, then index deltas
-  (`src/haps.mjs` `decodeHaps`).
+  (`src/haps.js` `decodeHaps`).
 - **`missing`:** only true `.` calls.
 - **`male_haploid` + `male_haploid_samples`:** they mark which samples' second haplotype is absent (chrX
   non-PAR, chrY).
 - **Multi-allelic records** are split into one row per ALT (`multiallelic_source`).
 - **`vcf_order`:** the source VCF row index, so LDlink's "last overlapping row" = the highest `vcf_order` across tiers.
-- **`rsid`:** the label LDlink would show (`pipeline/genotypes/rsid_label.mjs`):
+- **`rsid`:** the label LDlink would show (`pipeline/genotypes/rsid_label.js`):
   - **`rsid_source`:** 1 = VCF rsID, 2 = merged → current, 3 = position + type, 4 = NCBI allele match.
   - **`rsid_pos_delta`:** the dump position − POS, where deletions sit at POS + 1.
 - **`vcf_id`:** the raw VCF ID when it contains "rs" and is not `rs<rsid>`. LDlink prints it in warnings and in
@@ -66,7 +66,7 @@ Built by `pipeline/release/manifest.mjs`.
 | `<grch37\|grch38>/chr<N>.parquet` (48) | | `key`, `rsid`, `is_ref`, `type`?, `function`? | `find({chromosome, position})`, all rows per key in dump order |
 | `duplicated_rsids.parquet` | 296,308 | `rsid` | rsIDs with more than one dump doc |
 
-Built by `pipeline/dbsnp/` from the mongodump (`bson2tsv` → `sort.sql` → `build.mjs`).
+Built by `pipeline/dbsnp/` from the mongodump (`bson2tsv` → `sort.sql` → `build.js`).
 
 ## annotations/: LDlink's other collections
 
@@ -85,8 +85,8 @@ Built by `pipeline/dbsnp/` from the mongodump (`bson2tsv` → `sort.sql` → `bu
 | `gene_names.parquet` | name | per-build chromosome / begin / end | `genes_name_coords.find_one` (LDassoc gene mode) |
 | `panels.parquet` | — | `pop`, `sample` (each list in file order; 32 pops, 7,512 rows) | LDlink's `<POP>.txt` sample lists |
 
-Built by `pipeline/annotations/` (`fetch.sh` → `annotations.sql` → `build.mjs`); `panels.parquet` by
-`pipeline/release/extras.mjs`.
+Built by `pipeline/annotations/` (`fetch.sh` → `annotations.sql` → `build.js`); `panels.parquet` by
+`pipeline/release/extras.js`.
 
 ## ldscore/: LD score reference panels
 
@@ -96,7 +96,7 @@ correlation).
 
 ## examples/: LDlink's example inputs
 
-Plain files, copied byte for byte by `pipeline/release/extras.mjs`, for the example buttons:
+Plain files, copied byte for byte by `pipeline/release/extras.js`, for the example buttons:
 - LDassoc: `prostate_example_grch37.txt` and `prostate_example_grch38.txt`;
 - LDscore: `22.bed`, `22.bim`, `22.fam`;
 - LDherit / LDcorrelation: `BBJ_HDLC22.txt`, `BBJ_LDLC22.txt`.

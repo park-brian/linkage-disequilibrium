@@ -12,7 +12,7 @@ NCI's [LDlink](https://ldlink.nih.gov), rebuilt as a **browser-only** app.
 
 ```
 src/        the runtime core: browser + Node, no build step   → docs/ARCHITECTURE.md
-  ld/         LD kernel: kernel.c → kernel.wasm, kernel_js.mjs, one API in kernel.mjs
+  ld/         LD kernel: kernel.c → kernel.wasm, kernel_js.js, one API in kernel.js
   ldlink/     the ten LDlink module ports + shared context    → docs/PARITY.md
   ldsc/       LD score regression, munging, LD scores
 app/        the browser UI (forms, render, region view, LDmatrix plot, pyramid + tracks, worker pool, parity check page)
@@ -20,12 +20,12 @@ pipeline/   offline release build: dbsnp, ncbi, genotypes, annotations, ldscore,
 verify/     data verifiers (data/), ldsc checks (ldsc/), LDlink comparisons (ldlink/), run.sh
 test/       unit tests and fixtures
 bench/      benchmarks and recorded results
-tools/      config.{mjs,sh} (every machine path), serve.mjs, run_sql.py, move.py, ldlink-local/ (oracle kit)
+tools/      config.{mjs,sh} (every machine path), serve.js, run_sql.py, move.py, ldlink-local/ (oracle kit)
 docs/       STATUS · ARCHITECTURE · DATA (release contract) · PARITY · decisions · REQUIREMENTS · history/
 ```
 
 Generated data (releases, build intermediates, reports) lives **outside** the repo in `$LD_DATA` (default `../data`).
-See `tools/config.mjs` for every path and its environment variable.
+See `tools/config.js` for every path and its environment variable.
 
 ## Commands
 

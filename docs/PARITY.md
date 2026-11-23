@@ -27,7 +27,7 @@ module's comparison.
 - **Pair LD:** the 2×2 haplotype table, with D′ by the sign-dependent Dmax and r² = Δ²/Ms; NA when Ms = 0.
 - **Haploid males** contribute one haplotype; a haplotype uncalled in either variant is dropped from the pair.
 - **Thresholds** compare unrounded doubles.
-- **Formatting:** Python's own: `round`, `str(float)`, `'%.nf'` (`pyfmt.mjs`); χ² uses an exact integer numerator.
+- **Formatting:** Python's own: `round`, `str(float)`, `'%.nf'` (`pyfmt.js`); χ² uses an exact integer numerator.
 
 **Raw VCF IDs.** LDlink prints the VCF's ID in "does not match RS number" warnings and in LDproxy's RS_Number.
 Stored as `vcf_id` (GRCh37).

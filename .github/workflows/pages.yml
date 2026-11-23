@@ -1,4 +1,4 @@
-# Deploy the app to GitHub Pages: tools/build_site.mjs writes dist/ (app + src + vendored browser deps, ~0.7 MB).
+# Deploy the app to GitHub Pages: tools/build_site.js writes dist/ (app + src + vendored browser deps, ~0.7 MB).
 # The release is not part of the site (34.8 GB; Pages allows 1 GB): it is read from the repository variable
 # LD_DATA_URL, a host that serves the release with HTTP Range and CORS (docs/PLAN.md §6). Takes effect only once
 # the repository's Pages source is set to "GitHub Actions".
@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node tools/build_site.mjs ${{ vars.LD_DATA_URL && format('--data {0}', vars.LD_DATA_URL) || '' }}
+      - run: node tools/build_site.js ${{ vars.LD_DATA_URL && format('--data {0}', vars.LD_DATA_URL) || '' }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

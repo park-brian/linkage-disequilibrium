@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase B: build the genotype files for every chromosome of every build with pipeline/genotypes/build.mjs
+# Phase B: build the genotype files for every chromosome of every build with pipeline/genotypes/build.js
 # (FINAL layouts, NCBI b155 allele labels). Resumable: a chromosome whose build_report.json exists is skipped.
 # Jobs run largest-first, P at a time; each job's log and exit status go to $LD_DATA/phaseB/geno/<build>/chr<N>.log.
 # usage: pipeline/genotypes/build_all.sh [P=3] [build ...]      builds: grch37 grch38 grch38_high_coverage
@@ -33,7 +33,7 @@ run() { # size build chrom assembly vcf
   [ -f "$dir/build_report.json" ] && { echo "skip $b chr$c"; return 0; }
   mkdir -p "$dir"; rm -f "$dir"/*.parquet
   local t0=$(date +%s)
-  FINAL=1 ALLELES=phaseB/ncbi/${a}_chr$c.parquet node --max-old-space-size=48000 "$REPO/pipeline/genotypes/build.mjs" \
+  FINAL=1 ALLELES=phaseB/ncbi/${a}_chr$c.parquet node --max-old-space-size=48000 "$REPO/pipeline/genotypes/build.js" \
     "$v" "$dir" $PANELS phaseB/dbsnp_src/pos${a}_chr$c.parquet $(code $c) > "$OUT/$b/chr$c.log" 2>&1
   local s=$?
   echo "$b chr$c exit=$s $(( $(date +%s) - t0 ))s" | tee -a "$OUT/progress.log"

@@ -1,4 +1,4 @@
-# Shell twin of tools/config.mjs: source it, then `cd "$LD_DATA"` for data-relative paths.
+# Shell twin of tools/config.js: source it, then `cd "$LD_DATA"` for data-relative paths.
 #   . "$(dirname "$0")/../../tools/config.sh"     (from pipeline/<stage>/ or verify/)
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 export REPO

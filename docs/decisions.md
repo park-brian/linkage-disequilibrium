@@ -24,7 +24,7 @@ trusted when it can show it agrees.
 
 ## One LD kernel API, WASM + plain-JS backends (2026-11-22)
 
-**What:** `src/ld/kernel.mjs` exposes one API; `kernel.wasm` (C, scalar popcount, blocked) and `kernel_js.mjs` give
+**What:** `src/ld/kernel.js` exposes one API; `kernel.wasm` (C, scalar popcount, blocked) and `kernel_js.js` give
 identical results.
 
 **Why:** WASM is 3.5–5.3× faster on large unthresholded bands and 1.7–3.1× with pruning; at module sizes both take

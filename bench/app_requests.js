@@ -2,9 +2,9 @@
 // runs each module cold (one per page load is the honest number; this runs them in sequence, so later modules reuse
 // footers the earlier ones read) and reports requests and transferred bytes per module from Resource Timing.
 // usage: await (await import("/bench/app_requests.js")).measure(["LDmatrix"], dataUrl?)   dataUrl: the release URL
-// (default: the app's, from app/site.mjs). Cross-origin bytes need the data host to send Timing-Allow-Origin.
+// (default: the app's, from app/site.js). Cross-origin bytes need the data host to send Timing-Allow-Origin.
 export async function measure(names, dataUrl) {
-  dataUrl ??= (await import("/app/site.mjs")).releaseUrl();
+  dataUrl ??= (await import("/app/site.js")).releaseUrl();
   const out = {}, wait = ms => new Promise(r => setTimeout(r, ms));
   while (!/^ready/.test(document.querySelector("#status").textContent)) await wait(100);
   performance.setResourceTimingBufferSize(100000);

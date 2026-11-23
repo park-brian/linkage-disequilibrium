@@ -17,17 +17,17 @@ step() { # name cmd...
 vcf() { echo "$G/ALL.chr$1.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz"; }
 if [ "$WHAT" != ldlink ]; then
   # from the repo (node --test globs are cwd-relative); zero tests run is a failure, not a pass
-  step tests          bash -c 'cd "$REPO" && node --test "test/*.test.mjs" | tee /dev/stderr | grep -qE "^ℹ tests [1-9]"'
-  step verify_planner node "$V/data/planner.mjs" "$REL"
-  step verify_parity  node "$V/data/parity.mjs" "$REL"
-  step verify_annot   node "$V/data/annotations.mjs" "$REL"
-  step kernel_chr1    node "$V/data/kernel.mjs" "$REL/genotypes/grch37/chr1" "$(vcf 1)" "$(vcf 1).tbi" 1 207000000 "verify/kernel_chr1.json"
-  step kernel_chrX    node "$V/data/kernel.mjs" "$REL/genotypes/grch37/chrX" "$(vcf X)" "$(vcf X).tbi" X 100100000 "verify/kernel_chrX.json"
-  step verify_select  node "$V/data/select.mjs" "$(vcf 22)" phaseB/geno_vcfid/grch37/chr22 phaseB/ncbi/37_chr22.parquet "verify/select.json" 20000
-  step ldsc_munge     node "$V/ldsc/munge.mjs" ldscore_src/ldscore ldsc_runs/h2rg "$REL/ldscore"
-  step ldsc_regress   node "$V/ldsc/regress.mjs" ldsc_runs/h2rg "$REL/ldscore"
+  step tests          bash -c 'cd "$REPO" && node --test "test/*.test.js" | tee /dev/stderr | grep -qE "^ℹ tests [1-9]"'
+  step verify_planner node "$V/data/planner.js" "$REL"
+  step verify_parity  node "$V/data/parity.js" "$REL"
+  step verify_annot   node "$V/data/annotations.js" "$REL"
+  step kernel_chr1    node "$V/data/kernel.js" "$REL/genotypes/grch37/chr1" "$(vcf 1)" "$(vcf 1).tbi" 1 207000000 "verify/kernel_chr1.json"
+  step kernel_chrX    node "$V/data/kernel.js" "$REL/genotypes/grch37/chrX" "$(vcf X)" "$(vcf X).tbi" X 100100000 "verify/kernel_chrX.json"
+  step verify_select  node "$V/data/select.js" "$(vcf 22)" phaseB/geno_vcfid/grch37/chr22 phaseB/ncbi/37_chr22.parquet "verify/select.json" 20000
+  step ldsc_munge     node "$V/ldsc/munge.js" ldscore_src/ldscore ldsc_runs/h2rg "$REL/ldscore"
+  step ldsc_regress   node "$V/ldsc/regress.js" ldsc_runs/h2rg "$REL/ldscore"
 fi
 if [ "$WHAT" != data ]; then
-  for m in ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc; do step "$m" node "$V/ldlink/compare.mjs" "$m"; done
+  for m in ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc; do step "$m" node "$V/ldlink/compare.js" "$m"; done
 fi
 echo "done: $L/summary.txt"

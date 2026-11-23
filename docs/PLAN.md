@@ -45,7 +45,7 @@ A slice that changes a module's code reruns that module's G3 comparison; G3 runs
 
 ### 1. A self-contained release
 
-- `pipeline/release/extras.mjs <release>`:
+- `pipeline/release/extras.js <release>`:
   - writes `panels.parquet` (`pop`, `sample`, file order; 32 panels, about 140 KB of text);
   - copies the example inputs into `examples/`:
     - LDassoc's `prostate_example_grch37.txt` and `prostate_example_grch38.txt`;
@@ -63,17 +63,17 @@ A slice that changes a module's code reruns that module's G3 comparison; G3 runs
 
 ### 2. The data URL and a static site
 
-- `app/main.mjs` and `app/check.mjs` take the release URL from `?data=<url>`, else from `app/site.json`
+- `app/main.js` and `app/check.js` take the release URL from `?data=<url>`, else from `app/site.json`
   `{ "data": … }`, else `../release`. Examples resolve against that URL. A wrong URL fails with a message naming the
   URL.
-- `npm run build:site` (`tools/build_site.mjs`) writes `dist/`:
+- `npm run build:site` (`tools/build_site.js`) writes `dist/`:
   - `app/`, the `src/` files the app imports, and the four browser dependencies copied to `dist/vendor/`, with the
     import maps rewritten;
   - `app/site.json` from `--data`;
   - `.nojekyll`, and `index.html` redirecting to `app/`.
 
   Nothing else from the repo is copied.
-- `tools/serve.mjs --cors` sends `Access-Control-Allow-Origin: *` and exposes the range headers. That lets a local
+- `tools/serve.js --cors` sends `Access-Control-Allow-Origin: *` and exposes the range headers. That lets a local
   run serve `dist/` and the release from different ports, which reproduces the hosted setup.
 - `.github/workflows/pages.yml` builds `dist/` and deploys it with `actions/deploy-pages`. It is written and run
   locally through the build script only. Switching Pages to it is a step that needs your OK (§6).
@@ -82,7 +82,7 @@ A slice that changes a module's code reruns that module's G3 comparison; G3 runs
 
 ### 3. One tracks module
 
-- Move the region view's tracks out of `app/views/pyramid.mjs` into `app/views/tracks.mjs`: the axis, genes
+- Move the region view's tracks out of `app/views/pyramid.js` into `app/views/tracks.js`: the axis, genes
   (collapsed), recombination, GWAS and eQTL. Each track has the same shape: `{ height, draw(g, x, top), hover(pos, y) }`.
   `renderPyramid` composes them. Behaviour must not change.
 - Gate: a canvas hash of a fixed chr22 region, taken before and after, is identical; G4.
@@ -94,7 +94,7 @@ A slice that changes a module's code reruns that module's G3 comparison; G3 runs
     `{ plot: { query, rows, window } }` with those same rows: pos, rsid, R², D′, MAF, function, FORGEdb, RegulomeDB.
   - LDassoc's rows add p.
   - The text is unchanged: G3 for both modules proves it.
-- **Plots** (`app/views/locus.mjs`), following LDlink:
+- **Plots** (`app/views/locus.js`), following LDlink:
   - **Points:**
     - x: position (Mb, ±10 kb padding).
     - LDproxy y: R² or D′ on [−0.03, 1.03], drawn only when R² > 0.01. Query point blue; a variant with a function
@@ -110,12 +110,12 @@ A slice that changes a module's code reruns that module's G3 comparison; G3 runs
 
 ### 5. A FORGEdb / RegulomeDB track on the region view
 
-- `src/annotations.mjs` gains `forgeRange` and `regulomeRange`, which are `rangeScan`s on `key`.
+- `src/annotations.js` gains `forgeRange` and `regulomeRange`, which are `rangeScan`s on `key`.
 - The region view adds a scores track:
   - FORGEdb score (0–10) as bars;
   - RegulomeDB rank as a categorical row;
   - titled "FORGEdb / RegulomeDB (not in LDlink's region views)".
-- `verify/data/annotations.mjs` gains a check that the range reads equal the existing point reads on sample windows.
+- `verify/data/annotations.js` gains a check that the range reads equal the existing point reads on sample windows.
 - Gates: G1, G2 (annotations), G4.
 
 ### 6. Links between views
@@ -133,12 +133,12 @@ A slice that changes a module's code reruns that module's G3 comparison; G3 runs
   - Mount `$LD_DATA/ldscore_src/ldscore` read-only at `/data/ldscore` in `tools/ldlink-local/docker-compose.yml`.
     Recreate only the backend container; Mongo is untouched.
   - Port `server/sumstats_normalizer.py` (LDSC-ready, PLINK, REGENIE and SAIGE inputs) to
-    `src/ldlink/sumstats.mjs`.
+    `src/ldlink/sumstats.js`.
   - Port the `ldherit` route + `ldsc_utils.run_herit_command` text (ldsc's log from "Total Observed scale", with
-    LDlink's provenance line) to `src/ldlink/ldherit.mjs`, over `src/ldsc` and the release's LD score panels.
+    LDlink's provenance line) to `src/ldlink/ldherit.js`, over `src/ldsc` and the release's LD score panels.
   - Add an `ldherit` adapter (the example, each population, liability scale, malformed inputs).
-- **7b. LDcorrelation:** the same, for `--rg` (`ldcorrelation.mjs`, adapter).
-- **7c. LDscore:** `ldscore.mjs` over `src/ldsc/l2.mjs` (PLINK bed/bim/fam uploads, cM or kb window). Output is
+- **7b. LDcorrelation:** the same, for `--rg` (`ldcorrelation.js`, adapter).
+- **7c. LDscore:** `ldscore.js` over `src/ldsc/l2.js` (PLINK bed/bim/fam uploads, cM or kb window). Output is
   ldsc's log text from "Summary of LD Scores"; adapter on the `22.*` example and window variants.
 - **App:** three forms with file inputs and "use the example" buttons. Results are shown as text, as LDlink does.
   The LD score panels are read by column (`SNP`, `L2`) and by the chromosomes the sumstats cover.
@@ -152,7 +152,7 @@ too. Gate: G4 (the default run shows a table).
 ### 9. hyparquet's page pruning
 
 - Prototype `sortedLookup` and `rangeScan` over `parquetRead({ filter })`.
-- Measure requests and bytes on `verify/data/planner.mjs`'s cases and on `bench/app_requests.js`.
+- Measure requests and bytes on `verify/data/planner.js`'s cases and on `bench/app_requests.js`.
 - Adopt it, and delete our page-index code, only if neither number regresses and G2 / G3 stay green. Otherwise record
   the numbers in `decisions.md` and keep ours.
 
@@ -201,11 +201,11 @@ An independent read of this plan against the code found 11 problems. The revisio
 - The manifest `extras` key is dropped: examples are fetched whole with `fetch()`, which needs no size. Anything that
   copies the release (the §6 upload) must copy `examples/` explicitly; the manifest lists only Parquet files.
 - `panels.parquet` joins the manifest builder's keyless small tables.
-- `tools/serve.mjs` gains `--root <dir>`, `--no-release` and `--cors`. With `--cors` it answers `OPTIONS` (`Range`
+- `tools/serve.js` gains `--root <dir>`, `--no-release` and `--cors`. With `--cors` it answers `OPTIONS` (`Range`
   allowed) and sends `Timing-Allow-Origin`, so `bench/app_requests.js` (now matching the data URL, not `/release/`)
   measures cross-origin bytes. The site server mounts no `/release/`, so a broken data URL fails instead of quietly
   falling back to same-origin data.
-- The build copies the four packages' whole directories (dynamic `import("hyparquet")` in `src/dbsnp.mjs`;
+- The build copies the four packages' whole directories (dynamic `import("hyparquet")` in `src/dbsnp.js`;
   `kernel.wasm` loads through `new URL`), keeps `app/` beside `src/`, leaves `check.html` out unless `--dev`, and
   CI installs with `npm ci`.
 
@@ -225,7 +225,7 @@ G3 (all ten), G4 (dev server and the built site).
   port returns them with their p-values. The y axis runs −0.03 → 1.03·max(y), and recombination is rate/100·max(y).
 - The gene track gains LDlink's expanded mode (all transcripts) next to collapsed (`collapseTranscript`).
 
-**Slice 6 (links):** routing changes first. The hash is `#<Module>` or `#<Module>?<query>`; `main.mjs` reads the
+**Slice 6 (links):** routing changes first. The hash is `#<Module>` or `#<Module>?<query>`; `main.js` reads the
 module before `?`, and a module button keeps the query only when it is that module's own.
 
 **Slice 7 (the LDscore family), corrected:**

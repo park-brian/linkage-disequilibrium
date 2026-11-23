@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Presign every release file in the private bucket (GET, 12 h) → presigned.json for bench/net.mjs.
+# Presign every release file in the private bucket (GET, 12 h) → presigned.json for bench/net.js.
 # usage: pipeline/release/presign.sh <localReleaseRoot> <s3 prefix> <profile> > $LD_DATA/presigned.json
 set -euo pipefail
 root=$1; prefix=$2; profile=$3

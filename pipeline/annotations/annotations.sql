@@ -1,5 +1,5 @@
 -- Key and sort LDlink's annotation collections into intermediates (DuckDB; final files are written by
--- pipeline/annotations/build.mjs with hyparquet-writer). Run after pipeline/annotations/fetch.sh:
+-- pipeline/annotations/build.js with hyparquet-writer). Run after pipeline/annotations/fetch.sh:
 --   python -I tools/run_sql.py dbsnp_dump/work.duckdb pipeline/annotations/annotations.sql
 -- Parity: rows keep dump order (ord) within equal keys, because LDlink's find/find_one return index order, which
 -- for equal keys is insertion (dump) order. Composite key = chrom code (1-22, X=23, Y=24, MT=25) * 1e9 + position.
