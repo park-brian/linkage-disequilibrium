@@ -5,23 +5,26 @@
 ## What works
 
 - **Every LDlink module runs on the core and reproduces LDlink.** LDmatrix, LDpair, LDpop, LDhap, LDproxy, SNPclip,
-  SNPchip, LDtrait, LDexpress and LDassoc, on GRCh37, GRCh38 and GRCh38 High Coverage, byte for byte against a real
-  local LDlink. Bugs are reproduced too ([PARITY.md](PARITY.md)).
-- **The browser app** (`npm run serve` → `/app/`):
-  - all ten modules;
-  - an LDmatrix plot with a gene track;
-  - a region view: an LD pyramid up to 5 Mb under GWAS, eQTL, recombination and gene tracks, with LD on a pool of
-    up to 8 Web Workers.
-- **The release:** 324 Parquet files + manifest, 34.8 GB, in `$LD_RELEASE` and the private test bucket (`v4/`).
+  SNPchip, LDtrait, LDexpress and LDassoc on GRCh37, GRCh38 and GRCh38 High Coverage, and LDherit, LDcorrelation and
+  LDscore (ldsc 3.0.1), byte for byte against a real local LDlink. Bugs are reproduced too ([PARITY.md](PARITY.md)).
+- **The browser app** (`npm run serve` → `/app/`; `npm run build:site` for GitHub Pages):
+  - all thirteen modules, plus the region view;
+  - LDlink's LDproxy and LDassoc figures; an LDmatrix plot with a gene track;
+  - a region view: an LD pyramid up to 5 Mb under GWAS, eQTL, FORGEdb / RegulomeDB, recombination and gene tracks,
+    with LD on a pool of up to 8 Web Workers;
+  - links: every form reads and writes its inputs in the URL; a pyramid pair opens LDpair / LDproxy, a locus point
+    LDpair.
+- **The release:** 326 Parquet files + manifest + `examples/`, about 34.8 GB, in `$LD_RELEASE` (self-contained: panels
+  and example inputs inside). The private test bucket's `v4/` predates the panels, examples, counts and manifest v2.
 
 ## Verified
 
 | gate | command | result | last run |
 |---|---|---|---|
-| G1 | `npm test` | 27 / 27 (with the docs check and K5) | 2026-11-23 |
-| G2 | `npm run verify` | planner, parity (12 checks), annotations: 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 (final code) |
-| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 420/429 + 9 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 | 2026-11-23 (final code) |
-| G4 | `/app/check.html` + the app | 18/18 identical in the browser; all 11 views run and render (SNPchip with no array chosen shows LDlink's own error) | 2026-11-23 (final code) |
+| G1 | `npm test` | 29 / 29 (docs check, K5, D1 panels, F1 numpy formatting) | 2026-11-23 |
+| G2 | `npm run verify` | planner, parity (12 checks), annotations (incl. 34,805 range-track rows): 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 (final code) |
+| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 416/429 + 13 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 · LDherit 29/29 · LDcorrelation 19/20 + 1 degenerate_z (rg = 1, se ≈ 1e-7) · LDscore 19/19 | 2026-11-23 (final code) |
+| G4 | `/app/check.html` + the app | 18/18 identical on the dev server and on the built site with the release on another origin; all 14 views run, locus plots on GRCh37 / GRCh38 / High Coverage, links open and run, region track hashes unchanged | 2026-11-23 (final code) |
 
 ## Speed (cold, browser, local dev server)
 
@@ -32,6 +35,8 @@
 | LDproxy (±500 kb) | 1.3 s |
 | LDtrait | 0.74 s |
 | LDexpress | 0.5 s |
+| LDherit / LDcorrelation (chr22 example, EUR) | 3–4 s |
+| LDscore (chr22 example, 1 cM) | 3.5 s |
 | Pyramid 1 Mb EUR, common | 0.22 s on 4 workers |
 | Pyramid 3 Mb ALL, common + low (228 M pairs) | 1.0 s on 8 workers (7.0 s on 1) |
 | Pyramid chrX 2 Mb EUR, common | 0.1 s on 8 workers (0.17–0.24 s before the same-mask path) |
@@ -55,17 +60,25 @@ Slices 0–6 are done, one commit each, on branch `restructure`; not pushed. Whe
 §12 says so: `genotypes.calls` and `pyFloat` were not extracted, hyparquet's native page pruning was not evaluated,
 and genome keys stay BigInt where they meet INT64 columns.
 
-## Next: Phase C and hosting ([PLAN.md](PLAN.md))
+## Done: Phase C and hosting prep ([history/PLAN.md](history/PLAN.md); outcome in §9)
 
-Self-contained release, a static site for GitHub Pages, locus plots, region scores, links between views, the
-LDscore family, SNPchip defaults, and an evaluation of hyparquet's page pruning. Outward steps wait for your OK
-(PLAN.md §6).
+All slices are committed on `restructure`, not pushed. The static site builds (`dist/`, 0.7 MB) and runs against a
+release on another origin; `.github/workflows/pages.yml` deploys it once Pages uses Actions.
+
+## Follow-ups
+
+- `sortedLookup` reads every requested column over whole key-page spans; mapping each column to its own pages (as
+  the payload path does) cut 512 rsID lookups from 38 MB to 8.6 MB in hyparquet's version (`decisions.md`).
+- LDscore family uploads beyond the examples are untested against LDlink (its upload route); `sumstats_normalizer` and
+  the upload compatibility checks are not ported.
 
 ## Open decisions (yours)
 
-- **Pushing** the `restructure` branch to `github.com/park-brian/linkage-disequilibrium`.
+- **Pushing** `restructure` to `main` (a fast-forward). Switch Pages to the Actions workflow first, or in the same
+  step: the legacy build would serve `app/` with an import map into the untracked `node_modules/`.
+- **A public data host** for the release (Range + CORS): a public S3 bucket behind CloudFront, a Cloudflare R2
+  bucket, or a Hugging Face dataset; then set the repository variable `LD_DATA_URL` (history/PLAN.md §6).
+- **Uploads:** the release to that host (copy `examples/` too: the manifest lists Parquet only), and the version 2
+  manifest to the test bucket's `v4/`.
 - **About 870 GB of regenerable intermediates** in `$LD_DATA` (`ncbi_dbsnp`, `dbsnp_dump`, `phaseB` build copies):
   keep or delete.
-- **Hosting** (Phase D).
-- **The bucket's `v4/manifest.json`** is still version 1 (7.15 MB). The code reads both; the local release has
-  version 2 (1.92 MB). Uploading the new manifest is yours to approve.

@@ -254,3 +254,19 @@ key's page spans. `$in` is O(rows × keys), and INT64 keys must be BigInt. Measu
 **§6, corrected order:** switch Pages to the workflow before pushing, or in the same step. Today's legacy build would
 serve `app/index.html`, whose import map points at the untracked `node_modules/`. The data host's CORS rules must
 allow the `Range` header.
+
+## 9. Outcome (2026-11-23)
+
+All slices landed on branch `restructure`, not pushed; gates in STATUS.md. Where the work differed from §4 and §8:
+
+| slice | as planned | as done |
+|---|---|---|
+| 1 | panels + examples in the release; a manifest `extras` key | done, without `extras` (examples are fetched whole); `panels.parquet` sits in `annotations/` because the manifest builder walks subdirectories |
+| 2 / 2b | data URL, static site; `.mjs` → `.js` | done. `app/site.js` instead of `site.json` (a static import, no 404 in dev); auto-run waits for the forms' option lists |
+| 3–6, 8 | one commit each | one commit for 3–6 and 8: the same app files carry all five. The canvas-hash, G2, G3 and browser checks were run per slice |
+| 4 | locus plots | done to LDlink's figures; the ports return plot rows only with `{ plot: true }`, so their compared output is unchanged |
+| 5 | region scores track | done, labelled as not LDlink's |
+| 7 | LDherit, LDcorrelation, LDscore | done, against the oracle: LDherit 29/29, LDcorrelation 19 + 1 `degenerate_z`, LDscore 19/19. Two things the plan did not foresee: ldsc's `sep=r'\s+'` read turns rows with an empty SNP into extra "SNPs" (counted once by the pipeline into `ldsc_counts.parquet`), and afr's 17.4 M rows exceed V8's Map limit, so panels are streamed per row group keeping only the SNPs an analysis needs. `sumstats_normalizer.py` and `ldscore_compatibility.py`'s upload checks are not ported: the REST comparisons reach only the examples |
+| 9 | evaluate hyparquet's pruning | measured, not adopted (`decisions.md`); it showed `sortedLookup` reading every column over whole key-page spans, the follow-up |
+
+**Still waiting for you (§6):** push, the Pages switch, the public data host, and the uploads.

@@ -46,11 +46,20 @@ Stored as `vcf_id` (GRCh37).
 | **LDtrait** | API text | GWAS records in index order (position, then insertion); pair LD from one tabix row per position: NA when multi-allelic or POS ≠ the queried position; R2 / D′ unrounded; columns shifted against their headers ("Risk Allele" = RAF, "Effect Size" = float(OR or BETA), "Beta or OR" = the CI with brackets, letters and spaces removed) |
 | **LDexpress** | API text | LDproxy's chunked window; eQTLs inner-joined to tissues and genes (`$lookup` / `$unwind`), p < threshold, `%.6g`; a query not in 1000G deletes the request's population file, so every later query returns nothing; a multi-allelic query is computed on its GT digits; blank entries count toward the 10-entry limit and are then dropped |
 | **LDassoc** | `calculate_assoc` text + JSON error / warning (no API) | the origin genotype is the *first* overlapping row (the checks use the *last*); one tabix region per association position (a row is listed under every position it overlaps, and kept if its own POS is in the file); sort \|distance\| then p; correlated alleles proxy-first, indexes crossed; region mode compares coordinate *strings*; a coordinate origin raises KeyError; High Coverage lowest-p search asks tabix for `chrchr8:…` and always fails |
+| **LDherit** | API text (from "Total Observed scale") | munge_sumstats + ldsc 3.0.1 `--h2` on the population's panel; numbers printed by numpy under `precision=4` (`npStr4`). On the liability scale the "Total Observed scale" marker is absent, so LDlink returns the *whole* log: munge's stdout (including a bare `print` of the column map), `
+--------
+`, ldsc's stdout (including a pandas `RuntimeWarning` line). ldsc reads LD score files with `sep=r'\s+'`, so a row with an empty SNP field shifts left and counts as its BP; the logged panel size includes those rows (`ldsc_counts.parquet`) |
+| **LDcorrelation** | API text (from the first "Total … scale") | ldsc `--rg`: both h2 summaries, gencov, rg (with ldsc's out-of-bounds branches), and the pandas `to_string` table (numeric headers take a leading space, `'{:.4f}'` cells). ldsc never logs its two-step line for rg. An unreadable panel returns the failure text itself, not an error. **Numerically degenerate:** the same file twice gives rg = 1 with se ≈ 1e-7, so z = rg / se differs past ~7 digits; the comparison reports it as `degenerate_z` |
+| **LDscore** | API text (from "Summary of LD Scores") | ldsc `--l2` (`src/ldsc/l2.js`); pandas `describe()` (pairwise sums, linear quantiles) and `corr()` (Welford); window = Python `int()` of `ldwindow` or 1, at least 1; a mixed base-name file list is only logged, so the first missing example or file is the error |
+
+The LDscore family's time lines ("Conversion finished at", "Beginning analysis at", "Analysis finished at",
+"Total time elapsed") are written as ldsc would write them; the comparisons mask those four and nothing else.
 
 ## Deliberate differences
 
 - **The REST shells:** the ports implement module behaviour, plus the REST layer's parameter checks (`Invalid r2_d
   parameter.`, `Invalid window parameter.`). They do not implement tokens, rate limits or the web-only routes, such
-  as LDtrait's "too many pairs" prompt.
+  as LDtrait's "too many pairs" prompt. For the LDscore family, uploads are compared through the examples only (the
+  oracle needs its upload route for anything else), and an ldsc crash's Python traceback (`details`) is not reproduced.
 - **Allele-aware selection:** `select: "allele"` is opt-in. Instead of LDlink's overlapping row, it picks the row
   whose NCBI alleles match the rsID; the default is parity.

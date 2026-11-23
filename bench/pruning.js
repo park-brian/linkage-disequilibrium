@@ -1,4 +1,4 @@
-// Slice 9 (docs/PLAN.md): can hyparquet 1.33's own page-index pruning replace src/parquet.js sortedLookup? Each case
+// Phase C slice 9 (docs/history/PLAN.md): can hyparquet 1.33's own page-index pruning replace src/parquet.js sortedLookup? Each case
 // looks the same keys up both ways on a cold, byte-counting AsyncBuffer and compares rows (file order), requests,
 // bytes and CPU time.
 //   ours:      sortedLookup (column index → candidate pages → key column → payload pages via its own offset index)

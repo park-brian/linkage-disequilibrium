@@ -1,6 +1,6 @@
 # Deploy the app to GitHub Pages: tools/build_site.js writes dist/ (app + src + vendored browser deps, ~0.7 MB).
 # The release is not part of the site (34.8 GB; Pages allows 1 GB): it is read from the repository variable
-# LD_DATA_URL, a host that serves the release with HTTP Range and CORS (docs/PLAN.md §6). Takes effect only once
+# LD_DATA_URL, a host that serves the release with HTTP Range and CORS (docs/history/PLAN.md §6). Takes effect only once
 # the repository's Pages source is set to "GitHub Actions".
 name: pages
 on:

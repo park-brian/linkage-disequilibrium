@@ -94,6 +94,12 @@ One file per population (`afr`, `eur`, …): `CHR`, `SNP`, `BP`, `L2`, plus `M` 
 metadata. `w_hm3.snplist.parquet` holds HapMap3 SNPs and alleles. Used by `src/ldsc/` (heritability, genetic
 correlation).
 
+`ldsc_counts.parquet` (`pop`, `rows`) holds, per panel, the SNP count ldsc logs ("Read reference panel LD Scores for
+N SNPs"): distinct SNP IDs after ldsc's `sep=r'\s+'` read, in which a row with an empty SNP field shifts left and its
+BP becomes the SNP (eas: 2,079 such rows; 8,854,920 counted against 8,852,842 distinct IDs). Written by
+`pipeline/release/extras.js`, so a browser never holds a set of up to 17 million IDs (`src/ldsc/panels.js` keeps
+only the SNPs an analysis needs).
+
 ## examples/: LDlink's example inputs
 
 Plain files, copied byte for byte by `pipeline/release/extras.js`, for the example buttons:
