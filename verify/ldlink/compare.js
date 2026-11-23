@@ -7,7 +7,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { nodeContext, canon, textDiff, CONFIG } from "./lib.js";
 
-const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc", "ldherit"];
+const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc", "ldherit", "ldcorrelation"];
 const arg = process.argv[2];
 if (!arg || (arg !== "all" && !MODULES.includes(arg))) { console.error(`usage: compare.js <${MODULES.join("|")}|all>`); process.exit(2); }
 
@@ -18,7 +18,7 @@ for (const m of arg === "all" ? MODULES : [arg]) {
   const cases = await A.cases(ctx), theirs = await A.ldlink(cases, ctx), totals = { cases: 0, identical: 0, differ: 0 }, rows = [];
   for (const [i, c] of cases.entries()) {
     const l = theirs[i], o = await A.ours(ctx, c);
-    let r = A.verdict?.(l, o);
+    let r = A.verdict?.(l, o, c);
     if (!r) {
       const same = JSON.stringify(canon(l)) === JSON.stringify(canon(o));
       r = same ? { verdict: "identical" } : { verdict: "differ", detail: l?.text && o?.text ? textDiff(l.text, o.text) : { ldlink: l, ours: o } };
