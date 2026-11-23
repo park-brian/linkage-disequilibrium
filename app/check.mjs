@@ -4,6 +4,7 @@
 import { asyncBufferFromUrl, cachedAsyncBuffer } from "hyparquet";
 import { loadKernel, KERNEL_WASM } from "../src/ld/kernel.mjs";
 import { createContext } from "../src/ldlink/context.mjs";
+import { releaseUrl, readManifest } from "./site.mjs";
 import { ldmatrix } from "../src/ldlink/ldmatrix.mjs";
 import { ldpair } from "../src/ldlink/ldpair.mjs";
 import { ldpop } from "../src/ldlink/ldpop.mjs";
@@ -49,7 +50,7 @@ function row(cells) { const tr = document.createElement("tr"); for (const c of c
 const strip = o => (o && typeof o === "object" && !Array.isArray(o) ? Object.fromEntries(Object.entries(o).filter(([k, v]) => v !== undefined && k !== "warning")) : o);
 
 const kernel = await loadKernel(new Uint8Array(await (await fetch(KERNEL_WASM)).arrayBuffer()));
-const root = new URL("../release", location.href).href, manifest = await (await fetch(`${root}/manifest.json`)).json();
+const root = releaseUrl(), manifest = await readManifest(root);
 const ctx = await createContext({ root, open: async (url, byteLength) => cachedAsyncBuffer(await asyncBufferFromUrl({ url, byteLength })),
   kernel, manifest });
 let same = 0, ties = 0;

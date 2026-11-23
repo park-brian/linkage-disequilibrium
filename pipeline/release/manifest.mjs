@@ -17,7 +17,7 @@ const KEY = name => {
   if (name.startsWith("dbsnp/rsid/") || /(duplicated_rsids|forge_rsid)\.parquet$/.test(name)) return "rsid";
   if (name.endsWith("gene_names.parquet")) return "name";
   if (name.endsWith("gtex_genes.parquet")) return "gene_id_v26";
-  if (/(gtex_tissues|platforms|w_hm3\.snplist)\.parquet$/.test(name)) return null; // small lookup tables, read whole
+  if (/(gtex_tissues|platforms|panels|w_hm3\.snplist)\.parquet$/.test(name)) return null; // small lookup tables, read whole
   if (name.startsWith("ldscore/")) return "CHR"; // sorted by (CHR, BP); a client selects chromosomes by row group
   return "key";
 };

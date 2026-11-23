@@ -191,3 +191,66 @@ The order above is also the commit order.
 - Deleting the ~870 GB of regenerable intermediates (your call; STATUS).
 - The parquet-writer swap (planned in that repository; its slice 11 lands in `pipeline/`).
 - LDlink's API-token system and server-side exports.
+
+## 8. Review outcome and revisions (2026-11-23)
+
+An independent read of this plan against the code found 11 problems. The revisions below replace the matching parts of
+§4 and §6.
+
+**Slices 1–2** (done, or folded in as they landed):
+- The manifest `extras` key is dropped: examples are fetched whole with `fetch()`, which needs no size. Anything that
+  copies the release (the §6 upload) must copy `examples/` explicitly; the manifest lists only Parquet files.
+- `panels.parquet` joins the manifest builder's keyless small tables.
+- `tools/serve.mjs` gains `--root <dir>`, `--no-release` and `--cors`. With `--cors` it answers `OPTIONS` (`Range`
+  allowed) and sends `Timing-Allow-Origin`, so `bench/app_requests.js` (now matching the data URL, not `/release/`)
+  measures cross-origin bytes. The site server mounts no `/release/`, so a broken data URL fails instead of quietly
+  falling back to same-origin data.
+- The build copies the four packages' whole directories (dynamic `import("hyparquet")` in `src/dbsnp.mjs`;
+  `kernel.wasm` loads through `new URL`), keeps `app/` beside `src/`, leaves `check.html` out unless `--dev`, and
+  CI installs with `npm ci`.
+
+**Slice 2b (new, at the user's request): plain `.js`, not `.mjs`.** `package.json` already has `"type": "module"`.
+Rename every `.mjs` in the repo to `.js` with `git mv` (`tools/move.py`, which rewrites relative import, `import()`
+and `new URL()` specifiers), then fix the string-built paths that the move tool cannot see (`./adapters/${m}.mjs`,
+`node --test` globs, npm scripts, shell scripts, the launch configs, doc paths). Gates: G1, G2 (planner, parity),
+G3 (all ten), G4 (dev server and the built site).
+
+**Slice 4 (locus plots), corrected against `LDcommon.py` / `LDassoc.py`:**
+- LDproxy plots the full sorted list filtered only by R² > 0.01, including rows the text drops (RS equal to the
+  query). The port returns the rows *before* printing. Each row carries the query's MAF too (LDproxy's hover shows
+  "MAF (Query, Proxy)"). Points have alpha 0.5. Recombination is rate/100 on the main axis, with a right axis from
+  −3 to 103.
+- LDassoc's ramp runs `#FFCCCC` → `#FF0000` (101 steps), and every row at the index coordinate is blue, alpha 0.7.
+  Association positions not in 1000G are drawn white with a gray outline, size 12.5, with their own hover, so the
+  port returns them with their p-values. The y axis runs −0.03 → 1.03·max(y), and recombination is rate/100·max(y).
+- The gene track gains LDlink's expanded mode (all transcripts) next to collapsed (`collapseTranscript`).
+
+**Slice 6 (links):** routing changes first. The hash is `#<Module>` or `#<Module>?<query>`; `main.mjs` reads the
+module before `?`, and a module button keeps the query only when it is that module's own.
+
+**Slice 7 (the LDscore family), corrected:**
+- The comparer calls `/LDlinkRest/`, where LDherit returns the text from "Total Observed scale" onward. With
+  liability scale that marker is absent, so LDherit returns everything: the munge log, `\n--------\n` and the full ldsc
+  log. LDcorrelation falls back to "Total Liability scale". There is no provenance line on this route. The exact
+  text per route and scale is fixed from oracle fixtures before porting.
+- Some lines carry the time ("Analysis finished at", "Total time elapsed", "Conversion finished at"). The
+  adapters mask exactly those lines; everything else must match.
+- None of the log text exists yet in `src/ldsc` (it returns numbers). The port includes ldsc's log lines, the
+  pandas `describe()` / `corr()` layout of the LDscore summary, and the `to_string` rg table.
+- LD score panels are read whole, not by chromosome: ldsc sorts by (CHR, BP) and then drops duplicate SNP IDs
+  across the whole panel (afr has 613,138), and logs the count after that. A later release can store de-duplicated
+  panels with their counts to make this cheaper.
+- The REST routes validate inputs through `ldscore_compatibility.py` (`validate_sumstats_preanalysis`,
+  `validate_bfile_compatibility`, `validate_ldscore_output`); these are ported, and they produce the bad-input
+  errors. `sumstats_normalizer.py` is reached only through `/LDlinkRestWeb/validate_sumstats`; it is ported with an
+  adapter on that route, or left out.
+- The oracle mount uses `${LD_DATA:?}`, not a machine path. Read-only is fine: ldsc writes under `/data/tmp`.
+
+**Slice 9 (hyparquet's pruning):** build the prototype on `parquetScan({ pruningFilter })`, which returns candidate
+ranges and `readColumn(column, rowStart, rowEnd)`, so the payload column is still read only on its own pages.
+`parquetRead({ filter })` is the wrong tool: it needs `usePageIndex: true` and reads every selected column over the
+key's page spans. `$in` is O(rows × keys), and INT64 keys must be BigInt. Measure CPU as well as requests and bytes.
+
+**§6, corrected order:** switch Pages to the workflow before pushing, or in the same step. Today's legacy build would
+serve `app/index.html`, whose import map points at the untracked `node_modules/`. The data host's CORS rules must
+allow the `Range` header.

@@ -56,6 +56,7 @@ haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regr
 ## app/: the UI
 
 - **`index.html`:** an import map for `hyparquet*` (no bundler).
+- **`site.mjs`:** where the release is: `?data=<url>`, else the URL `tools/build_site.mjs` wrote, else `../release`.
 - **`main.mjs`:** the core in the page (kernel and release) and navigation.
 - **`forms.mjs`:** the module table: each module's fields, the port it calls, how its result is shown.
 - **`render.mjs`:** outputs as LDlink prints them (text blocks → tables, LDpair, the matrix and pyramid cards).

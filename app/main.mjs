@@ -6,8 +6,9 @@ import { createContext } from "../src/ldlink/context.mjs";
 import { coalesce } from "../src/parquet.mjs";
 import { MODULES, buildForm } from "./forms.mjs";
 import { $, show, notice } from "./render.mjs";
+import { releaseUrl, readManifest } from "./site.mjs";
 
-const RELEASE = new URL("../release", location.href).href.replace(/\/$/, "");
+const RELEASE = releaseUrl();
 const status = msg => { $("#status").textContent = msg; };
 
 let ctxPromise;
@@ -17,7 +18,7 @@ function context() {
     const kernel = await loadKernel(new Uint8Array(await (await fetch(KERNEL_WASM)).arrayBuffer()));
     // byteLength from the manifest: no HEAD request per file; reads issued together share Range requests
     const open = async (url, byteLength) => cachedAsyncBuffer(coalesce(await asyncBufferFromUrl({ url, byteLength })));
-    const manifest = await (await fetch(`${RELEASE}/manifest.json`)).json();
+    const manifest = await readManifest(RELEASE);
     const ctx = await createContext({ root: RELEASE, open, kernel, manifest });
     status(`ready (${kernel.backend} kernel, ${Math.round(performance.now() - t0)} ms)`);
     return ctx;

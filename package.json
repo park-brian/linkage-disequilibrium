@@ -5,6 +5,7 @@
   "description": "Browser-only LDlink: 1000 Genomes LD from static Parquet files (hyparquet), WASM + JS kernel, byte-for-byte LDlink parity",
   "scripts": {
     "serve": "node tools/serve.mjs",
+    "build:site": "node tools/build_site.mjs",
     "test": "node --test \"test/*.test.mjs\"",
     "verify": "bash verify/run.sh data",
     "verify:ldlink": "bash verify/run.sh ldlink",
