@@ -2,8 +2,7 @@
 // Returns { error } for a request-level or single-pair error (as LDlink's API does), else [pairResult].
 import { pyRoundRepr as r } from "../pyfmt.mjs";
 import { TITLE } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { vcfAlleles, ldStats, queryVariant, addCoordWarning } from "./common.mjs";
+import { POPS, POP_ERROR, chrYMessage, vcfAlleles, ldStats, queryVariant, addCoordWarning } from "./common.mjs";
 
 const VALID = /^(rs\d+|chr\d+:\d+|chr[X|Y]:\d+)/i; // LDpair.py: re.match (a prefix match)
 
@@ -51,7 +50,7 @@ export async function ldpair(ctx, { var1 = "", var2 = "", pop, build = "grch37" 
   const [s1, s2] = snps;
   if (s1.v.chrom !== s2.v.chrom) o.warning = `${W()}${s1.label} and ${s2.label} are on different chromosomes. `;
   for (const { v } of snps) if (v.chrom === "Y" && build !== "grch37")
-    return fail(`Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} - chr${v.chrom}:${v.pos}). ${W()}`);
+    return fail(`${chrYMessage(v, "-")}. ${W()}`);
   const rows = [];
   for (const { label, v } of snps) rows.push(await queryVariant(ctx, build, label, v, o));
   if (o.error !== undefined) return fail(o.error);

@@ -9,10 +9,8 @@
 //    spaces removed ("Beta or OR"), P-VALUE verbatim
 import { pyRound, pyStr } from "../pyfmt.mjs";
 import { TITLE } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { vcfAlleles, addCoordWarning } from "./common.mjs";
+import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning, gate, table2x2 } from "./common.mjs";
 
-const gate = t => t.length > 2 && (t.startsWith("rs") || t.startsWith("chr")) && /\d$/.test(t);
 const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
 /** castFloat: str(float(v)) when Python's float() accepts v, else v */
 export const castFloat = v => (PYFLOAT.test(v) ? pyStr(/inf/i.test(v) ? (v.includes("-") ? -Infinity : Infinity) : /nan/i.test(v) ? NaN : Number(v.trim().replace(/_/g, ""))) : v);
@@ -25,8 +23,7 @@ export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshol
   if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
   const lines = text.split(/\r\n|\n|\r/).map(s => s.replace(/^\s+/, "")).filter(s => /^(rs|chr)/i.test(s)).map(s => s.toLowerCase());
   if (lines.length > 50) return { error: `Maximum variant list is 50  RS numbers or coordinates. Your list contains ${lines.length} entries.` };
-  const lists = [];
-  for (const l of lines) { const t = l.trim().split(/\s+/).filter(Boolean); if (!lists.some(x => x.join(" ") === t.join(" "))) lists.push(t); }
+  const lists = dedupeLists(lines);
   for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
   const o = {}, join = m => { o.warning = o.warning === undefined ? m : `${o.warning}. ${m}`; };
   const toks = lists.map(t => t[0]);
@@ -36,7 +33,7 @@ export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshol
   toks.forEach((t, i) => {
     const v = vs[i], label = t.startsWith("rs") ? t : (v.rsid ?? t);
     if (!gate(label) || !v.found || v.pos == null) return warn.push(label);
-    if (v.chrom === "Y" && build !== "grch37") { join(`Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} = chr${v.chrom}:${v.pos})`); return warn.push(label); }
+    if (v.chrom === "Y" && build !== "grch37") { join(chrYMessage(v)); return warn.push(label); }
     queries.push({ label, v });
   });
   if (warn.length) join(`The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}`);
@@ -64,11 +61,10 @@ export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshol
         const [n, p1, p2, x] = counts[i], [a2, b2] = vcfAlleles(g.ref, g.alt);
         const hap = { [`${b1}_${b2}`]: x, [`${b1}_${a2}`]: p1 - x, [`${a1}_${b2}`]: p2 - x, [`${a1}_${a2}`]: n - p1 - p2 + x };
         const s = Object.keys(hap).sort(), [A, B, C, D] = s.map(k => hap[k]), N = A + B + C + D;
-        const Ms = (A + C) * (B + D) * (A + B) * (C + D);
-        if (Ms === 0) return;
-        const delta = A * D - B * C, dprime = Math.abs(delta / (delta < 0 ? Math.min((A + C) * (A + B), (B + D) * (C + D)) : Math.min((A + C) * (C + D), (A + B) * (B + D))));
+        const t = table2x2(A, B, C, D);
+        if (!t) return;
         const f = c => (N > c ? pyStr(pyRound(c / N, 3)) : "NA");
-        ld.set(key, { r2: (delta * delta) / Ms, dprime, alleles: `${s[0].split("_")[1]}=${f(A + C)}, ${s[1].split("_")[1]}=${f(B + D)}` });
+        ld.set(key, { r2: t.r2, dprime: t.dprime, alleles: `${s[0].split("_")[1]}=${f(A + C)}, ${s[1].split("_")[1]}=${f(B + D)}` });
       });
     }
     const rows = [];

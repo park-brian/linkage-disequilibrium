@@ -5,9 +5,8 @@
 // name.rstrip(' Array') — Python strips the *characters* " Aray" — and is printed with the " Array" suffix removed;
 // an empty platform request crashes LDlink (append(...).removesuffix on None).
 import { TITLE } from "../genome.mjs";
-import { addCoordWarning } from "./common.mjs";
+import { addCoordWarning, gate, dedupeLists } from "./common.mjs";
 
-const gate = t => t.length > 2 && (t.startsWith("rs") || t.startsWith("chr")) && /\d$/.test(t);
 const CHR = c => (c === "X" ? 23 : c === "Y" ? 24 : +c);
 
 export async function snpchip(ctx, { snps: text, platforms: query, build = "grch37" }) {
@@ -15,8 +14,7 @@ export async function snpchip(ctx, { snps: text, platforms: query, build = "grch
   const lines = text.toLowerCase().split(/\r\n|\n|\r/);
   if (lines.at(-1) === "") lines.pop(); // readlines()
   if (lines.length > 5000) return { error: `Maximum variant list is 5000  RS numbers or coordinates. Your list contains ${lines.length} entries.` };
-  const lists = [];
-  for (const l of lines) { const t = l.trim().split(/\s+/).filter(Boolean); if (!lists.some(x => x.join(" ") === t.join(" "))) lists.push(t); }
+  const lists = dedupeLists(lines);
   const o = {}, toks = lists.filter(t => t.length).map(t => t[0]);
   const vs = (await ctx.planner.query({ build, inputs: toks })).variants;
   vs.forEach(v => addCoordWarning(o, v.warning)); // replace_coords_rsid_list warnings go to a dict that is then reset

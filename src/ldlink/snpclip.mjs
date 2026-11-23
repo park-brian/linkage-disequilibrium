@@ -10,11 +10,9 @@
 import { pyRound, pyStr } from "../pyfmt.mjs";
 import { decodeHaps } from "../haps.mjs";
 import { TITLE } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { vcfAlleles, addCoordWarning } from "./common.mjs";
+import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning, gate } from "./common.mjs";
 import { stats } from "../ld/kernel_js.mjs";
 
-const gate = t => t.length > 2 && (t.startsWith("rs") || t.startsWith("chr")) && /\d$/.test(t);
 const INTERNAL = { error: "Internal server error. Please contact LDlink admin." };
 
 export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_threshold = 0.01, build = "grch37" }) {
@@ -22,8 +20,7 @@ export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_th
   // route: lstrip, keep rs/chr lines, lower-case; validsnp: limit on lines, token lists, dedupe
   const lines = text.split(/\r\n|\n|\r/).map(s => s.replace(/^\s+/, "")).filter(s => /^(rs|chr)/i.test(s)).map(s => s.toLowerCase());
   if (lines.length > 5000) return { error: `Maximum variant list is 5000  RS numbers or coordinates. Your list contains ${lines.length} entries.` };
-  const lists = [];
-  for (const l of lines) { const t = l.trim().split(/\s+/).filter(Boolean); if (!lists.some(x => x.join(" ") === t.join(" "))) lists.push(t); }
+  const lists = dedupeLists(lines);
   for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
   const o = {}, details = new Map(), set = (k, v) => details.set(k, v); // OrderedDict: re-setting keeps the first position
   const toks = lists.filter(t => t.length).map(t => t[0]);
@@ -36,7 +33,7 @@ export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_th
     if (!gate(label)) { warn.push(label); return set(label, ["NA", "NA", "Not a RS number, query removed."]); }
     if (!v.found || v.pos == null) { warn.push(label); return set(label, ["NA", "NA", `Variant not found in dbSNP155 (${TITLE[build]}), variant removed.`]); }
     if (v.chrom === "Y" && build !== "grch37") {
-      join(`Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} = chr${v.chrom}:${v.pos})`); warn.push(label);
+      join(chrYMessage(v)); warn.push(label);
       return set(label, ["NA", "NA", "Chromosome Y variants are unavailable for GRCh38, only available for GRCh37."]);
     }
     kept.push({ label, v });

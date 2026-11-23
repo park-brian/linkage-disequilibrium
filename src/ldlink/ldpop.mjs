@@ -5,8 +5,7 @@
 import { pyRoundRepr as r } from "../pyfmt.mjs";
 import { decodeHaps } from "../haps.mjs";
 import { TITLE } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { ldStats, queryVariant, addCoordWarning } from "./common.mjs";
+import { POPS, POP_ERROR, chrYMessage, ldStats, cells, queryVariant, addCoordWarning } from "./common.mjs";
 
 export const GROUPS = { AFR: ["YRI", "LWK", "GWD", "MSL", "ESN", "ASW", "ACB"], AMR: ["MXL", "PUR", "CLM", "PEL"], EAS: ["CHB", "JPT", "CHS", "CDX", "KHV"], EUR: ["CEU", "TSI", "FIN", "GBR", "IBS"], SAS: ["GIH", "PJL", "BEB", "STU", "ITU"] };
 // LDpop.py location_data, in pop_order (the table's row order): [location, super-population, latitude, longitude]
@@ -48,7 +47,7 @@ export async function ldpop(ctx, { var1 = "", var2 = "", pop, build = "grch37" }
   const [s1, s2] = snps;
   if (s1.v.chrom !== s2.v.chrom) o.warning = `${o.warning ?? ""}${s1.label} and ${s2.label} are on different chromosomes. `;
   for (const { v } of snps) if (v.chrom === "Y" && build !== "grch37")
-    return { error: `Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} - chr${v.chrom}:${v.pos})` };
+    return { error: chrYMessage(v, "-") };
   let pops = String(pop).split("+");
   pops = pops.includes("ALL") ? [...pops, ...Object.values(GROUPS).flat(), "ALL", ...Object.keys(GROUPS)] : [...pops, ...pops.flatMap(p => GROUPS[p] ?? [])];
   pops = [...new Set(pops)];
@@ -68,8 +67,8 @@ export async function ldpop(ctx, { var1 = "", var2 = "", pop, build = "grch37" }
     if (!tot) return { error: `Insufficient haplotype data for ${s1.label} and ${s2.label} in 1000G reference panel.` };
     const freq = g => { let ref = 0, alt = 0; for (const c of g) if (c) { if (c.h) { ref++; alt++; } else { ref += 2 - c.a; alt += c.a; } } return [r((ref / tot) * 100, 2), r((alt / tot) * 100, 2)]; };
     const [f1, f2] = [freq(g1), freq(g2)];
-    const p = await ctx.prepare(build, rows, P), [n, a1, a2, x] = ctx.kernel.counts(p, [0], [1])[0]; ctx.kernel.reset();
-    const st = ldStats(n - a1 - a2 + x, a2 - x, a1 - x, x), num = v => (st ? r(v, 4) : "NA");
+    const p = await ctx.prepare(build, rows, P), st = ldStats(...cells(ctx.kernel.counts(p, [0], [1])[0])); ctx.kernel.reset();
+    const num = v => (st ? r(v, 4) : "NA");
     out.push([LOCATIONS[P][0], P, panel.size, `${rows[0].ref}: ${f1[0]}%, ${rows[0].alt}: ${f1[1]}%`, `${rows[1].ref}: ${f2[0]}%, ${rows[1].alt}: ${f2[1]}%`,
       num(st?.r2), num(st?.dprime), num(st?.chisq), num(st?.p)].join("\t"));
   }

@@ -13,11 +13,7 @@
 import { pyRound, pyStr, cFormatG } from "../pyfmt.mjs";
 import { decodeHaps } from "../haps.mjs";
 import { TITLE } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { vcfAlleles, vcfId, addCoordWarning } from "./common.mjs";
-import { chunkWindow } from "./ldproxy.mjs";
-
-const gate = t => t.length > 2 && (t.startsWith("rs") || t.startsWith("chr")) && /\d$/.test(t);
+import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, vcfId, addCoordWarning, gate, table2x2, chunkedWindow, countsAgainst } from "./common.mjs";
 
 /**
  * A multi-allelic query record as LDexpress_ld_sub sees it: GT digits per haplotype, counted only when "0" or "1".
@@ -38,8 +34,7 @@ export async function ldexpress(ctx, { snps: text, pop, tissues, r2_d = "r2", r2
   if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
   const raw = text.split(/\r\n|\n|\r/).map(s => s.trim().toLowerCase()).join("+").split("+");
   if (raw.length > 10) return { error: `Maximum variant list is 10  RS numbers or coordinates. Your list contains ${raw.length} entries.` };
-  const lists = [];
-  for (const l of raw) { const t = l.trim().split(/\s+/).filter(Boolean); if (!lists.some(x => x.join(" ") === t.join(" "))) lists.push(t); }
+  const lists = dedupeLists(raw);
   for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
   const o = {}, join = m => { o.warning = o.warning === undefined ? m : `${o.warning}. ${m}`; };
   const toks = lists.filter(t => t.length).map(t => t[0]); // replace_coords_rsid_list drops empty entries
@@ -52,7 +47,7 @@ export async function ldexpress(ctx, { snps: text, pop, tissues, r2_d = "r2", r2
     if (!t || (t.startsWith("rs") ? t : (v.rsid ?? t)).length <= 2) return { error: "Input list of RS numbers is empty" };
     const label = t.startsWith("rs") ? t : (v.rsid ?? t);
     if (!gate(label) || !v.found || v.pos == null) { warn.push(label); continue; }
-    if (v.chrom === "Y" && build !== "grch37") { join(`Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} = chr${v.chrom}:${v.pos})`); warn.push(label); continue; }
+    if (v.chrom === "Y" && build !== "grch37") { join(chrYMessage(v)); warn.push(label); continue; }
     queries.push({ label, v });
   }
   if (warn.length) join(`The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}`);
@@ -66,17 +61,12 @@ export async function ldexpress(ctx, { snps: text, pop, tissues, r2_d = "r2", r2
     if (!v.selected?.row) { popsGone = true; continue; }
     if (popsGone) continue;
     let q = { ...(await ctx.row(build, v.chrom, v.selected.row)), chrom: v.chrom };
-    const parts = chunkWindow(v.pos, window, chunks), all = await ctx.windowRows(build, v.chrom, parts[0][0], parts.at(-1)[1]);
+    const { all, rows } = await chunkedWindow(ctx, build, v.chrom, v.pos, window, chunks);
     if (q.multiallelic_source) q = multiQuery(q, all, (await ctx.samples(build, v.chrom)).ids.length);
-    const rows = parts.flatMap(([lo, hi]) => all.filter(x => x.pos <= hi && x.pos + x.ref.length - 1 >= lo && !x.multiallelic_source));
-    const uniq = [...new Set(rows)], p = await ctx.prepare(build, [q, ...uniq.map(x => ({ ...x, chrom: v.chrom }))], pop);
-    const counts = ctx.kernel.counts(p, uniq.map(() => 0), uniq.map((_, i) => i + 1)); ctx.kernel.reset();
-    const cnt = new Map(uniq.map((x, i) => [x, counts[i]])), ld = [];
+    const cnt = await countsAgainst(ctx, build, v.chrom, q, rows, pop), ld = [];
     for (const x of rows) {
-      const [n, a1, a2, both] = cnt.get(x), D = both, C = a1 - both, B = a2 - both, A = n - a1 - a2 + both, N = n;
-      const Ms = (A + C) * (B + D) * (A + B) * (C + D); if (Ms === 0) continue;
-      const delta = A * D - B * C, dprime = Math.abs(delta / (delta < 0 ? Math.min((A + C) * (A + B), (B + D) * (C + D)) : Math.min((A + C) * (C + D), (A + B) * (B + D))));
-      const r2 = (delta * delta) / Ms;
+      const [A, B, C, D] = cnt.get(x), N = A + B + C + D, t = table2x2(A, B, C, D); if (!t) continue;
+      const { r2, dprime } = t;
       if (!((stat === "r2" ? r2 : dprime) >= r2_d_threshold)) continue;
       const [pa0, pa1] = vcfAlleles(x.ref, x.alt), f = c => (N > c ? pyStr(pyRound(c / N, 3)) : "NA");
       ld.push({ x, r2, dprime, al1: `${pa0}=${f(A + C)}`, al2: `${pa1}=${f(B + D)}`, id: vcfId(x) });

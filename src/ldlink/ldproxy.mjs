@@ -10,16 +10,7 @@
 import { pyRoundRepr as r } from "../pyfmt.mjs";
 import { decodeHaps } from "../haps.mjs";
 import { TITLE } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { vcfAlleles, vcfId, addCoordWarning, rsAnnotations } from "./common.mjs";
-
-/** LDcommon.chunkWindow → [[start, stop]] (Python floats, math.ceil) */
-export function chunkWindow(pos, window, n) {
-  const min = pos - window <= 0 ? 0 : pos - window, range = pos + window - min, out = [];
-  let lo = min;
-  for (let i = 0; i < n; i++) { const hi = lo + range / n; out.push([Math.ceil(lo), Math.ceil(hi)]); lo = hi + 1; }
-  return out;
-}
+import { POPS, POP_ERROR, chrYMessage, vcfAlleles, vcfId, addCoordWarning, rsAnnotations, table2x2, chunkedWindow, countsAgainst } from "./common.mjs";
 
 export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window = 500000, build = "grch37", chunks = 4 }) {
   const snp0 = input.toLowerCase().trim(), o = {};
@@ -30,7 +21,7 @@ export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window =
   addCoordWarning(o, v.warning);
   let snp = snp0.startsWith("rs") ? snp0 : (v.rsid ?? snp0);
   if (!v.found || v.pos == null) return { error: `${snp} is not in dbSNP 155 (${TITLE[build]}).` };
-  if (v.chrom === "Y" && build !== "grch37") return { error: `Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} = chr${v.chrom}:${v.pos})` };
+  if (v.chrom === "Y" && build !== "grch37") return { error: chrYMessage(v) };
   for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
   // get_query_variant_c, then LDproxy's pass over its messages
   const sel = v.selected;
@@ -50,17 +41,11 @@ export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window =
   }
   if (mismatch) { o.warning += mismatch; snp = qid; } // the loop appends the warning again and the query label becomes the VCF ID
   // the window, chunk by chunk (tabix per chunk), biallelic rows only
-  const parts = chunkWindow(v.pos, window, chunks), all = await ctx.windowRows(build, v.chrom, parts[0][0], parts.at(-1)[1]);
-  const rows = parts.flatMap(([lo, hi]) => all.filter(x => x.pos <= hi && x.pos + x.ref.length - 1 >= lo && !x.multiallelic_source));
-  const uniq = [...new Set(rows)], p = await ctx.prepare(build, [q, ...uniq.map(x => ({ ...x, chrom: v.chrom }))], pop);
-  const counts = ctx.kernel.counts(p, uniq.map(() => 0), uniq.map((_, i) => i + 1)); ctx.kernel.reset();
-  const cnt = new Map(uniq.map((x, i) => [x, counts[i]]));
+  const { rows } = await chunkedWindow(ctx, build, v.chrom, v.pos, window, chunks), cnt = await countsAgainst(ctx, build, v.chrom, q, rows, pop);
   const [qa0, qa1] = vcfAlleles(q.ref, q.alt), out = [];
   for (const x of rows) {
-    const [n, a1, a2, both] = cnt.get(x), D = both, C = a1 - both, B = a2 - both, A = n - a1 - a2 + both, N = n;
-    const Ms = (A + C) * (B + D) * (A + B) * (C + D); if (Ms === 0) continue;
-    const delta = A * D - B * C, dprime = Math.abs(delta / (delta < 0 ? Math.min((A + C) * (A + B), (B + D) * (C + D)) : Math.min((A + C) * (C + D), (A + B) * (B + D))));
-    const r2 = (delta * delta) / Ms, [pa0, pa1] = vcfAlleles(x.ref, x.alt);
+    const [A, B, C, D] = cnt.get(x), N = A + B + C + D, t = table2x2(A, B, C, D); if (!t) continue;
+    const { dprime, r2 } = t, [pa0, pa1] = vcfAlleles(x.ref, x.alt);
     const match = r2 > 0.1 ? ((A * D) / Math.max(B * C, 0.01) > 1 ? `${qa0}=${pa0},${qa1}=${pa1}` : `${qa0}=${pa1},${qa1}=${pa0}`) : "NA";
     out.push({ x, dist: x.pos - q.pos, dprime, r2, match, maf: Math.min((A + C) / N, (B + D) / N), id: vcfId(x) });
   }

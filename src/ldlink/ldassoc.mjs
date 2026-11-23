@@ -15,8 +15,7 @@
 import { pyRound, pyStr } from "../pyfmt.mjs";
 import { decodeHaps } from "../haps.mjs";
 import { TITLE, BUILDS, CHROMS } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { vcfAlleles, vcfId, rsAnnotations } from "./common.mjs";
+import { POPS, POP_ERROR, chrYMessage, vcfAlleles, vcfId, rsAnnotations, cells, table2x2 } from "./common.mjs";
 
 const INTERNAL = { error: "Internal server error. Please contact LDlink admin." };
 const stripChr = s => s.replace(/^[chr]+|[chr]+$/g, ""); // str.strip("chr")
@@ -37,7 +36,7 @@ export async function ldassoc(ctx, a) {
     if (a.origin.slice(0, 2) === "rs") {
       const v = (await ctx.planner.query({ build, inputs: [a.origin] })).variants[0];
       if (!v.found) return fail(`${a.origin} is not in dbSNP 155 (${TITLE[build]}).`);
-      if (v.chrom === "Y" && build !== "grch37") return fail(`Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} = chr${v.chrom}:${v.pos})`);
+      if (v.chrom === "Y" && build !== "grch37") return fail(chrYMessage(v));
       if (v.pos == null) return INTERNAL; // int("NA")
       chromosome = v.chrom; org = v.pos;
     } else if (CHROMS.includes(stripChr(a.origin.split(":")[0])) && a.origin.split(":").length === 2) return INTERNAL;
@@ -133,12 +132,11 @@ export async function ldassoc(ctx, a) {
   const counts = ctx.kernel.counts(prep, uniq.map(() => 0), uniq.map((_, i) => i)); ctx.kernel.reset();
   const [qa0, qa1] = vcfAlleles(q.ref, q.alt), qal = { 0: qa0, 1: qa1 }, out = [];
   for (const x of listed) {
-    const [n, a1, a2, both] = counts[idx.get(x)], D = both, C = a1 - both, B = a2 - both, A = n - a1 - a2 + both, N = n;
+    const [A, B, C, D] = cells(counts[idx.get(x)]), N = A + B + C + D;
     if (!N) return INTERNAL; // ZeroDivisionError in LD_calcs (maf before the Ms test)
-    const Ms = (A + C) * (B + D) * (A + B) * (C + D); if (Ms === 0) continue;
+    const t = table2x2(A, B, C, D); if (!t) continue;
     if (!pval.has(x.pos)) continue;
-    const delta = A * D - B * C, dprime = Math.abs(delta / (delta < 0 ? Math.min((A + C) * (A + B), (B + D) * (C + D)) : Math.min((A + C) * (C + D), (A + B) * (B + D))));
-    const r2 = (delta * delta) / Ms, [pa0, pa1] = vcfAlleles(x.ref, x.alt), pal = { 0: pa0, 1: pa1 };
+    const { dprime, r2 } = t, [pa0, pa1] = vcfAlleles(x.ref, x.alt), pal = { 0: pa0, 1: pa1 };
     const m = (k1, k2) => `${pal[k1[0]]}=${qal[k1[1]]},${pal[k2[0]]}=${qal[k2[1]]}`;
     const match = r2 > 0.1 ? ((A * D) / Math.max(B * C, 0.01) > 1 ? m("00", "11") : m("01", "10")) : "NA";
     out.push({ x, dist: x.pos - q.pos, dprime, r2, match, mafq: Math.min((A + B) / N, (C + D) / N), mafp: Math.min((A + C) / N, (B + D) / N), id: vcfId(x), p: pyFloat(pval.get(x.pos)) });

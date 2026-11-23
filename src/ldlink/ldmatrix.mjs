@@ -4,8 +4,8 @@
 //   build or chrY on GRCh38 → dropped; not in 1000G → dropped; source record multi-allelic → dropped ("not a
 //   biallelic"); kept variants in position order (stable).
 import { pyRoundRepr } from "../pyfmt.mjs";
+import { gate } from "./common.mjs";
 
-const gate = t => t.length > 2 && (t.startsWith("rs") || t.startsWith("chr")) && /\d$/.test(t); // LDmatrix.py:71-72
 const cell = v => (Number.isNaN(v) ? "NA" : pyRoundRepr(v, 3));
 
 /** → { ids: [label], r2: [[string]], d: [[string]] } */

@@ -4,17 +4,14 @@
 import { pyRound, pyStr } from "../pyfmt.mjs";
 import { decodeHaps } from "../haps.mjs";
 import { TITLE, BUILDS } from "../genome.mjs";
-import { POPS, POP_ERROR } from "./common.mjs";
-import { vcfAlleles, addCoordWarning } from "./common.mjs";
+import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning, gate } from "./common.mjs";
 
-const gate = t => t.length > 2 && (t.startsWith("rs") || t.startsWith("chr")) && /\d$/.test(t);
 const pad = (i, n) => String(i).padStart(String(n).length, "0");
 
 export async function ldhap(ctx, { snps: lines, pop, build = "grch37" }) {
   if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
   // validsnp: one token list per line, duplicate lists removed (before coordinates are replaced)
-  const lists = [];
-  for (const l of lines) { const t = l.toLowerCase().trim().split(/\s+/).filter(Boolean); if (!lists.some(x => x.join(" ") === t.join(" "))) lists.push(t); }
+  const lists = dedupeLists(lines.map(l => l.toLowerCase()));
   if (lists.length > 30) return { error: `Maximum variant list is 30  RS numbers or coordinates. Your list contains ${lists.length} entries.` };
   for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
   const o = {}, W = () => o.warning ?? "", warnAdd = s => { o.warning = W() + s; };
@@ -26,7 +23,7 @@ export async function ldhap(ctx, { snps: lines, pop, build = "grch37" }) {
   toks.forEach((t, i) => {
     const v = vs[i], label = t.startsWith("rs") ? t : (v.rsid ?? t);
     if (!gate(label) || !v.found || v.pos == null) return warn.push(label);
-    if (v.chrom === "Y" && build !== "grch37") { warnAdd(`Input variants on chromosome Y are unavailable for GRCh38, only available for GRCh37 (${v.rsid} = chr${v.chrom}:${v.pos}). `); return warn.push(label); }
+    if (v.chrom === "Y" && build !== "grch37") { warnAdd(`${chrYMessage(v)}. `); return warn.push(label); }
     kept.push({ label, v });
   });
   if (warn.length) warnAdd(`The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}. `);
