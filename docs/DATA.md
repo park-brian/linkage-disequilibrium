@@ -16,12 +16,18 @@ A release is a directory of Parquet files plus `manifest.json`, served as static
 
 ## manifest.json
 
-`{ version, created, files: { <path>: { byteLength, numRows, footer: { offset, length }, key, columns, kv, rowGroups:
-[{ min, max, numRows, colBytes, keyIndex?, payloadOffsetIndex? }] } } }`.
-- The planner prices reads from it (`src/planner.mjs`).
-- Each file opens with its `byteLength` (no size probe) and its footer in one exact Range request.
-- It is 7.15 MB (1.49 MB gzipped), 93% of it the genotype files' per-row-group `colBytes`: the app's whole startup
-  download. Trimming `colBytes` to the columns the planner prices is a release-format change (open in STATUS).
+Version 2: `{ version: 2, created, files: { <path>: { byteLength, numRows, footer: { offset, length }, key, columns,
+kv, rowGroups } } }`. `rowGroups` is stored column-wise, one array entry per row group: `{ min: [], max: [], bytes: [],
+keyIndex?: [], payloadOffsetIndex?: [], colBytes?: { <column>: [] } }`.
+- `min` / `max`: the key column's statistics (`null`: none). `keyIndex`: `[columnIndexOffset, length, offsetIndexOffset,
+  length]` of the key column. `payloadOffsetIndex`: `[offset, length]` of the `haps` offset index.
+- `colBytes`: genotype files only, for the columns the planner prices (`PRICED_COLUMNS` in `src/planner.mjs`).
+- `src/planner.mjs` `expandManifest` turns it back into one object per row group, and also reads version 1 (one object
+  per row group, `colBytes` for every column), which is what the bucket's `v4/` still holds.
+- The planner prices reads from it. Each file opens with its `byteLength` (no size probe) and its footer in one exact
+  Range request.
+- release_v4: 1.92 MB (0.61 MB gzipped), down from 7.15 MB in version 1 (1.49 MB gzipped). It is the app's whole startup
+  download. The version 1 file is kept at `$LD_DATA/release_v4_manifest.v1.json`.
 - A path that is not in the manifest is absent (`exists`).
 
 Built by `pipeline/release/manifest.mjs`.

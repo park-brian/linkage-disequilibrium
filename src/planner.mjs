@@ -18,6 +18,28 @@ import { parseCoord, firstToken, tierPath, key } from "./genome.mjs";
 import { candidateRows, pickParity, pickAllele } from "./genotypes.mjs";
 
 const ROW_COLUMNS = ["pos", "rsid", "haps", "missing", "male_haploid", "multiallelic_source"];
+const LABEL_COLS = ["pos", "rsid", "rsid_source", "rsid_pos_delta"];
+/** the genotype columns whose per-row-group sizes the manifest carries (all the planner prices) */
+export const PRICED_COLUMNS = [...new Set([...ROW_COLUMNS, ...LABEL_COLS])];
+
+/**
+ * The manifest's row groups as objects { min, max, bytes, keyIndex, payloadOffsetIndex?, colBytes? }. Version 2 stores
+ * them column-wise ({ min: [...], max: [...], ..., colBytes: { pos: [...], ... } }); version 1 as objects (bucket v4/).
+ */
+export function expandManifest(m) {
+  if ((m.version ?? 1) < 2) return m;
+  const files = {};
+  for (const [path, f] of Object.entries(m.files)) {
+    const R = f.rowGroups, cb = R.colBytes && Object.entries(R.colBytes);
+    files[path] = { ...f, rowGroups: R.min.map((min, g) => ({
+      // null min / max = no key statistics (v1 leaves them out)
+      min: min ?? undefined, max: R.max[g] ?? undefined, bytes: R.bytes[g], keyIndex: R.keyIndex?.[g] ?? null,
+      ...(R.payloadOffsetIndex ? { payloadOffsetIndex: R.payloadOffsetIndex[g] } : {}),
+      ...(cb ? { colBytes: Object.fromEntries(cb.map(([c, v]) => [c, v[g]])) } : {}),
+    })) };
+  }
+  return { ...m, files };
+}
 // cost-model constants (bytes), calibrated in steps 1-2; verify_planner.mjs checks predictions against measurements
 export const COST = {
   rsidPage: 8_000,         // pages read per rsID key across the 5 rsID-index columns
@@ -33,7 +55,7 @@ export const COST = {
  * @param {{ manifest?: object }} [opts] manifest: the parsed manifest.json, when the caller already has it (browser: fetch)
  */
 export async function openPlanner(root, openFile, { manifest } = {}) {
-  manifest ??= JSON.parse(new TextDecoder().decode(await (await openFile(`${root}/manifest.json`)).slice(0)));
+  manifest = expandManifest(manifest ?? JSON.parse(new TextDecoder().decode(await (await openFile(`${root}/manifest.json`)).slice(0))));
   // one cached { file, metadata } per path: size and footer from the manifest (no size probe, one exact footer read)
   const size = rel => { const f = manifest.files[rel]; return f && { byteLength: f.byteLength, footer: f.footer.length }; };
   const { file: open } = createSource(root, openFile, { size });
@@ -141,7 +163,6 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     const byChrom = new Map();
     for (const r of res.values()) if (r.found && r.pos != null) { if (!byChrom.has(r.chrom)) byChrom.set(r.chrom, []); byChrom.get(r.chrom).push(r.pos); }
     const regions = [...byChrom].flatMap(([chrom, ps]) => clusters(ps).map(c => ({ chrom, lo: c.lo - COST.clusterGap / 2, hi: c.hi + COST.clusterGap / 2 })));
-    const LABEL_COLS = ["pos", "rsid", "rsid_source", "rsid_pos_delta"];
     const scanCost = regions.reduce((a, g) => a + tierFiles(build, g.chrom, tiers).reduce((b, f) => b + scanBytes(f, g.lo, g.hi, LABEL_COLS), 0), 0);
     const sampleCost = directRsidBytes(sample.map(i => ids[i])), dupCost = manifest.files["dbsnp/duplicated_rsids.parquet"]?.byteLength ?? 0;
     const directCost = directRsidBytes(eligible.filter(i => !sample.includes(i)).map(i => ids[i]));

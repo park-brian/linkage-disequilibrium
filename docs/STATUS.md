@@ -41,7 +41,7 @@
 
 | | before the restructure | now |
 |---|---|---|
-| startup (manifest) | 2 requests, 7.15 MB | 1 request, 7.15 MB (1.49 MB gzipped: hosting should compress it) |
+| startup (manifest) | 2 requests, 7.15 MB | 1 request, 1.92 MB (0.61 MB gzipped: hosting should compress it) |
 | LDmatrix (8 SNPs) | 97 requests, 2.70 MB | 62 requests, 2.75 MB |
 | LDproxy rs3 ±500 kb | 886 requests, 12.6 MB | 505 requests, 13.4 MB |
 
@@ -70,6 +70,5 @@ and genome keys stay BigInt where they meet INT64 columns.
 - **About 870 GB of regenerable intermediates** in `$LD_DATA` (`ncbi_dbsnp`, `dbsnp_dump`, `phaseB` build copies):
   keep or delete.
 - **Hosting** (Phase D).
-- **A slimmer manifest** (a release format change): 93% of its 7.15 MB is the genotype files' per-row-group
-  `colBytes` for 18 columns, while the planner prices 5. Rewriting only `manifest.json` would cut the app's startup
-  download several-fold, but the bucket's `v4/` would then differ from the local release.
+- **The bucket's `v4/manifest.json`** is still version 1 (7.15 MB). The code reads both; the local release has
+  version 2 (1.92 MB). Uploading the new manifest is yours to approve.
