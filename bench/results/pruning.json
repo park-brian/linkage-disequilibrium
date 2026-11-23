@@ -1,0 +1,82 @@
+{
+  "hyparquet": "1.33.1",
+  "root": "release_v4",
+  "report": [
+    {
+      "case": "rsID index, 32 keys",
+      "keys": 32,
+      "sameRows": true,
+      "rows": [
+        32,
+        32
+      ],
+      "ours": {
+        "requests": 264,
+        "bytes": 2990270,
+        "ms": 218
+      },
+      "hyparquet": {
+        "requests": 193,
+        "bytes": 1821469,
+        "ms": 357
+      }
+    },
+    {
+      "case": "rsID index, 512 keys",
+      "keys": 512,
+      "sameRows": true,
+      "rows": [
+        521,
+        521
+      ],
+      "ours": {
+        "requests": 3620,
+        "bytes": 38144692,
+        "ms": 2009
+      },
+      "hyparquet": {
+        "requests": 3109,
+        "bytes": 8604180,
+        "ms": 4809
+      }
+    },
+    {
+      "case": "dbSNP by position, 200 keys",
+      "keys": 200,
+      "sameRows": true,
+      "rows": [
+        251,
+        251
+      ],
+      "ours": {
+        "requests": 1154,
+        "bytes": 4788975,
+        "ms": 2203
+      },
+      "hyparquet": {
+        "requests": 762,
+        "bytes": 6816226,
+        "ms": 7331
+      }
+    },
+    {
+      "case": "genotypes, 50 points (haps payload)",
+      "keys": 50,
+      "sameRows": true,
+      "rows": [
+        53,
+        53
+      ],
+      "ours": {
+        "requests": 243,
+        "bytes": 2885248,
+        "ms": 216
+      },
+      "hyparquet": {
+        "requests": 233,
+        "bytes": 2392652,
+        "ms": 264
+      }
+    }
+  ]
+}

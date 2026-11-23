@@ -63,3 +63,27 @@ rsID with several dump docs (`duplicated_rsids`) falls back to the exact `find_o
 `tools/config.{mjs,sh}`, and scripts run with the working directory at `$LD_DATA`.
 
 **Why:** 993 GB of outputs inside the tree made search and backup dangerous; there were about 25 hardcoded paths.
+
+## Our page-index lookups, not hyparquet's (2026-11-23)
+
+**What:** `src/parquet.js` `sortedLookup` stays. hyparquet 1.33's own pruning (`parquetScan` with a `$in`
+`pruningFilter` and `usePageIndex: true`) returned identical rows in every case of `bench/pruning.js`, but it did not
+win on every measure (cold reads, local release; `bench/results/pruning.json`):
+
+| case | ours: requests / bytes / ms | hyparquet: requests / bytes / ms |
+|---|---|---|
+| rsID index, 32 keys | 264 / 3.0 MB / 218 | 193 / 1.8 MB / 357 |
+| rsID index, 512 keys | 3,620 / 38.1 MB / 2,009 | 3,109 / 8.6 MB / 4,809 |
+| dbSNP by position, 200 keys | 1,154 / 4.8 MB / 2,203 | 762 / 6.8 MB / 7,331 |
+| genotypes, 50 points (`haps` payload) | 243 / 2.9 MB / 216 | 233 / 2.4 MB / 264 |
+
+**Why:** the plan's rule was to adopt only if neither requests nor bytes regress; bytes regress on the position file
+and CPU is 1.2–3.3× higher.
+
+**What it showed about ours:** without a payload column, `sortedLookup` reads every requested column over the key
+pages' whole row spans; hyparquet reads each column only on its own pages, which is why 512 rsIDs cost 8.6 MB there
+and 38 MB here. Mapping every column to its own pages, as the `payloadColumn` path already does for one column, is
+the follow-up.
+
+**Revisit if:** hyparquet batches row reads per page (its per-row `readColumn` decodes a page once per row), or the
+follow-up above lands and a re-run favours either side.
