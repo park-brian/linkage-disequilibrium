@@ -1,0 +1,46 @@
+*********************************************************************
+* LD Score Regression (LDSC)
+* Version 3.0.1
+* (C) 2014-2019 Brendan Bulik-Sullivan and Hilary Finucane
+* Broad Institute of MIT and Harvard / MIT Department of Mathematics
+* GNU General Public License v3
+*********************************************************************
+Call: 
+./munge_sumstats.py \
+--sumstats tabs_spaces.txt \
+--out ref_tabs_spaces \
+--merge-alleles mini.snplist 
+
+Interpreting column names as follows:
+SNP:	Variant ID (e.g., rs number)
+A1:	Allele 1, interpreted as ref allele for signed sumstat.
+A2:	Allele 2, interpreted as non-ref allele for signed sumstat.
+BETA:	[linear/logistic] regression coefficient (0 --> no effect; above 0 --> A1 is trait/risk increasing)
+P:	p-Value
+N:	Sample size
+
+Reading list of SNPs for allele merge from mini.snplist
+Read 2 SNPs for allele merge.
+Reading sumstats from tabs_spaces.txt into memory 5000000 SNPs at a time.
+Read 2 SNPs from --sumstats file.
+Removed 0 SNPs not in --merge-alleles.
+Removed 0 SNPs with missing values.
+Removed 0 SNPs with INFO <= 0.9.
+Removed 0 SNPs with MAF <= 0.01.
+Removed 0 SNPs with out-of-bounds p-values.
+Removed 0 variants that were not SNPs or were strand-ambiguous.
+2 SNPs remain.
+Removed 0 SNPs with duplicated rs numbers (2 SNPs remain).
+Removed 0 SNPs with N < 666.6666666666666 (2 SNPs remain).
+Median value of BETA was 0.0, which seems sensible.
+Removed 0 SNPs whose alleles did not match --merge-alleles (2 SNPs remain).
+Writing summary statistics for 2 SNPs (2 with nonmissing beta) to ref_tabs_spaces.sumstats.gz.
+
+Metadata:
+Mean chi^2 = 4.139
+Lambda GC = 9.098
+Max chi^2 = 6.635
+0 Genome-wide significant SNPs (some may have been removed by filtering).
+
+Conversion finished at Sat Nov 21 12:09:27 2026
+Total time elapsed: 0.02s

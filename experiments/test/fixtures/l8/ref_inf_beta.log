@@ -1,0 +1,48 @@
+*********************************************************************
+* LD Score Regression (LDSC)
+* Version 3.0.1
+* (C) 2014-2019 Brendan Bulik-Sullivan and Hilary Finucane
+* Broad Institute of MIT and Harvard / MIT Department of Mathematics
+* GNU General Public License v3
+*********************************************************************
+Call: 
+./munge_sumstats.py \
+--sumstats inf_beta.txt \
+--out ref_inf_beta \
+--merge-alleles mini.snplist 
+
+Interpreting column names as follows:
+SNP:	Variant ID (e.g., rs number)
+A1:	Allele 1, interpreted as ref allele for signed sumstat.
+A2:	Allele 2, interpreted as non-ref allele for signed sumstat.
+BETA:	[linear/logistic] regression coefficient (0 --> no effect; above 0 --> A1 is trait/risk increasing)
+P:	p-Value
+N:	Sample size
+
+Reading list of SNPs for allele merge from mini.snplist
+Read 2 SNPs for allele merge.
+Reading sumstats from inf_beta.txt into memory 5000000 SNPs at a time.
+Read 2 SNPs from --sumstats file.
+Removed 0 SNPs not in --merge-alleles.
+Removed 0 SNPs with missing values.
+Removed 0 SNPs with INFO <= 0.9.
+Removed 0 SNPs with MAF <= 0.01.
+Removed 0 SNPs with out-of-bounds p-values.
+Removed 0 variants that were not SNPs or were strand-ambiguous.
+2 SNPs remain.
+Removed 0 SNPs with duplicated rs numbers (2 SNPs remain).
+Removed 0 SNPs with N < 666.6666666666666 (2 SNPs remain).
+
+ERROR converting summary statistics:
+
+Traceback (most recent call last):
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 685, in munge_sumstats
+    check_median(dat.SIGNED_SUMSTAT, signed_sumstat_null, 0.1, sign_cname))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 360, in check_median
+    raise ValueError(msg.format(F=name, M=expected_median, V=round(m, 2)))
+ValueError: WARNING: median value of BETA is -inf (should be close to 0). This column may be mislabeled.
+
+
+Conversion finished at Sat Nov 21 12:09:24 2026
+Total time elapsed: 0.01s

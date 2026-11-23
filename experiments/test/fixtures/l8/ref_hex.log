@@ -1,0 +1,63 @@
+*********************************************************************
+* LD Score Regression (LDSC)
+* Version 3.0.1
+* (C) 2014-2019 Brendan Bulik-Sullivan and Hilary Finucane
+* Broad Institute of MIT and Harvard / MIT Department of Mathematics
+* GNU General Public License v3
+*********************************************************************
+Call: 
+./munge_sumstats.py \
+--sumstats hex.txt \
+--out ref_hex \
+--merge-alleles mini.snplist 
+
+Interpreting column names as follows:
+SNP:	Variant ID (e.g., rs number)
+A1:	Allele 1, interpreted as ref allele for signed sumstat.
+A2:	Allele 2, interpreted as non-ref allele for signed sumstat.
+BETA:	[linear/logistic] regression coefficient (0 --> no effect; above 0 --> A1 is trait/risk increasing)
+P:	p-Value
+N:	Sample size
+
+Reading list of SNPs for allele merge from mini.snplist
+Read 2 SNPs for allele merge.
+Reading sumstats from hex.txt into memory 5000000 SNPs at a time.
+
+ERROR converting summary statistics:
+
+Traceback (most recent call last):
+  File "pandas/_libs/parsers.pyx", line 1161, in pandas._libs.parsers.TextReader._convert_tokens
+TypeError: Cannot cast array data from dtype('O') to dtype('float64') according to the rule 'safe'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 670, in munge_sumstats
+    dat = parse_dat(dat_gen, cname_translation, merge_alleles, log, args)
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 228, in parse_dat
+    for block_num, dat in enumerate(dat_gen):
+                          ~~~~~~~~~^^^^^^^^^
+  File "D:\Projects\LDlink\ldsc-ref\.venv\Lib\site-packages\pandas\io\parsers\readers.py", line 1843, in __next__
+    return self.get_chunk()
+           ~~~~~~~~~~~~~~^^
+  File "D:\Projects\LDlink\ldsc-ref\.venv\Lib\site-packages\pandas\io\parsers\readers.py", line 1985, in get_chunk
+    return self.read(nrows=size)
+           ~~~~~~~~~^^^^^^^^^^^^
+  File "D:\Projects\LDlink\ldsc-ref\.venv\Lib\site-packages\pandas\io\parsers\readers.py", line 1923, in read
+    ) = self._engine.read(  # type: ignore[attr-defined]
+        ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        nrows
+        ^^^^^
+    )
+    ^
+  File "D:\Projects\LDlink\ldsc-ref\.venv\Lib\site-packages\pandas\io\parsers\c_parser_wrapper.py", line 234, in read
+    chunks = self._reader.read_low_memory(nrows)
+  File "pandas/_libs/parsers.pyx", line 850, in pandas._libs.parsers.TextReader.read_low_memory
+  File "pandas/_libs/parsers.pyx", line 921, in pandas._libs.parsers.TextReader._read_rows
+  File "pandas/_libs/parsers.pyx", line 1066, in pandas._libs.parsers.TextReader._convert_column_data
+  File "pandas/_libs/parsers.pyx", line 1167, in pandas._libs.parsers.TextReader._convert_tokens
+ValueError: could not convert string to float: '0x1A'
+
+
+Conversion finished at Sat Nov 21 12:09:05 2026
+Total time elapsed: 0.02s

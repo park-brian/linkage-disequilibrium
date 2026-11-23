@@ -334,3 +334,60 @@ LDhap 70, LDproxy 57, SNPclip 49, SNPchip 66, LDtrait 55, LDexpress 58, LDassoc 
 - a final commit.
 
 No push.
+
+---
+
+## 11. Review outcome and revised slices (2026-11-23)
+
+An independent read-only review of §10 against the code found 18 concrete problems. The top three were verified
+directly:
+- the `parity-complete` commit lacks the `ref_*.log` test fixtures, so it fails its own tests from a fresh clone;
+- `.gitignore`'s `data/` also hides the planned `verify/data/`;
+- G1 *skips* the release-dependent tests, which read `../out/release`, when the data is absent.
+
+**The revisions:**
+
+| # | finding | change |
+|---|---|---|
+| 1 | `.gitignore` drops the `ref_*.log` fixtures; `data/` matches `verify/data/` | `/data/`, `!**/fixtures/**/*.log`; commit the fixtures now |
+| 2 | G1 skips silently; the tests read `out/release` (an older release than `release_v4`) | tests take the release from `tools/config.mjs`; they **fail** when it is configured but missing |
+| 3 | path literals are mostly in SQL (single-quoted), shell (unquoted), Python and template strings, which the slice 1 grep missed | **SQL / `run_sql_statements.py` / duckdb run with `cwd = LD_DATA`** and the `out/` prefix stripped, not templated; shell sources `tools/config.sh`; JS and Python read the config |
+| 4 | uncovered paths: the `ldlink-local` tmp exchange directory, the LDassoc examples, the 1000G VCFs, the emsdk clang, `kernel_check`'s reference script with a sibling repo's `node_modules` | config gains `LDLINK_TMP`, `LDASSOC_EXAMPLES`, `VCF`, `CLANG`, `REF_NODE_MODULES` |
+| 5 | test inputs under `out/` (`ldlink_compare/ldmatrix_cases.json`); `experiments/results` is tracked and written by benchmarks | the cases move to `verify/ldlink/cases/`; results stay in git as `bench/results/` |
+| 6 | `scripts/profile` holds the kernel reference and test-vector expectations used by verifiers | → `verify/reference/` (ldmatrix_reference, results/); the pure profiling scripts → `pipeline/profile/` |
+| 7 | every script assumes `cwd = experiments/` | resolve sibling files from `import.meta.url` / `$(dirname "$0")`. **Slices 1 + 2 become one scripted pass**, so about 60 files are edited once |
+| 8 | `tools/ldlink-local` compose mounts relative dirs, builds from a sibling repo, and has a literal (local throwaway) password | the kit is versioned as a **template**: compose takes `LDLINK_HOME` / `LDLINK_SRC` / `MONGO_ROOT_PASSWORD` from `.env` (gitignored; `.env.example` committed). The comparers pipe the repo's `drive.py` (one source of truth). The running stack is untouched |
+| 9 | unplaced files: `experiments/README.md`, the `wasm/*.json` reports, `run_sql_statements.py`, `allele_join` | README → folded into the docs; reports → `bench/results/`; `run_sql_statements.py` → `tools/`; `allele_join` → `pipeline/ncbi/` |
+| 10 | deletes are safe (only docs mention them) | unchanged |
+| 11 | G4 misses LDhap / LDassoc and a rendered pyramid from the moved worker | G4 = check page 18/18 **+** the app runs Pyramid (chr22 and chrX) and LDassoc (example) and renders them |
+| 12 | `parseList` would be one function with 6 behaviours (split, limit order, labels, chrY messages, warning joins, select) | **dropped.** Extract only `gate`, `dedupeLists` and recurring message builders |
+| 13 | `ldStats` everywhere would drag BigInt χ² and erfc into window loops and change per-module filter order | **narrower:** `table2x2(n, a1, a2, both)` → A–D, Ms, delta, r², D′; modules keep their own order and allele strings |
+| 14 | `windowLD` is shared by ldproxy and ldexpress only (ldexpress inserts `multiQuery`; ldassoc differs) | **narrower:** `windowCounts` used by those two |
+| 15 | a cross-cutting registry won't pay (app converts types, comparers send strings, ports validate in their own order) | **dropped.** The app's `MODULES` table moves to `app/forms.mjs` as is |
+| 16 | the comparer runner must land separately from the dedup, or a G3 difference can't be attributed | **new slice 3:** runner first, at today's totals; dedup after |
+| 17 | `asyncBufferFromUrl` takes `byteLength`, but `openFile(path)` has one argument everywhere; the manifest fetch still costs a HEAD; `source.mjs` re-reads dbSNP footers (its 64 KB key ≠ the planner's exact one); "range coalescing" can't work in `parquet.mjs` (row ranges, pool(16); hyparquet already coalesces inside a read); hyparquet 1.33 does page-index pruning itself | slice 5: `open(path, size)` signature everywhere, the manifest via `fetch`, the footer double-read fixed, coalescing via planned reads (`maxGapRows`) or none. Evaluate hyparquet's native pruning before writing any primitive. **Slices 5 + 6 merge** so `parquet.mjs` changes once |
+| 18 | only 5 BigInt sites are genome keys; the rest reproduce Python's unbounded `int()`. The masked same-mask fast path is sound only per pair inside `band_masked` (grouping changes output order); G2/G3 don't exercise `band()` on masked rows; module chrX speed is `js.maskedCounts` | numbers for **keys only**; the fast path is checked per pair (hash, then full-mask compare, per-row valid counts) in C, JS and `maskedCounts`. G2 gains `kernel_check` on chrX; K5 tests fast == masked |
+
+**Revised slices** (each slice ends green on G1 + G2, and G3 / G4 where marked; one commit per slice):
+
+0. **Baseline fix:** `.gitignore`; commit the fixtures and this section.
+1. **Layout + paths (one scripted pass):**
+   - `tools/config.{mjs,sh}`;
+   - move the data root;
+   - the directory moves (§3 as amended above), with `import.meta.url` resolution;
+   - SQL with `cwd = LD_DATA`;
+   - dead code deleted;
+   - npm scripts and the `tools/ldlink-local` template;
+   - tests read the config and fail when the release is missing.
+
+   Gates: G1, G2, G4.
+2. **Docs:** README, AGENTS, STATUS, ARCHITECTURE, DATA, PARITY, decisions; history; `tools/check_docs.mjs` in G1.
+3. **Comparer runner:** `verify/ldlink/compare.mjs` + adapters + cases, at today's totals. Gate: G3.
+4. **Narrow dedup:** `gate`, `dedupeLists`, messages, `table2x2`, `windowCounts`, `genotypes.calls`,
+   `pyfmt.pyFloat`; `app/forms.mjs`. Gates: G3, G4.
+5. **Reads:** `open(path, size)`, the manifest via `fetch`, the footer double-read, numeric genome keys, an
+   evaluation of hyparquet's native page pruning (adopted only if `verify_planner`'s bytes do not regress), and
+   coalescing via planned reads. Gates: G2, G3, G4; before / after numbers in STATUS.
+6. **Annotation fast path** (page-pruned duplicate lookup) **and the masked kernel same-mask fast path**:
+   C + JS + `maskedCounts`, K5, `kernel_check` on chrX. Gates: G3, G4 (chrX pyramid timing).
+7. **Final:** full G1–G4, STATUS numbers, this file → `docs/history/`.

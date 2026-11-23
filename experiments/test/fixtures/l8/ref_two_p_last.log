@@ -1,0 +1,24 @@
+*********************************************************************
+* LD Score Regression (LDSC)
+* Version 3.0.1
+* (C) 2014-2019 Brendan Bulik-Sullivan and Hilary Finucane
+* Broad Institute of MIT and Harvard / MIT Department of Mathematics
+* GNU General Public License v3
+*********************************************************************
+Call: 
+./munge_sumstats.py \
+--sumstats two_p_last.txt \
+--out ref_two_p_last \
+--merge-alleles mini.snplist 
+
+
+ERROR converting summary statistics:
+
+Traceback (most recent call last):
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 623, in munge_sumstats
+    raise ValueError('Found {num} different {C} columns'.format(C=head,num=str(numc)))
+ValueError: Found 2 different P columns
+
+
+Conversion finished at Sat Nov 21 12:09:19 2026
+Total time elapsed: 0.01s
