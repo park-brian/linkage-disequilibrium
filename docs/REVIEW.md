@@ -98,9 +98,9 @@ Yes, and it is the right long-term shape. Today LDlink's rules sit inside the co
 - **Release columns:** some (`vcf_id`, `rsid_source`, `rsid_pos_delta`) exist only for LDlink's labels.
 
 **Target:**
-- **`src/core/`** returns *every* match in file order: variants by ID or position, genotype rows overlapping a
+- **A core directory (proposed `src/core`)** returns *every* match in file order: variants by ID or position, genotype rows overlapping a
   position, annotations, the LD kernel, the generic numerics.
-- **`src/parity/`** chooses from those lists (first, last, "Multiple rsIDs") and holds everything LDlink-shaped:
+- **A parity directory (proposed `src/parity`)** chooses from those lists (first, last, "Multiple rsIDs") and holds everything LDlink-shaped:
   - input parsing and Python `int()` / `float()` acceptors;
   - messages;
   - `pyfmt`, and the ldsc `log` and `pandas` emulation;
@@ -151,7 +151,7 @@ Ranked by value for effort:
    - one canvas and tooltip helper;
    - merge `showProxy` / `showAssoc`;
    - number fields coerced in one place.
-8. **Pipeline runbook.** One ordered `pipeline/build.sh` with resume checks, the missing producers, and corrected
+8. **Pipeline runbook.** One ordered pipeline build script (proposed: pipeline/build.sh) with resume checks, the missing producers, and corrected
    `usage:` lines. Generate the 178 hand-unrolled `COPY` statements.
 9. **A line-length check in `npm test`**, then reflow the over-long lines.
 10. **The parity layer (§4)**, on top of the helpers from 5 and 6.
