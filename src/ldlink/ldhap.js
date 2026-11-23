@@ -4,32 +4,25 @@
 import { pyRound, pyStr } from "../pyfmt.js";
 import { decodeHaps } from "../haps.js";
 import { TITLE, BUILDS } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning, gate } from "./common.js";
+import { chrYMessage, dedupeLists, vcfAlleles, check, failFirst, screen, WARNED, sameChromError } from "./common.js";
 
 const pad = (i, n) => String(i).padStart(String(n).length, "0");
 
 export async function ldhap(ctx, { snps: lines, pop, build = "grch37" }) {
-  if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
+  const bad = failFirst(check.build(build));
+  if (bad) return bad;
   // validsnp: one token list per line, duplicate lists removed (before coordinates are replaced)
   const lists = dedupeLists(lines.map(l => l.toLowerCase()));
-  if (lists.length > 30) return { error: `Maximum variant list is 30  RS numbers or coordinates. Your list contains ${lists.length} entries.` };
-  for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
+  const bad2 = failFirst(check.list(lists.length, 30), check.pop(pop));
+  if (bad2) return bad2;
   const o = {}, W = () => o.warning ?? "", warnAdd = s => { o.warning = W() + s; };
   const fail = error => ({ error, ...(o.warning !== undefined ? { warning: o.warning } : {}) }); // calculate_hap returns the whole output
   const toks = lists.filter(t => t.length).map(t => t[0]);
-  const vs = (await ctx.planner.query({ build, inputs: toks, select: "parity" })).variants;
-  vs.forEach(v => addCoordWarning(o, v.warning)); // replace_coords_rsid_list, all inputs first
-  const kept = [], warn = [];
-  toks.forEach((t, i) => {
-    const v = vs[i], label = t.startsWith("rs") ? t : (v.rsid ?? t);
-    if (!gate(label) || !v.found || v.pos == null) return warn.push(label);
-    if (v.chrom === "Y" && build !== "grch37") { warnAdd(`${chrYMessage(v)}. `); return warn.push(label); }
-    kept.push({ label, v });
-  });
-  if (warn.length) warnAdd(`The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}. `);
+  const { kept, warned } = await screen(ctx, build, toks, o, { onChrY: v => warnAdd(`${chrYMessage(v)}. `) });
+  if (warned.length) warnAdd(`${WARNED(warned)}. `);
   if (!kept.length) return fail(`Input variant list does not contain any valid RS numbers or coordinates. ${W()}`);
   const diff = kept.findIndex(k => k.v.chrom !== kept[0].v.chrom); // check_same_chromosome: reported after parse_vcf
-  if (diff > 0) o.error = `Not all input variants are on the same chromosome: ${kept[diff - 1].label}=chr${kept[diff - 1].v.chrom}:${kept[diff - 1].v.pos}, ${kept[diff].label}=chr${kept[diff].v.chrom}:${kept[diff].v.pos}. ${W()}`;
+  if (diff > 0) o.error = `${sameChromError(kept, diff)} ${W()}`;
   const ps = kept.map(k => k.v.pos), range = Math.max(...ps) - Math.min(...ps);
   if (range > 1e6) warnAdd(`Switch rate errors become more common as distance between query variants increases (Query range = ${range} bp). `);
   // parse_vcf: tabix on the first SNP's chromosome; entries keyed chr:pos_label (dups collapse), sorted by position

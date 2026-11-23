@@ -13,7 +13,7 @@
 import { pyRound, pyStr, cFormatG } from "../pyfmt.js";
 import { decodeHaps } from "../haps.js";
 import { TITLE } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, vcfId, addCoordWarning, gate, table2x2, chunkedWindow, countsAgainst } from "./common.js";
+import { dedupeLists, vcfAlleles, vcfId, addWarning, check, failFirst, screen, WARNED, table2x2, chunkedWindow, countsAgainst } from "./common.js";
 
 /**
  * A multi-allelic query record as LDexpress_ld_sub sees it: GT digits per haplotype, counted only when "0" or "1".
@@ -29,28 +29,21 @@ function multiQuery(q, all, nSamples) {
 }
 
 export async function ldexpress(ctx, { snps: text, pop, tissues, r2_d = "r2", r2_d_threshold = 0.1, p_threshold = 0.1, window = 500000, build = "grch37", chunks = 4 }) {
-  if (!["r2", "d"].includes(r2_d)) return { error: "Invalid r2_d parameter." };
-  if (!Number.isInteger(+window) || window < 0 || window > 1000000) return { error: "Invalid window parameter." };
-  if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
+  const bad = failFirst(check.r2d(r2_d), check.window(window), check.build(build));
+  if (bad) return bad;
   const raw = text.split(/\r\n|\n|\r/).map(s => s.trim().toLowerCase()).join("+").split("+");
-  if (raw.length > 10) return { error: `Maximum variant list is 10  RS numbers or coordinates. Your list contains ${raw.length} entries.` };
+  const bad2 = failFirst(check.list(raw.length, 10));
+  if (bad2) return bad2;
   const lists = dedupeLists(raw);
-  for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
-  const o = {}, join = m => { o.warning = o.warning === undefined ? m : `${o.warning}. ${m}`; };
+  const bad3 = failFirst(check.pop(pop));
+  if (bad3) return bad3;
+  const o = {};
   const toks = lists.filter(t => t.length).map(t => t[0]); // replace_coords_rsid_list drops empty entries
-  const vs = (await ctx.planner.query({ build, inputs: toks.filter(Boolean), select: "parity" })).variants;
-  let vi = 0; const byTok = toks.map(t => (t ? vs[vi++] : null));
-  byTok.forEach(v => v && addCoordWarning(o, v.warning)); // replace_coords_rsid_list (all entries first)
-  const queries = [], warn = [];
-  for (const [i, t] of toks.entries()) {
-    const v = byTok[i];
-    if (!t || (t.startsWith("rs") ? t : (v.rsid ?? t)).length <= 2) return { error: "Input list of RS numbers is empty" };
-    const label = t.startsWith("rs") ? t : (v.rsid ?? t);
-    if (!gate(label) || !v.found || v.pos == null) { warn.push(label); continue; }
-    if (v.chrom === "Y" && build !== "grch37") { join(chrYMessage(v)); warn.push(label); continue; }
-    queries.push({ label, v });
-  }
-  if (warn.length) join(`The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}`);
+  // LDexpress stops at the first entry whose label is too short (an empty one included): the whole list fails
+  if (toks.some(t => !t)) return { error: "Input list of RS numbers is empty" };
+  const { items, kept: queries, warned } = await screen(ctx, build, toks, o);
+  if (items.some(x => x.label.length <= 2)) return { error: "Input list of RS numbers is empty" };
+  if (warned.length) addWarning(o, WARNED(warned));
   if (!queries.length) return { error: `Input SNP list does not contain any valid RS numbers or coordinates. ${o.warning}` };
 
   const tissueIds = String(tissues).split("+"), out = [], stat = r2_d === "d" ? "dprime" : "r2";

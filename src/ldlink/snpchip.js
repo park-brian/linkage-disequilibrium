@@ -5,27 +5,25 @@
 // name.rstrip(' Array') — Python strips the *characters* " Aray" — and is printed with the " Array" suffix removed;
 // an empty platform request crashes LDlink (append(...).removesuffix on None).
 import { TITLE } from "../genome.js";
-import { addCoordWarning, gate, dedupeLists } from "./common.js";
+import { dedupeLists, check, failFirst, screen, WARNED } from "./common.js";
 
 const CHR = c => (c === "X" ? 23 : c === "Y" ? 24 : +c);
 
 export async function snpchip(ctx, { snps: text, platforms: query, build = "grch37" }) {
-  if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
+  const bad = failFirst(check.build(build));
+  if (bad) return bad;
   const lines = text.toLowerCase().split(/\r\n|\n|\r/);
   if (lines.at(-1) === "") lines.pop(); // readlines()
-  if (lines.length > 5000) return { error: `Maximum variant list is 5000  RS numbers or coordinates. Your list contains ${lines.length} entries.` };
+  const bad2 = failFirst(check.list(lines.length, 5000));
+  if (bad2) return bad2;
   const lists = dedupeLists(lines);
   const o = {}, toks = lists.filter(t => t.length).map(t => t[0]);
-  const vs = (await ctx.planner.query({ build, inputs: toks })).variants;
-  vs.forEach(v => addCoordWarning(o, v.warning)); // replace_coords_rsid_list warnings go to a dict that is then reset
-  const kept = [], warn = [];
-  toks.forEach((t, i) => {
-    const v = vs[i], label = t.startsWith("rs") ? t : (v.rsid ?? t);
-    if (gate(label) && v.found && v.pos != null) kept.push({ label, chr: CHR(v.chrom), chrom: v.chrom, pos: v.pos }); else warn.push(label);
-  });
+  // replace_coords_rsid_list's warnings go to a dict that is then reset (o is dropped); no chromosome Y class
+  const { kept: ok, warned: warn } = await screen(ctx, build, toks, o, { select: undefined, chrY: false });
+  const kept = ok.map(({ label, v }) => ({ label, chr: CHR(v.chrom), chrom: v.chrom, pos: v.pos }));
   let warning = "";
   if (!kept.length) return { error: "Input SNP list does not contain any valid RS numbers or coordinates. " };
-  if (warn.length) warning = `. The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}`;
+  if (warn.length) warning = `. ${WARNED(warn)}`;
   kept.sort((a, b) => a.chr - b.chr || a.pos - b.pos);
   const codes = new Set(String(Array.isArray(query) ? query.join("+") : query).split("+"));
   const wanted = new Set((await ctx.platforms()).filter(p => codes.has(p.code)).map(p => p.platform));

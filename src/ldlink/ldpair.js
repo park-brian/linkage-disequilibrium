@@ -2,7 +2,7 @@
 // Returns { error } for a request-level or single-pair error (as LDlink's API does), else [pairResult].
 import { pyRoundRepr as r } from "../pyfmt.js";
 import { TITLE } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, vcfAlleles, ldStats, queryVariant, addCoordWarning } from "./common.js";
+import { chrYMessage, vcfAlleles, ldStats, queryVariant, check, failFirst, resolveOne, labelOf } from "./common.js";
 
 const VALID = /^(rs\d+|chr\d+:\d+|chr[X|Y]:\d+)/i; // LDpair.py: re.match (a prefix match)
 
@@ -33,17 +33,15 @@ function pairTable(label1, label2, row1, row2, [n, p1, p2, x]) {
 }
 
 export async function ldpair(ctx, { var1 = "", var2 = "", pop, build = "grch37" }) {
-  if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
-  for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
+  const bad = failFirst(check.build(build), check.pop(pop));
+  if (bad) return bad;
   const o = {}, W = () => o.warning ?? "", fail = error => ({ error }); // the API returns only the error of a failed pair
   if (var1.length < 3 || var2.length < 3) return fail(`Missing or additional SNPs in pair. ${W()}`);
   const snps = [];
   for (const raw of [var1, var2]) { // each SNP is validated and resolved before the next is looked at
     const s = raw.toLowerCase().trim();
     if (!VALID.test(s)) return fail(`${s} is not a valid SNP. ${W()}`);
-    const v = /\s/.test(s) ? { found: false } : (await ctx.planner.query({ build, inputs: [s], select: "parity" })).variants[0];
-    addCoordWarning(o, v.warning);
-    const label = s.startsWith("rs") ? s : (v.rsid ?? s); // replace_coord_rsid
+    const v = await resolveOne(ctx, build, s, o), label = labelOf(s, v);
     if (!v.found || v.pos == null) return fail(`${label} is not in dbSNP build 155 (${TITLE[build]}). ${W()}`);
     snps.push({ label, v });
   }

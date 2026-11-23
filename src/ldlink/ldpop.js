@@ -5,7 +5,7 @@
 import { pyRoundRepr as r } from "../pyfmt.js";
 import { decodeHaps } from "../haps.js";
 import { TITLE } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, ldStats, cells, queryVariant, addCoordWarning } from "./common.js";
+import { chrYMessage, ldStats, cells, queryVariant, check, failFirst, resolveOne, labelOf } from "./common.js";
 
 const GROUPS = { AFR: ["YRI", "LWK", "GWD", "MSL", "ESN", "ASW", "ACB"], AMR: ["MXL", "PUR", "CLM", "PEL"], EAS: ["CHB", "JPT", "CHS", "CDX", "KHV"], EUR: ["CEU", "TSI", "FIN", "GBR", "IBS"], SAS: ["GIH", "PJL", "BEB", "STU", "ITU"] };
 // LDpop.py location_data, in pop_order (the table's row order): [location, super-population, latitude, longitude]
@@ -35,13 +35,13 @@ function calls(row, ids, haploidMales, hbytes) {
 }
 
 export async function ldpop(ctx, { var1 = "", var2 = "", pop, build = "grch37" }) {
-  if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
+  const bad = failFirst(check.build(build));
+  if (bad) return bad;
   const in1 = var1.toLowerCase().trim(), in2 = var2.toLowerCase().trim(), o = {};
   const snps = [];
   for (const s of [in1, in2]) { // both replace_coord_rsid first, then both get_coords
-    const v = /\s/.test(s) || !s ? { found: false } : (await ctx.planner.query({ build, inputs: [s], select: "parity" })).variants[0];
-    addCoordWarning(o, v.warning);
-    snps.push({ label: s.startsWith("rs") ? s : (v.rsid ?? s), v });
+    const v = await resolveOne(ctx, build, s, o);
+    snps.push({ label: labelOf(s, v), v });
   }
   for (const { label, v } of snps) if (!v.found || v.pos == null) return { error: `${label} is not in dbSNP build 155 (${TITLE[build]}).` };
   const [s1, s2] = snps;
@@ -51,7 +51,8 @@ export async function ldpop(ctx, { var1 = "", var2 = "", pop, build = "grch37" }
   let pops = String(pop).split("+");
   pops = pops.includes("ALL") ? [...pops, ...Object.values(GROUPS).flat(), "ALL", ...Object.keys(GROUPS)] : [...pops, ...pops.flatMap(p => GROUPS[p] ?? [])];
   pops = [...new Set(pops)];
-  for (const p of pops) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
+  const badPop = failFirst(check.pop(pops.join("+")));
+  if (badPop) return badPop;
   const rows = [];
   for (const { label, v } of snps) rows.push(await queryVariant(ctx, build, label, v, o));
   if (o.error !== undefined) return { error: o.error };

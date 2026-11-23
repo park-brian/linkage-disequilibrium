@@ -10,42 +10,35 @@
 import { pyRound, pyStr } from "../pyfmt.js";
 import { decodeHaps } from "../haps.js";
 import { TITLE } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning, gate } from "./common.js";
+import { dedupeLists, vcfAlleles, addWarning, check, failFirst, routeLines, screen, WARNED, sameChromError } from "./common.js";
 import { stats } from "../ld/kernel_js.js";
 
 const INTERNAL = { error: "Internal server error. Please contact LDlink admin." };
 
 export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_threshold = 0.01, build = "grch37" }) {
-  if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
+  const bad = failFirst(check.build(build));
+  if (bad) return bad;
   // route: lstrip, keep rs/chr lines, lower-case; validsnp: limit on lines, token lists, dedupe
-  const lines = text.split(/\r\n|\n|\r/).map(s => s.replace(/^\s+/, "")).filter(s => /^(rs|chr)/i.test(s)).map(s => s.toLowerCase());
-  if (lines.length > 5000) return { error: `Maximum variant list is 5000  RS numbers or coordinates. Your list contains ${lines.length} entries.` };
+  const lines = routeLines(text);
+  const bad2 = failFirst(check.list(lines.length, 5000));
+  if (bad2) return bad2;
   const lists = dedupeLists(lines);
-  for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
+  const bad3 = failFirst(check.pop(pop));
+  if (bad3) return bad3;
   const o = {}, details = new Map(), set = (k, v) => details.set(k, v); // OrderedDict: re-setting keeps the first position
   const toks = lists.filter(t => t.length).map(t => t[0]);
-  const vs = (await ctx.planner.query({ build, inputs: toks, select: "parity" })).variants;
-  vs.forEach(v => addCoordWarning(o, v.warning));
-  const labels = toks.map((t, i) => (t.startsWith("rs") ? t : (vs[i].rsid ?? t))); // replace_coords_rsid_list
-  const kept = [], warn = [], join = m => { o.warning = o.warning === undefined ? m : `${o.warning}. ${m}`; };
-  labels.forEach((label, i) => {
-    const v = vs[i];
-    if (!gate(label)) { warn.push(label); return set(label, ["NA", "NA", "Not a RS number, query removed."]); }
-    if (!v.found || v.pos == null) { warn.push(label); return set(label, ["NA", "NA", `Variant not found in dbSNP155 (${TITLE[build]}), variant removed.`]); }
-    if (v.chrom === "Y" && build !== "grch37") {
-      join(chrYMessage(v)); warn.push(label);
-      return set(label, ["NA", "NA", "Chromosome Y variants are unavailable for GRCh38, only available for GRCh37."]);
-    }
-    kept.push({ label, v });
-  });
-  if (warn.length) join(`The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}`);
+  const { items, kept, warned } = await screen(ctx, build, toks, o), labels = items.map(x => x.label);
+  const REMOVED = { label: "Not a RS number, query removed.", dbsnp: `Variant not found in dbSNP155 (${TITLE[build]}), variant removed.`,
+    chrY: "Chromosome Y variants are unavailable for GRCh38, only available for GRCh37." };
+  for (const { label, bad: why } of items) if (why) set(label, ["NA", "NA", REMOVED[why]]);
+  if (warned.length) addWarning(o, WARNED(warned));
   const W = () => o.warning ?? "";
   if (!kept.length) return { error: `Input SNP list does not contain any valid RS numbers or coordinates. ${W()}` };
   // check_same_chromosome sets the error; parse_vcf (tabix on the first SNP's chromosome) may replace it
   const diff = kept.findIndex(k => k.v.chrom !== kept[0].v.chrom), chrom = kept[0].v.chrom;
   const found = kept.filter(k => k.v.chrom === chrom && k.v.selected?.row);
   if (found.length === 0) return { error: `Input variant list does not contain any valid RS numbers or coordinates. ${W()}` };
-  if (diff > 0) return { error: `Not all input variants are on the same chromosome: ${kept[diff - 1].label}=chr${kept[diff - 1].v.chrom}:${kept[diff - 1].v.pos}, ${kept[diff].label}=chr${kept[diff].v.chrom}:${kept[diff].v.pos}. ${W()}` };
+  if (diff > 0) return { error: `${sameChromError(kept, diff)} ${W()}` };
   const entries = [...new Map(found.map(k => [`${k.v.pos}_${k.label}`, k])).values()]; // parse_vcf, unsorted
 
   const { ids: samples, haploidMales } = await ctx.samples(build, chrom), hbytes = Math.ceil((2 * samples.length) / 8);

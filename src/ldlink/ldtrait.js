@@ -9,7 +9,7 @@
 //    spaces removed ("Beta or OR"), P-VALUE verbatim
 import { pyRound, pyStr } from "../pyfmt.js";
 import { TITLE } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning, gate, table2x2 } from "./common.js";
+import { dedupeLists, vcfAlleles, addWarning, check, failFirst, routeLines, screen, WARNED, table2x2 } from "./common.js";
 import { overlapping } from "../genotypes.js";
 
 const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
@@ -19,25 +19,18 @@ const rangeString = v => v.replace(/\[*\]*[a-zA-Z]*\s*/g, "") || "NA"; // findRa
 const nz = v => (v != null && v.length > 0 ? v : "NA");
 
 export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshold = 0.1, window = 500000, build = "grch37" }) {
-  if (!["r2", "d"].includes(r2_d)) return { error: "Invalid r2_d parameter." };
-  if (!Number.isInteger(+window) || window < 0 || window > 1000000) return { error: "Invalid window parameter." };
-  if (!TITLE[build]) return { error: `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.` };
-  const lines = text.split(/\r\n|\n|\r/).map(s => s.replace(/^\s+/, "")).filter(s => /^(rs|chr)/i.test(s)).map(s => s.toLowerCase());
-  if (lines.length > 50) return { error: `Maximum variant list is 50  RS numbers or coordinates. Your list contains ${lines.length} entries.` };
+  const bad = failFirst(check.r2d(r2_d), check.window(window), check.build(build));
+  if (bad) return bad;
+  const lines = routeLines(text);
+  const bad2 = failFirst(check.list(lines.length, 50));
+  if (bad2) return bad2;
   const lists = dedupeLists(lines);
-  for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
-  const o = {}, join = m => { o.warning = o.warning === undefined ? m : `${o.warning}. ${m}`; };
+  const bad3 = failFirst(check.pop(pop));
+  if (bad3) return bad3;
+  const o = {};
   const toks = lists.map(t => t[0]);
-  const vs = (await ctx.planner.query({ build, inputs: toks, select: "parity" })).variants;
-  vs.forEach(v => addCoordWarning(o, v.warning));
-  const queries = [], warn = [];
-  toks.forEach((t, i) => {
-    const v = vs[i], label = t.startsWith("rs") ? t : (v.rsid ?? t);
-    if (!gate(label) || !v.found || v.pos == null) return warn.push(label);
-    if (v.chrom === "Y" && build !== "grch37") { join(chrYMessage(v)); return warn.push(label); }
-    queries.push({ label, v });
-  });
-  if (warn.length) join(`The following RS number(s) or coordinate(s) inputs have warnings: ${warn.join(", ")}`);
+  const { kept: queries, warned } = await screen(ctx, build, toks, o);
+  if (warned.length) addWarning(o, WARNED(warned));
   if (!queries.length) return { error: `Input SNP list does not contain any valid RS numbers or coordinates. ${o.warning ?? ""}` };
 
   const out = [];

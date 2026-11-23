@@ -16,7 +16,7 @@ import { pyRound, pyStr } from "../pyfmt.js";
 import { decodeHaps } from "../haps.js";
 import { overlapping } from "../genotypes.js";
 import { TITLE, BUILDS, CHROMS } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, vcfAlleles, vcfId, rsAnnotations, cells, table2x2 } from "./common.js";
+import { chrYMessage, vcfAlleles, vcfId, rsAnnotations, cells, table2x2, check } from "./common.js";
 
 const INTERNAL = { error: "Internal server error. Please contact LDlink admin." };
 const stripChr = s => s.replace(/^[chr]+|[chr]+$/g, ""); // str.strip("chr")
@@ -92,7 +92,7 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     assoc.push([p, pyFloat(col[vi])]); pval.set(p, col[vi]);
   });
   if (!assoc.length) return fail("There are no variants in the association file with genomic coordinates inside the plotting window.");
-  for (const p of String(pop).split("+")) if (!POPS.includes(p)) return fail(POP_ERROR(p));
+  if (check.pop(pop)) return fail(check.pop(pop));
 
   const all = await ctx.windowRows(build, chromosome, c1, c2), at = overlapping(all); // the rows over p, VCF order
   const { ids: samples, haploidMales } = await ctx.samples(build, chromosome), panel = await ctx.popIds(pop), hbytes = Math.ceil((2 * samples.length) / 8);

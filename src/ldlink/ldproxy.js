@@ -10,7 +10,7 @@
 import { pyRoundRepr as r } from "../pyfmt.js";
 import { decodeHaps } from "../haps.js";
 import { TITLE } from "../genome.js";
-import { POPS, POP_ERROR, chrYMessage, vcfAlleles, vcfId, addCoordWarning, rsAnnotations, table2x2, chunkedWindow, countsAgainst } from "./common.js";
+import { chrYMessage, vcfAlleles, vcfId, rsAnnotations, table2x2, chunkedWindow, countsAgainst, check, failFirst, resolveOne, labelOf } from "./common.js";
 
 /**
  * → { text, warning? } or { error }. With { plot: true }, also `plot`: LDlink's figure rows (LDcommon.ldproxy_figure) — every
@@ -19,14 +19,14 @@ import { POPS, POP_ERROR, chrYMessage, vcfAlleles, vcfId, addCoordWarning, rsAnn
 export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window = 500000, build = "grch37", chunks = 4 }, { plot = false } = {}) {
   const snp0 = input.toLowerCase().trim(), o = {};
   // the REST layer's checks (LDlink.py _validate_common_parameters) come first
-  if (!["r2", "d"].includes(r2_d)) return { error: "Invalid r2_d parameter." };
-  if (!Number.isInteger(+window) || window < 0 || window > 1000000) return { error: "Invalid window parameter." };
-  const v = /\s/.test(snp0) || !snp0 ? { found: false } : (await ctx.planner.query({ build, inputs: [snp0], select: "parity" })).variants[0];
-  addCoordWarning(o, v.warning);
-  let snp = snp0.startsWith("rs") ? snp0 : (v.rsid ?? snp0);
+  const bad = failFirst(check.r2d(r2_d), check.window(window));
+  if (bad) return bad;
+  const v = await resolveOne(ctx, build, snp0, o);
+  let snp = labelOf(snp0, v);
   if (!v.found || v.pos == null) return { error: `${snp} is not in dbSNP 155 (${TITLE[build]}).` };
   if (v.chrom === "Y" && build !== "grch37") return { error: chrYMessage(v) };
-  for (const p of String(pop).split("+")) if (!POPS.includes(p)) return { error: POP_ERROR(p) };
+  const badPop = failFirst(check.pop(pop));
+  if (badPop) return badPop;
   // get_query_variant_c, then LDproxy's pass over its messages
   const sel = v.selected;
   if (!sel?.row) return { error: `${snp} Variant is not in 1000G reference panel.` };

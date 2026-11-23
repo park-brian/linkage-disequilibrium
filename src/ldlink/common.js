@@ -1,5 +1,6 @@
 // Pieces several LDlink modules share (server/LDcommon.py and the per-module copies of the same code).
 import { erfc } from "../ldsc/stats.js";
+import { TITLE } from "../genome.js";
 
 // LDcommon.get_population: the populations LDlink accepts
 export const POPS = ["ALL", "AFR", "AMR", "EAS", "EUR", "SAS", "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN", "FIN", "GBR", "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK", "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI"];
@@ -94,8 +95,66 @@ export async function queryVariant(ctx, build, label, v, o) {
   return row;
 }
 
-/** replace_coord_rsid's warning, joined as LDlink joins them */
-export const addCoordWarning = (o, w) => { if (w) o.warning = o.warning === undefined ? w : `${o.warning}. ${w}`; };
+/** a warning joined onto o.warning as LDlink joins them (". "); nothing for an empty one */
+export const addWarning = (o, w) => { if (w) o.warning = o.warning === undefined ? w : `${o.warning}. ${w}`; };
+
+/**
+ * The argument checks the ports start with, worded as LDlink words them; each → its error, or null when the argument
+ * is fine. failFirst(...) → { error } for the first that failed, or null; checks are listed in LDlink's order.
+ */
+export const check = {
+  build: build => (TITLE[build] ? null : `Invalid genome build. Please specify either ${Object.keys(TITLE).join(", ")}.`),
+  pop: pop => { const bad = String(pop).split("+").find(p => !POPS.includes(p)); return bad === undefined ? null : POP_ERROR(bad); },
+  list: (n, max) => (n > max ? `Maximum variant list is ${max}  RS numbers or coordinates. Your list contains ${n} entries.` : null),
+  r2d: r2d => (["r2", "d"].includes(r2d) ? null : "Invalid r2_d parameter."),
+  window: w => (!Number.isInteger(+w) || w < 0 || w > 1000000 ? "Invalid window parameter." : null),
+};
+export const failFirst = (...errors) => { const e = errors.find(x => x); return e ? { error: e } : null; };
+
+/** the list modules' route: each line left-stripped, only lines starting rs/chr (any case), lower-cased */
+export const routeLines = text => text.split(/\r\n|\n|\r/).map(s => s.replace(/^\s+/, ""))
+  .filter(s => /^(rs|chr)/i.test(s)).map(s => s.toLowerCase());
+
+/** replace_coord_rsid for one input: s → the planner's variant (its coordinate warning added to o); blank or
+ *  containing whitespace → { found: false } */
+export async function resolveOne(ctx, build, s, o) {
+  const v = /\s/.test(s) || !s ? { found: false } : (await ctx.planner.query({ build, inputs: [s], select: "parity" })).variants[0];
+  addWarning(o, v.warning);
+  return v;
+}
+
+/** the label of an input token: an rsID as typed, a coordinate by the rsID it resolved to (replace_coords_rsid_list) */
+export const labelOf = (t, v) => (t.startsWith("rs") ? t : (v.rsid ?? t));
+
+/**
+ * replace_coords_rsid_list and the input screen of LDhap, SNPclip, LDtrait, LDexpress and SNPchip. Tokens → the
+ * planner's variants (every coordinate warning added to o first, input order), each labelled and classified: bad =
+ * "label" (fails the gate), "dbsnp" (not found), "chrY" (chromosome Y outside GRCh37; onChrY(v) is called, in order)
+ * or null. chrY: false skips the chromosome Y class (SNPchip). → { items: [{ label, v, bad }], kept: [{ label, v }],
+ * warned: [label] }
+ */
+export async function screen(ctx, build, toks, o, opts = {}) {
+  const { select = "parity", chrY = true, onChrY = v => addWarning(o, chrYMessage(v)) } = opts;
+  const vs = (await ctx.planner.query({ build, inputs: toks, select })).variants;
+  vs.forEach(v => addWarning(o, v.warning));
+  const items = toks.map((t, i) => {
+    const v = vs[i], label = labelOf(t, v);
+    const isY = chrY && v.chrom === "Y" && build !== "grch37";
+    const bad = !gate(label) ? "label" : !v.found || v.pos == null ? "dbsnp" : isY ? "chrY" : null;
+    if (bad === "chrY") onChrY(v);
+    return { label, v, bad };
+  });
+  const kept = items.filter(x => !x.bad).map(({ label, v }) => ({ label, v }));
+  return { items, kept, warned: items.filter(x => x.bad).map(x => x.label) };
+}
+/** the warning that names the screened-out inputs */
+export const WARNED = labels => `The following RS number(s) or coordinate(s) inputs have warnings: ${labels.join(", ")}`;
+
+/** check_same_chromosome's error for kept[diff] (the first on another chromosome than kept[0]) */
+export const sameChromError = (kept, diff) => {
+  const [a, b] = [kept[diff - 1], kept[diff]];
+  return `Not all input variants are on the same chromosome: ${a.label}=chr${a.v.chrom}:${a.v.pos}, ${b.label}=chr${b.v.chrom}:${b.v.pos}.`;
+};
 
 /**
  * dbSNP function (db.dbsnp.find_one({id})) and FORGEdb score (db.forge_score.find_one({snp_id})) for rsIDs whose doc
