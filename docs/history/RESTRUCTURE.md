@@ -391,3 +391,20 @@ directly:
 6. **Annotation fast path** (page-pruned duplicate lookup) **and the masked kernel same-mask fast path**:
    C + JS + `maskedCounts`, K5, `kernel_check` on chrX. Gates: G3, G4 (chrX pyramid timing).
 7. **Final:** full G1–G4, STATUS numbers, this file → `docs/history/`.
+
+## 12. Outcome (2026-11-23)
+
+All slices landed on branch `restructure`, one commit per slice, not pushed. G1–G4 ran green on the final code
+(numbers in [STATUS.md](../STATUS.md)). Where the work differed from §11:
+
+| slice | as planned | as done |
+|---|---|---|
+| 3 | runner + adapters at today's totals | done. The first full run had LDexpress time out: the adapters fan out with `Promise.all`, and LDlink's queue outlived fetch's 300 s header timeout. `lib.mjs` now caps LDlink requests at 4 (`LDLINK_CONCURRENCY`) |
+| 4 | `gate`, `dedupeLists`, messages, `table2x2`, `windowCounts`, `genotypes.calls`, `pyfmt.pyFloat`; `app/forms.mjs` | `gate`, `dedupeLists`, `chrYMessage`, `cells` + `table2x2` (with `ldStats` built on it), `chunkWindow` / `chunkedWindow` / `countsAgainst` (LDproxy, LDexpress; `windowCounts` split so LDexpress can insert `multiQuery`). The app split three ways: `forms.mjs`, `render.mjs`, `region.mjs`. **Not done:** `genotypes.calls` (no clear shared shape), `pyFloat` (one user, nothing to dedup) |
+| 5 | `open(path, size)`, manifest via fetch, footer double-read, numeric keys, hyparquet pruning evaluation, planned-read coalescing | `open(path, byteLength?)` everywhere it matters (the app and check page pass it to `asyncBufferFromUrl`); `createContext({ manifest })`; `source.mjs` is the one cached opener, so the resolver shares the planner's exact footers. Genome-key math goes through `genome.key` / `keyPos`; keys stay BigInt where they meet INT64 columns. Coalescing is byte-level: `parquet.coalesce` merges slices issued in the same task (16 KB gap), used by the app. **Not done:** hyparquet's native page pruning was not evaluated |
+| 6 | page-pruned duplicate lookup; same-mask kernel path | **The premise was wrong:** `duplicated_rsids` is 374 KB, not a large read. LDproxy's cost was 88 rsID-index lookups, 87 of them for non-duplicated rsIDs with no known doc position. They now try the VCF POS first (exact for a single-doc rsID; a miss falls back), in LDproxy and LDassoc. The same-mask path is done as planned: `kernel.mjs` gives masked rows a class (FNV hash, then a full compare), and `band_masked` / `maskedCounts` take one popcount when `cls[i] == cls[j]`. K5 checks it against the forced general path on both backends and fails on a stale `kernel.wasm` (K4 did not). chrX pyramids are 2.3× faster |
+
+**Found along the way:**
+- The manifest is the app's whole startup download: 7.15 MB, 93% of it genotype `colBytes`. That is an open
+  decision in STATUS.
+- `clang` is not on PATH. Build with `CLANG=<emsdk>/upstream/bin/clang npm run build:kernel`.

@@ -31,30 +31,35 @@ haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regr
 | module | one line |
 |---|---|
 | `genome.mjs` | chromosome codes and names, genome keys, the `BUILDS` table, LDlink's `firstToken` / `parseCoord` |
-| `source.mjs` | cached `{ file, metadata }` per path; `isNotFound` |
-| `parquet.mjs` | page-index reads: `sortedLookup` (point keys), `rangeScan` (key range), `pool` |
+| `source.mjs` | the one cached `{ file, metadata }` per path (sizes and footer lengths from the manifest: no size probe, one exact footer read); `isNotFound`, `kv` |
+| `parquet.mjs` | page-index reads: `sortedLookup` (point keys), `rangeScan` (key range), `pool`; `coalesce` (reads issued together share Range requests) |
 | `dbsnp.mjs` | LDlink-parity resolution: `resolveRsids`, `resolveCoords`, `resolveInputs`; the `find_one` forms `findAt`, `findAllAt`, `findById`; `duplicated` |
 | `haps.mjs` | `decodeHaps`: bitset or sparse → bitset (no dependencies, so the kernel stays worker-safe) |
 | `genotypes.mjs` | parity / allele-aware row selection (`pickParity`, `pickAllele`, `candidateRows`); tier-row reads (`row`, `windowRows`, `samples`) |
 | `annotations.mjs` | genes, recombination, RegulomeDB, FORGEdb (by rsID and by position), arrays, GWAS, GTEx eQTL, gene coordinates |
 | `planner.mjs` | the query planner: resolve inputs (hybrid rsID strategy), price scan vs point reads from the manifest, fetch rows; owns the shared file cache (`planner.file`) |
 | `pyfmt.mjs` | Python-exact formatting: `round`, `'%.nf'`, `str(float)`, `nextafter`; C `%g` |
-| `ld/kernel.mjs` | one LD API: `prepare`, `band` (row ranges, masked or unmasked), `tile`, `counts`, `exact`. Backends: `kernel.wasm` (C, scalar popcount) and `kernel_js.mjs`, with identical results |
+| `ld/kernel.mjs` | one LD API: `prepare`, `band` (row ranges, masked or unmasked), `tile`, `counts`, `exact`. Backends: `kernel.wasm` (C, scalar popcount) and `kernel_js.mjs`, with identical results. Masked rows carry a mask class: pairs with identical masks take one popcount |
 | `ldsc/` | LD score regression (`regress`), sumstats munging (`munge`), LD score estimation (`l2`), shared numerics (`stats`) |
 | `ldlink/context.mjs` | composes planner, genotypes, annotations, dbSNP, panels and kernel for the module ports |
-| `ldlink/common.mjs` | LDlink's shared pieces: populations, `set_alleles`, the 2×2 statistics, `get_query_variant_c`, positional annotation lookups |
+| `ldlink/common.mjs` | LDlink's shared pieces: populations, the input `gate`, `validsnp`'s `dedupeLists`, the chrY message, `set_alleles`, kernel counts → 2×2 (`cells`, `table2x2`, `ldStats`), the chunked window (`chunkWindow`, `chunkedWindow`, `countsAgainst`), `get_query_variant_c`, positional annotation lookups |
 | `ldlink/<module>.mjs` | LDmatrix, LDpair, LDpop, LDhap, LDproxy, SNPclip, SNPchip, LDtrait, LDexpress, LDassoc: each returns LDlink's own output (text / JSON / error), byte for byte, including LDlink's bugs ([PARITY.md](PARITY.md)) |
 
 **Rules:**
 - **No Node imports in `src/`.** The only bare imports are `hyparquet` and `hyparquet-compressors`.
 - **The kernel chain** (`ld/kernel.mjs`, `kernel_js.mjs`, `haps.mjs`, `pyfmt.mjs`) has no package imports, so
   `app/workers/` can load it without an import map.
-- **Data access goes through a caller-supplied `open(path)`** (local files in Node, Range requests in the browser).
+- **Data access goes through a caller-supplied `open(path, byteLength?)`** (local files in Node, Range requests in the
+  browser; `byteLength` comes from the manifest, so the browser skips its HEAD request). The browser also passes the
+  fetched `manifest` to `createContext`.
 
 ## app/: the UI
 
 - **`index.html`:** an import map for `hyparquet*` (no bundler).
-- **`main.mjs`:** the module table (one form per module), rendering, and the region view.
+- **`main.mjs`:** the core in the page (kernel, release, panels) and navigation.
+- **`forms.mjs`:** the module table: each module's fields, the port it calls, how its result is shown.
+- **`render.mjs`:** outputs as LDlink prints them (text blocks → tables, LDpair, the matrix and pyramid cards).
+- **`region.mjs`:** the region view's data (window rows and tracks), LD + pixels on the worker pool.
 - **`views/`:**
   - `matrix.mjs`: the LDmatrix plot;
   - `pyramid.mjs`: the region tracks + pyramid.

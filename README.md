@@ -15,7 +15,7 @@ src/        the runtime core: browser + Node, no build step   → docs/ARCHITECT
   ld/         LD kernel: kernel.c → kernel.wasm, kernel_js.mjs, one API in kernel.mjs
   ldlink/     the ten LDlink module ports + shared context    → docs/PARITY.md
   ldsc/       LD score regression, munging, LD scores
-app/        the browser UI (module forms, LDmatrix plot, region pyramid + tracks, worker pool, parity check page)
+app/        the browser UI (forms, render, region view, LDmatrix plot, pyramid + tracks, worker pool, parity check page)
 pipeline/   offline release build: dbsnp, ncbi, genotypes, annotations, ldscore, release
 verify/     data verifiers (data/), ldsc checks (ldsc/), LDlink comparisons (ldlink/), run.sh
 test/       unit tests and fixtures

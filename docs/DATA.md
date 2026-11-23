@@ -19,7 +19,9 @@ A release is a directory of Parquet files plus `manifest.json`, served as static
 `{ version, created, files: { <path>: { byteLength, numRows, footer: { offset, length }, key, columns, kv, rowGroups:
 [{ min, max, numRows, colBytes, keyIndex?, payloadOffsetIndex? }] } } }`.
 - The planner prices reads from it (`src/planner.mjs`).
-- It fetches each footer with one exact Range request.
+- Each file opens with its `byteLength` (no size probe) and its footer in one exact Range request.
+- It is 7.15 MB (1.49 MB gzipped), 93% of it the genotype files' per-row-group `colBytes`: the app's whole startup
+  download. Trimming `colBytes` to the columns the planner prices is a release-format change (open in STATUS).
 - A path that is not in the manifest is absent (`exists`).
 
 Built by `pipeline/release/manifest.mjs`.

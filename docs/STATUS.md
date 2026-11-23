@@ -18,10 +18,10 @@
 
 | gate | command | result | last run |
 |---|---|---|---|
-| G1 | `npm test` | 25 / 25 | 2026-11-23 |
-| G2 | `npm run verify` | planner, parity (12 checks), annotations: 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 |
-| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 419/429 + 10 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 | 2026-11-23 (before slice 1; the moves don't touch module code) |
-| G4 | `/app/check.html` + the app | 18/18 identical in the browser; Pyramid chr22 / chrX and LDassoc render | 2026-11-23 |
+| G1 | `npm test` | 27 / 27 (with the docs check and K5) | 2026-11-23 |
+| G2 | `npm run verify` | planner, parity (12 checks), annotations: 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 (final code) |
+| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 420/429 + 9 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 | 2026-11-23 (final code) |
+| G4 | `/app/check.html` + the app | 18/18 identical in the browser; all 11 views run and render (SNPchip with no array chosen shows LDlink's own error) | 2026-11-23 (final code) |
 
 ## Speed (cold, browser, local dev server)
 
@@ -34,19 +34,26 @@
 | LDexpress | 0.5 s |
 | Pyramid 1 Mb EUR, common | 0.22 s on 4 workers |
 | Pyramid 3 Mb ALL, common + low (228 M pairs) | 1.0 s on 8 workers (7.0 s on 1) |
-| Pyramid chrX 2 Mb EUR | 0.2 s on 6 workers |
+| Pyramid chrX 2 Mb EUR, common | 0.1 s on 8 workers (0.17–0.24 s before the same-mask path) |
+| Pyramid chrX 3 Mb EUR, common + low (226 M pairs) | 0.64 s on 8 workers (1.45 s before) |
 
-## In progress: the restructure ([RESTRUCTURE.md](RESTRUCTURE.md) §11)
+**Requests (cold, browser, local server; `bench/app_requests.js`):**
 
-| slice | state |
-|---|---|
-| 0: baseline commit + fixes | ✅ |
-| 1: layout, data root, config | ✅ |
-| 2: docs | ✅ this file |
-| 3: one LDlink comparer runner | next |
-| 4: narrow dedup in `src/ldlink`; the app module table into its own forms module | |
-| 5: fewer reads, numeric genome keys | |
-| 6: annotation fast path, masked-kernel same-mask path | |
+| | before the restructure | now |
+|---|---|---|
+| startup (manifest) | 2 requests, 7.15 MB | 1 request, 7.15 MB (1.49 MB gzipped: hosting should compress it) |
+| LDmatrix (8 SNPs) | 97 requests, 2.70 MB | 62 requests, 2.75 MB |
+| LDproxy rs3 ±500 kb | 886 requests, 12.6 MB | 505 requests, 13.4 MB |
+
+The cuts: no HEAD per file (sizes from the manifest), one exact footer read per file (the resolver had its own 64 KB
+read), reads issued together share Range requests (`coalesce`, 16 KB gap: −24% requests for +9% bytes on LDproxy),
+and rsIDs with an unknown doc position try the VCF POS before the rsID index (LDproxy: 88 → 74 index lookups).
+
+## Done: the restructure ([history/RESTRUCTURE.md](history/RESTRUCTURE.md); outcome in §12)
+
+Slices 0–6 are done, one commit each, on branch `restructure`; not pushed. Where the work differed from the plan,
+§12 says so: `genotypes.calls` and `pyFloat` were not extracted, hyparquet's native page pruning was not evaluated,
+and genome keys stay BigInt where they meet INT64 columns.
 
 ## After that (Phase C, the app)
 
@@ -63,3 +70,6 @@
 - **About 870 GB of regenerable intermediates** in `$LD_DATA` (`ncbi_dbsnp`, `dbsnp_dump`, `phaseB` build copies):
   keep or delete.
 - **Hosting** (Phase D).
+- **A slimmer manifest** (a release format change): 93% of its 7.15 MB is the genotype files' per-row-group
+  `colBytes` for 18 columns, while the planner prices 5. Rewriting only `manifest.json` would cut the app's startup
+  download several-fold, but the bucket's `v4/` would then differ from the local release.

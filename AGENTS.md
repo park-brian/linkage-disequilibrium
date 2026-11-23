@@ -19,7 +19,7 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
    that module's comparison.
 2. **`src/` is browser code.**
    - No Node imports; the only bare imports are `hyparquet` and `hyparquet-compressors`.
-   - Data access goes through a caller-supplied `open(path)`.
+   - Data access goes through a caller-supplied `open(path, byteLength?)`.
 3. **The kernel chain stays dependency-free.** `src/ld/kernel.mjs`, `kernel_js.mjs`, `haps.mjs` and `pyfmt.mjs`
    import nothing else, because `app/workers/` loads them without an import map.
 4. **WASM and JS backends give identical results.**
