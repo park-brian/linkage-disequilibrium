@@ -46,3 +46,21 @@ export function cFormatG(x, p = 6) {
   if (ex < -4 || ex >= p) return `${m.replace(/\.?0+$/, "")}e${ex < 0 ? "-" : "+"}${String(Math.abs(ex)).padStart(2, "0")}`;
   return x.toFixed(Math.max(0, p - 1 - ex)).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 }
+
+/**
+ * numpy's str() of a float under ldsc's np.set_printoptions(precision=4) (floatmode "maxprec", the default), with the
+ * brackets removed: ldsc's regressions.s(). At most 4 decimals, trailing zeros dropped but the point kept ("1."),
+ * scientific when a nonzero |x| < 1e-4 or ≥ 1e8 ("5.e-05", "1.2346e+08"); nan / inf as numpy writes them.
+ * Checked against numpy 2.4.3 (test/fixtures/numpy_s4.json).
+ */
+export function npStr4(x) {
+  if (Number.isNaN(x)) return "nan";
+  if (!Number.isFinite(x)) return x > 0 ? "inf" : "-inf";
+  const a = Math.abs(x), sign = x < 0 || Object.is(x, -0) ? "-" : "";
+  const trim = m => m.replace(/(\.\d*?)0+$/, "$1");
+  if (a !== 0 && (a < 1e-4 || a >= 1e8)) { // (an exact tie at 5 significant digits needs a short binary fraction: not reachable here)
+    const [m, e] = a.toExponential(4).split("e"), n = +e;
+    return `${sign}${trim(m)}e${n < 0 ? "-" : "+"}${String(Math.abs(n)).padStart(2, "0")}`;
+  }
+  return sign + trim(pyRoundStr(a, 4)); // exact value, ties to even, as numpy's dragon4
+}

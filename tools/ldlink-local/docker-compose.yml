@@ -22,6 +22,8 @@ services:
     volumes:
       - ./server:/opt/ldlink
       - ./data:/data
+      # LDscore / LDherit / LDcorrelation inputs (per-population LD scores, w_hm3.snplist, the examples); ldsc writes under /data/tmp
+      - ${LD_DATA:?set LD_DATA (tools/config.sh)}/ldscore_src/ldscore:/data/ldscore:ro
       - ./logs:/logs
     ports:
       - "127.0.0.1:8090:80"

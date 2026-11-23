@@ -366,3 +366,12 @@ test("D1: the release's population panels equal LDlink's <POP>.txt lists (create
   assert.deepEqual([...(await ctx.popIds("CEU+YRI"))].sort(), [...new Set([...m.get("CEU"), ...m.get("YRI")])].sort());
   assert.equal((await ctx.popIds("NOPE")).size, 0);
 });
+
+test("F1: npStr4 = numpy's str() of a float under ldsc's precision=4 (1,852 cases from numpy 2.4.3, ties included)", async () => {
+  const { npStr4 } = await import("../src/pyfmt.js");
+  const j = JSON.parse(readFileSync(new URL("./fixtures/numpy_s4.json", import.meta.url), "utf8"));
+  const num = v => Number(v.replace("nan", "NaN").replace("inf", "Infinity"));
+  const bad = j.cases.filter(([v, want]) => npStr4(num(v)) !== want);
+  assert.equal(j.cases.length, 1852);
+  assert.deepEqual(bad.slice(0, 5), []);
+});

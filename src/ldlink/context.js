@@ -5,6 +5,7 @@
 import { openPlanner } from "../planner.js";
 import { createGenotypes } from "../genotypes.js";
 import { createAnnotations } from "../annotations.js";
+import { ldscPanel, ldscCounts, mergeAlleles } from "../ldsc/panels.js";
 
 /**
  * @param {{ root: string, open: (path: string, byteLength?: number) => Promise<AsyncBuffer>, readPanel?: (pop: string) => Promise<string[]>,
@@ -27,6 +28,9 @@ export async function createContext({ root, open, readPanel, kernel, manifest })
     const hapIndexes = ss[0].ids.flatMap((s, i) => (ids.has(s) ? [2 * i, 2 * i + 1] : []));
     return kernel.prepare(rows, { samples: ss[0].ids.length, haploidMales, hapIndexes });
   }
-  return { root, planner, kernel, ...genotypes, ...annotations, popIds, prepare,
+  // LD score panels and the HapMap3 list for the LDscore family, read once each (src/ldsc/panels.js)
+  const ldsc = new Map(), memo = (k, f) => (ldsc.has(k) ? ldsc.get(k) : (ldsc.set(k, f()), ldsc.get(k)));
+  return { root, planner, kernel, ldscPanel: (pop, need) => ldscPanel(planner.file, pop, need), ldscCounts: () => memo("counts", () => ldscCounts(planner.file)),
+    mergeAlleles: () => memo("w_hm3", () => mergeAlleles(planner.file)), ...genotypes, ...annotations, popIds, prepare,
     dbsnpAt: planner.resolver.findAt, dbsnpById: planner.resolver.findById, dbsnpAllAt: planner.resolver.findAllAt, duplicatedRsids: planner.resolver.duplicated };
 }

@@ -90,6 +90,7 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
   const signCols = Object.keys(translation).filter(c => translation[c] in NULL_VALUES);
   if (signCols.length > 1) throw new Error("Too many signed sumstat columns. Specify which to ignore with the --ignore flag.");
   if (!signCols.length) throw new Error("Could not find a signed summary statistic column.");
+  const printed = { ...translation }; // munge_sumstats.py prints cname_translation before the signed column is renamed
   const signName = signCols[0], signNull = NULL_VALUES[translation[signName]];
   translation[signName] = "SIGNED_SUMSTAT";
   for (const c of ["SNP", "P", "SIGNED_SUMSTAT"]) if (!Object.values(translation).includes(c)) throw new Error(`Could not find ${c} column.`);
@@ -106,7 +107,7 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
   const used = fileCnames.map((c, i) => [c, i]).filter(([c, i]) => c in translation && fileCnames.indexOf(c) === i);
   const numeric = new Set(["P", "N", "N_CAS", "N_CON", "Z", "OR", "BETA", "LOG_ODDS", "INFO", "FRQ", "SIGNED_SUMSTAT", "NSTUDY"]);
   const merge = new Set(mergeAlleles.SNP);
-  const drops = { NA: 0, P: 0, INFO: 0, FRQ: 0, A: 0, MERGE: 0 };
+  const drops = { NA: 0, P: 0, INFO: 0, FRQ: 0, A: 0, MERGE: 0 }, bad = { INFO: 0, FRQ: 0 }; // bad: filter_info / filter_frq warnings
   let dat = [], tot = 0;
   for (let li = 1; li < lines.length; li++) {
     const line = lines[li]; if (!/[^ \t]/.test(line)) continue; // pandas skips blank lines
@@ -127,8 +128,8 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
     }
     if (na) { drops.NA++; continue; }
     if (!merge.has(r.SNP)) { drops.MERGE++; continue; }
-    if ("INFO" in r) { if (!(r.INFO >= infoMin)) { drops.INFO++; continue; } }
-    if ("FRQ" in r) { const bad = r.FRQ < 0 || r.FRQ > 1, maf = Math.min(r.FRQ, 1 - r.FRQ); if (!(maf > mafMin) || bad) { drops.FRQ++; continue; } }
+    if ("INFO" in r) { if (r.INFO > 1.5 || r.INFO < 0) bad.INFO++; if (!(r.INFO >= infoMin)) { drops.INFO++; continue; } }
+    if ("FRQ" in r) { const out = r.FRQ < 0 || r.FRQ > 1, maf = Math.min(r.FRQ, 1 - r.FRQ); if (out) bad.FRQ++; if (!(maf > mafMin) || out) { drops.FRQ++; continue; } }
     if (!(r.P > 0 && r.P <= 1)) { drops.P++; continue; }
     r.A1 = r.A1.toUpperCase(); r.A2 = r.A2.toUpperCase();
     if (!VALID_SNPS.has(r.A1 + r.A2)) { drops.A++; continue; }
@@ -176,6 +177,8 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
     text: printCols.join("\t") + "\n" + body + "\n",
     log: { read: tot, removed_merge: drops.MERGE, removed_na: drops.NA, removed_info: drops.INFO, removed_maf: drops.FRQ, removed_p: drops.P, removed_alleles: drops.A,
       remain: before, removed_dups: dupDrops, n_min: nMin, removed_n: beforeN - dat.length, median_signed: med, removed_mismatch: nMismatch,
-      written: out.length, nonmissing: out.length - out.filter(r => r.Z === undefined).length, mean_chisq: z2.reduce((a, v) => a + v, 0) / z2.length },
+      written: out.length, nonmissing: out.length - out.filter(r => r.Z === undefined).length, mean_chisq: npSum(z2) / z2.length, // pandas mean: numpy pairwise summation
+      median_chisq: median(z2), max_chisq: z2.reduce((m, v) => (v > m ? v : m), -Infinity), n_gws: z2.filter(v => v > 29).length, cnames: printed, sign_name: signName, merge_snps: mergeAlleles.SNP.length,
+      bad_info: bad.INFO, bad_frq: bad.FRQ, has_info: Object.values(translation).includes("INFO"), has_frq: Object.values(translation).includes("FRQ") },
   };
 }

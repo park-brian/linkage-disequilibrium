@@ -29,7 +29,8 @@ This folder is the kit; the running copy lives in `$LDLINK_HOME` (default `../ld
    `mongorestore --maintainInsertionOrder` (natural order = dump order, which `find_one` parity depends on).
    `gwas_catalog` comes from the 2025-10 backup instead. Skip `api_log`, `*_tmp` and `*_bak`. **Wait for every index
    build to finish**: until then `find_one({id})` is a collection scan. Create the app user from `server.env`.
-5. **Start the backend.** Run `docker compose up -d backend`. The mount of `server/` over `/opt/ldlink` hides the
+5. **Start the backend.** Run `docker compose up -d backend` with `LD_DATA` set (`. ../config.sh`): the backend mounts
+   `$LD_DATA/ldscore_src/ldscore` read-only at `/data/ldscore`, which LDscore, LDherit and LDcorrelation read. The mount of `server/` over `/opt/ldlink` hides the
    image's `apache-bin/python3` symlink, so restore it:
 
    ```
