@@ -20,8 +20,17 @@ export async function nodeContext(root = process.env.ROOT || CONFIG.RELEASE) {
 export const matrixCases = () => JSON.parse(readFileSync(CONFIG.repo("verify/ldlink/cases/ldmatrix_cases.json"), "utf8"));
 export const clean = s => s.replace(/\r$/, "");
 
-export const get = async (path, query) => (await fetch(`${BASE}/LDlinkRest/${path}?${query}`)).text();
-export const post = async (path, body) => (await fetch(`${BASE}/LDlinkRest/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).text();
+// at most LDLINK_CONCURRENCY requests in flight (default 4): adapters fan out with Promise.all, and a long LDlink queue
+// makes the later requests outlive fetch's 300 s header timeout (LDexpress over all 54 tissues)
+const LIMIT = +(process.env.LDLINK_CONCURRENCY || 4), waiting = [];
+let active = 0;
+async function limited(f) {
+  if (active >= LIMIT) await new Promise(r => waiting.push(r)); else active++;
+  try { return await f(); } finally { const next = waiting.shift(); if (next) next(); else active--; }
+}
+export const get = (path, query) => limited(async () => (await fetch(`${BASE}/LDlinkRest/${path}?${query}`)).text());
+export const post = (path, body) => limited(async () => (await fetch(`${BASE}/LDlinkRest/${path}`,
+  { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).text());
 /** LDlink's API answer: a JSON error, or the text body */
 export const asText = body => (body.trimStart().startsWith("{") ? { error: JSON.parse(body).error } : { text: body });
 
