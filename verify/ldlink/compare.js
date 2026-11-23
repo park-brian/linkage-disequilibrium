@@ -7,7 +7,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { nodeContext, canon, textDiff, CONFIG } from "./lib.js";
 
-const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc", "ldherit", "ldcorrelation"];
+const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc", "ldherit", "ldcorrelation", "ldscore"];
 const arg = process.argv[2];
 if (!arg || (arg !== "all" && !MODULES.includes(arg))) { console.error(`usage: compare.js <${MODULES.join("|")}|all>`); process.exit(2); }
 

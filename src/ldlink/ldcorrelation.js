@@ -3,7 +3,8 @@
 // route returns the output from the first "Total Observed scale" (or, on the liability scale, "Total Liability scale")
 // onward: phenotype 1's h2 summary, phenotype 2's, the genetic covariance and correlation, the pandas summary table, and
 // ldsc's two closing time lines (written now; the comparer masks them). Errors come back as { error, details? }.
-import { pyRoundStr, npStr4 } from "../pyfmt.js";
+import { npStr4 } from "../pyfmt.js";
+import { pdRow } from "../ldsc/pandas.js";
 import { mungeSumstats } from "../ldsc/munge.js";
 import { estimateRg, h2ObsToLiab, parseSumstats } from "../ldsc/regress.js";
 import { ctime, secToStr } from "../ldsc/log.js";
@@ -34,20 +35,6 @@ function rgSummary(r) {
   if (r.rg_ratio > 1.2 || r.rg_ratio < -1.2) return ["Genetic Correlation: nan (nan) (rg out of bounds) ", "Z-score: nan (nan) (rg out of bounds)", "P: nan (nan) (rg out of bounds)",
     "WARNING: rg was out of bounds.", "This often means that h2 is not significantly different from zero."].join("\n");
   return [`Genetic Correlation: ${npStr4(r.rg_ratio)} (${npStr4(r.rg_se)})`, `Z-score: ${npStr4(r.z)}`, `P: ${npStr4(r.p)}`].join("\n");
-}
-
-/**
- * pandas DataFrame.to_string(index=False) of one row under ldsc's display.float_format '{:.4f}': numeric columns get a
- * space before the header and '{:.4f}' cells (NaN as "NaN"); string columns (file names, 'NA') as they are; each
- * column right-justified to its widest entry, joined with single spaces.
- */
-export function pdRow(cols) {
-  const cells = cols.map(([name, v]) => {
-    const num = typeof v === "number", text = num ? (Number.isNaN(v) ? "NaN" : Number.isFinite(v) ? pyRoundStr(v, 4) : v > 0 ? "inf" : "-inf") : String(v);
-    const head = num ? ` ${name}` : name, w = Math.max(head.length, text.length);
-    return [head.padStart(w), text.padStart(w)];
-  });
-  return `${cells.map(c => c[0]).join(" ")}\n${cells.map(c => c[1]).join(" ")}`;
 }
 
 /** _get_rg_table for one pair */
