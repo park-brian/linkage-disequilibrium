@@ -4,8 +4,8 @@
 //   ours:      sortedLookup (column index → candidate pages → key column → payload pages via its own offset index)
 //   hyparquet: parquetScan({ pruningFilter: { key: { $in } }, usePageIndex: true }) → ranges; readColumn(key) per range,
 //              then readColumn(each other column) over the matched rows only
-// usage: node bench/pruning.js [release]   (data-relative; default release_v4) → bench/results/pruning.json
-import { readFileSync, writeFileSync } from "node:fs";
+// usage: node bench/pruning.js [release]   (data-relative; default release_v4) → $LD_DATA/bench/results/pruning.json
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetScan, parquetReadObjects } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 import { sortedLookup } from "../src/parquet.js";
@@ -62,4 +62,5 @@ for (const c of CASES) {
     ours: { requests: a.requests, bytes: a.bytes, ms: Math.round(a.ms) }, hyparquet: { requests: b.requests, bytes: b.bytes, ms: Math.round(b.ms) } };
   report.push(r); console.log(JSON.stringify(r));
 }
-writeFileSync(repo("bench/results/pruning.json"), JSON.stringify({ hyparquet: JSON.parse(readFileSync(repo("node_modules/hyparquet/package.json"), "utf8")).version, root, report }, null, 2));
+mkdirSync("bench/results", { recursive: true }); // $LD_DATA/bench/results (cwd = LD_DATA)
+writeFileSync("bench/results/pruning.json", JSON.stringify({ hyparquet: JSON.parse(readFileSync(repo("node_modules/hyparquet/package.json"), "utf8")).version, root, report }, null, 2));

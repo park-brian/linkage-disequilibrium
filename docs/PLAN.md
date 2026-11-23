@@ -81,3 +81,27 @@ G3s; G2 and G3 run in full at slices 2, 6, 10 and the end. A G3s difference is i
 
 - Deleting the published reports under `ldlink-parquet/v5/` (slice 1).
 - Pushing to `main` (it redeploys the site), at the end.
+
+## Review outcome (2026-11-23)
+
+An independent read of this plan against the code. Changes:
+- **Slice 1:** only `differ` fails G3; `tie_order`, `ldlink_exception`, `ldlink_error` and `degenerate_z` are
+  documented outcomes.
+- **Slice 2:** the snapshot skips the LDlink side (`ldlink()`). The example inputs go through `lib.example()`, which
+  reads from disk or over HTTP, so an HTTP run doesn't turn every LDscore-family case into "missing example". The
+  time mask covers LDherit, LDcorrelation and LDscore. The snapshot runs sequentially until slice 4 fixes the arena.
+  Case inputs (e.g. SNPclip's dense IDs) still come from the local release.
+- **Slice 3:** `bench/pruning.js` stays until slice 6 has used it. With `check.html` gone, `build_site.js`'s
+  check filter is removed rather than fixed.
+- **Slice 4:** the arena fix is `ctx.withPrepared(build, rows, pop, use)`. It awaits the samples and panel, then
+  prepares, runs the synchronous `use`, and resets in `finally`. The ports' own `reset()` calls go. No lock is needed,
+  and SNPclip's early return is covered.
+- **Slice 6:** per-column pages must keep file order (rows sorted by row number), every duplicate row, `String`
+  key matching, the requested columns and BigInt keys. Fetch all offset indexes together, and measure wall time and
+  requests over HTTP as well as bytes. `planner.query` is cut along the parity boundary (resolve / select apart).
+- **Slice 9** (line length) runs after slice 10, which rewrites many of the same lines. Its check lands with a
+  baseline now.
+- **Slice 10:** step 1 moves only files that are cleanly core or cleanly parity. The mixed ones (`dbsnp.js`,
+  `genotypes.js`, `annotations.js`, `ldsc/`) split in step 2.
+- **Added:** document "the release's file order = LDlink's dump order" in DATA.md, and make LDassoc's 17 MB default
+  example an explicit choice in the form rather than the default fetch.

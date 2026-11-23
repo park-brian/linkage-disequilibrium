@@ -39,7 +39,7 @@ const panel = Object.fromEntries(SUBPOPS.map(p => [p, new Set(readFileSync(`${pa
 
 // ---------- dbSNP positions (sorted by key, rsid) ----------
 // Load the dbSNP slice straight into typed arrays (chrX has ~42M rows). Values are placed by absolute row number:
-// onChunk may deliver chunks in any order and may overlap (see PARQUET_LAYOUT.md §7).
+// onChunk may deliver chunks in any order and may overlap (see docs/history/PARQUET_LAYOUT.md §7).
 const dbFile = await asyncBufferFromFile(dbsnpPath), dbMeta = await parquetMetadataAsync(dbFile);
 const keyCol = dbMeta.schema.find(s => /^key/.test(s.name)).name;
 const N = Number(dbMeta.num_rows);
@@ -110,12 +110,8 @@ if (process.env.ALLELES) {
 const labelRsid = makeLabeler({ dbPos, dbRsid, dbRef, dbType, dbFunc }, alleleIndex);
 
 // ---------- writers ----------
-// FINAL=1 writes only the chosen layouts (PARQUET_LAYOUT.md §6); otherwise the page-size sweep
-const LAYOUTS = process.env.FINAL ? [["common", "bits", 64 << 10], ["low", "bits", 64 << 10], ["rare", "sparse", 16 << 10]] : [
-  ["common", "bits", 16 << 10], ["common", "bits", 64 << 10], ["common", "bits", 256 << 10],
-  ["low", "bits", 64 << 10], ["low", "bits", 256 << 10],
-  ["rare", "sparse", 16 << 10], ["rare", "sparse", 64 << 10], ["rare", "sparse", 256 << 10],
-];
+// the release's layouts, chosen by the page-size sweep recorded in docs/history/PARQUET_LAYOUT.md §6
+const LAYOUTS = [["common", "bits", 64 << 10], ["low", "bits", 64 << 10], ["rare", "sparse", 16 << 10]];
 const tierOf = m => (m >= 0.05 ? "common" : m >= 0.01 ? "low" : "rare");
 let H = 0, nSamples = 0, samples = [], subIdx = [];
 const writers = [];

@@ -1,9 +1,8 @@
 // LDcorrelation: the REST text (GET /LDlinkRest/ldcorrelation) on LDlink's example sumstats (isExample=true): the pair in
 // both orders and the same file twice, for each population LDlink offers; the liability scale; bad inputs. The time
 // lines are masked (ldherit.js); errors compare on `error`.
-import { readFileSync, existsSync } from "node:fs";
 import { ldcorrelation } from "../../../src/ldlink/ldcorrelation.js";
-import { get, asText } from "../lib.js";
+import { get, asText, example } from "../lib.js";
 import { verdict as textVerdict } from "./ldherit.js";
 
 const POPS = ["EUR", "EAS", "AFR", "AMR", "ASJ", "EST", "FIN", "NFE", "NWE", "SEU"];
@@ -25,9 +24,8 @@ export function cases() {
 const query = c => new URLSearchParams({ pop: c.pop, genome_build: "grch37", filename: c.filename, filename2: c.filename2, isExample: "true",
   ...(c.scale ? { scale: c.scale } : {}), ...(c.samp_prev ? { samp_prev: c.samp_prev } : {}), ...(c.pop_prev ? { pop_prev: c.pop_prev } : {}) });
 export const ldlink = cs => Promise.all(cs.map(async c => asText(await get("ldcorrelation", query(c)))));
-const texts = {}, read = (ctx, f) => { const p = `${ctx.root}/examples/${f}`; return (texts[f] ??= existsSync(p) ? readFileSync(p, "utf8") : null); };
 export async function ours(ctx, c) {
-  const o = await ldcorrelation(ctx, { ...c, text: read(ctx, c.filename), text2: read(ctx, c.filename2), isExample: true });
+  const o = await ldcorrelation(ctx, { ...c, text: await example(ctx, c.filename), text2: await example(ctx, c.filename2), isExample: true });
   return typeof o === "string" ? { text: o } : { error: o.error };
 }
 const FAIL = /^An error occurred while running the (second )?command \(exit \d+\): /;

@@ -2,17 +2,41 @@
 // Python functions (tools/ldlink-local/drive.py), and output normalization. Paths come from tools/config.js.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { asyncBufferFromFile, cachedAsyncBuffer } from "hyparquet";
+import { asyncBufferFromFile, asyncBufferFromUrl, cachedAsyncBuffer } from "hyparquet";
+import { coalesce } from "../../src/parquet.js";
 import { loadKernel, KERNEL_WASM } from "../../src/ld/kernel.js";
 import { createContext } from "../../src/ldlink/context.js";
 import * as CONFIG from "../../tools/config.js";
 
 export { CONFIG };
+/** the comparisons, in run order (compare.js, snapshot.js) */
+export const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc", "ldherit",
+  "ldcorrelation", "ldscore"];
 export const BASE = CONFIG.LDLINK_URL;
 
-/** the module context the ports run on: local release files (panels included), the WASM kernel */
-export async function nodeContext(root = process.env.ROOT || CONFIG.RELEASE) {
-  return createContext({ root, open: async p => cachedAsyncBuffer(await asyncBufferFromFile(p)), kernel: await loadKernel(readFileSync(KERNEL_WASM)) });
+/**
+ * the module context the ports run on, with the WASM kernel: local release files (panels included), or with
+ * http = a release URL, the app's read path (Range requests with sizes from the manifest, coalesced, cached)
+ */
+export async function nodeContext(root = process.env.ROOT || CONFIG.RELEASE, { http = process.env.LD_HTTP } = {}) {
+  const kernel = await loadKernel(readFileSync(KERNEL_WASM));
+  if (!http) return createContext({ root, open: async p => cachedAsyncBuffer(await asyncBufferFromFile(p)), kernel });
+  const url = http.replace(/\/$/, ""), res = await fetch(`${url}/manifest.json`);
+  if (!res.ok) throw new Error(`no release at ${url}: manifest.json returned HTTP ${res.status}`);
+  return createContext({ root: url, manifest: await res.json(), kernel,
+    open: async (u, byteLength) => cachedAsyncBuffer(coalesce(await asyncBufferFromUrl({ url: u, byteLength }))) });
+}
+
+/** an example input from the release's examples/ (local file or over HTTP): text, or bytes when binary; null if absent */
+const examples = new Map();
+export function example(ctx, name, { binary = false } = {}) {
+  const key = `${ctx.root}|${name}|${binary}`;
+  if (!examples.has(key)) examples.set(key, (async () => {
+    const at = `${ctx.root}/examples/${name}`;
+    if (/^https?:/.test(ctx.root)) { const r = await fetch(at); return r.ok ? (binary ? new Uint8Array(await r.arrayBuffer()) : r.text()) : null; }
+    return existsSync(at) ? (binary ? new Uint8Array(readFileSync(at)) : readFileSync(at, "utf8")) : null;
+  })());
+  return examples.get(key);
 }
 
 /** the LDmatrix cases every comparison draws inputs from (verify/ldlink/cases/) */

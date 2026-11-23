@@ -2,9 +2,8 @@
 // LDlink offers, the liability scale, and bad inputs. Four lines carry the time (munge's "Conversion finished at",
 // ldsc's "Beginning analysis at" / "Analysis finished at", "Total time elapsed"): both sides are masked there.
 // Errors compare on `error` (the 422 for an ldsc failure also carries a Python traceback in `details`).
-import { readFileSync, existsSync } from "node:fs";
 import { ldherit } from "../../../src/ldlink/ldherit.js";
-import { get, asText } from "../lib.js";
+import { get, asText, example } from "../lib.js";
 
 const POPS = ["EUR", "EAS", "AFR", "AMR", "ASJ", "EST", "FIN", "NFE", "NWE", "SEU"];
 export function cases() {
@@ -24,11 +23,8 @@ export function cases() {
 const query = c => new URLSearchParams({ pop: c.pop, genome_build: "grch37", filename: c.filename, isExample: "true",
   ...(c.scale ? { scale: c.scale } : {}), ...(c.samp_prev ? { samp_prev: c.samp_prev } : {}), ...(c.pop_prev ? { pop_prev: c.pop_prev } : {}) });
 export const ldlink = cs => Promise.all(cs.map(async c => asText(await get("ldherit", query(c)))));
-const texts = {};
 export async function ours(ctx, c) {
-  const path = `${ctx.root}/examples/${c.filename}`;
-  texts[c.filename] ??= existsSync(path) ? readFileSync(path, "utf8") : null;
-  const o = await ldherit(ctx, { ...c, text: texts[c.filename], isExample: true });
+  const o = await ldherit(ctx, { ...c, text: await example(ctx, c.filename), isExample: true });
   return typeof o === "string" ? { text: o } : { error: o.error };
 }
 const mask = s => s.replace(/^(Conversion finished at|Beginning analysis at|Analysis finished at|Total time elapsed:).*$/gm, "$1 …");

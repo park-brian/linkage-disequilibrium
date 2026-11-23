@@ -60,7 +60,7 @@ rsID with several dump docs (`duplicated_rsids`) falls back to the exact `find_o
 ## Data outside the repo (2026-11-23)
 
 **What:** generated data lives under `$LD_DATA` (default `../data`). Every machine path comes from
-`tools/config.{mjs,sh}`, and scripts run with the working directory at `$LD_DATA`.
+`tools/config.js` and `config.sh`, and scripts run with the working directory at `$LD_DATA`.
 
 **Why:** 993 GB of outputs inside the tree made search and backup dangerous; there were about 25 hardcoded paths.
 
@@ -68,7 +68,7 @@ rsID with several dump docs (`duplicated_rsids`) falls back to the exact `find_o
 
 **What:** `src/parquet.js` `sortedLookup` stays. hyparquet 1.33's own pruning (`parquetScan` with a `$in`
 `pruningFilter` and `usePageIndex: true`) returned identical rows in every case of `bench/pruning.js`, but it did not
-win on every measure (cold reads, local release; `bench/results/pruning.json`):
+win on every measure (cold reads, local release; `$LD_DATA/bench/results/pruning.json`):
 
 | case | ours: requests / bytes / ms | hyparquet: requests / bytes / ms |
 |---|---|---|

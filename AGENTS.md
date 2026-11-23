@@ -26,7 +26,7 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
    - Change `kernel.c` and `kernel_js.js` together.
    - Rebuild with `npm run build:kernel`; commit `kernel.wasm`.
 5. **No machine paths, no outputs in the repo.**
-   - Every path comes from `tools/config.{mjs,sh}`.
+   - Every path comes from `tools/config.js` and `config.sh`.
    - Pipeline and verify scripts call `useDataCwd()` (or `cd "$LD_DATA"`) and use data-relative paths.
    - Repo files resolve from `import.meta.url`.
 6. **Dense, commented code.** Each file opens with a paragraph saying what it does and which LDlink behaviour it
@@ -41,7 +41,7 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 | `src/ld/*` | `npm test` (K tests, both backends) + `npm run verify` (kernel chr1 + chrX) |
 | `src/ldsc/*` | `npm run verify` (ldsc steps) |
 | `src/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.js <module>`) |
-| `app/*` | `npm run serve`, then `/app/check.html` (18/18) and the views you touched |
+| `app/*` | `npm run serve`, then `npm run verify:snapshot -- --http http://127.0.0.1:8095/release` and the views you touched |
 | `pipeline/*` | the stage on one chromosome, then `node pipeline/release/check.js <root>` |
 
 Reports land in `$LD_DATA/verify/`; `summary.txt` has one line per step.

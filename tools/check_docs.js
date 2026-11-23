@@ -6,8 +6,8 @@ import { resolve, dirname } from "node:path";
 import { REPO } from "./config.js";
 
 const TOP = ["src", "app", "pipeline", "verify", "test", "bench", "tools", "docs"];
-const ACTIVE_PLAN = "PLAN.md"; // a plan in progress names files it will create (checked once it moves to history)
-const docs = ["README.md", "AGENTS.md", "src/README.md", ...readdirSync(resolve(REPO, "docs")).filter(f => f.endsWith(".md") && f !== ACTIVE_PLAN).map(f => `docs/${f}`)];
+const ACTIVE = ["PLAN.md", "REVIEW.md"]; // a plan in progress (and its review) names files it will create or delete; checked once in history
+const docs = ["README.md", "AGENTS.md", "src/README.md", ...readdirSync(resolve(REPO, "docs")).filter(f => f.endsWith(".md") && !ACTIVE.includes(f)).map(f => `docs/${f}`)];
 
 /** → [{ doc, path }] for every named repo path that does not exist */
 export function missingPaths() {

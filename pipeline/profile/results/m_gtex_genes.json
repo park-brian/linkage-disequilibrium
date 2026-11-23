@@ -1,1 +1,0 @@
-{"collection": "gtex_genes", "docs": 56200, "types": {"gene_id_v26": {"str": 56200}, "gene_name_v26": {"str": 56200}, "ncbi_id": {"str": 56200}}, "na_or_empty": {"ncbi_id": 17693}, "numeric_range": {"ncbi_id": [1.0, 118097967.0]}, "max_str_len": {"gene_id_v26": 24, "gene_name_v26": 19, "ncbi_id": 9}, "low_cardinality": {}}

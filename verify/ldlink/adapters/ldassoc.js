@@ -1,8 +1,7 @@
 // LDassoc: calculate_assoc in the container (the web route is its only entry point; no API) on LDlink's bundled
 // prostate example: the table text, plus the JSON's error and warning.
-import { readFileSync } from "node:fs";
 import { ldassoc } from "../../../src/ldlink/ldassoc.js";
-import { drive } from "../lib.js";
+import { drive, example } from "../lib.js";
 
 const FILE = { grch37: "prostate_example_grch37.txt", grch38: "prostate_example_grch38.txt", grch38_high_coverage: "prostate_example_grch38.txt" };
 export function cases() {
@@ -30,8 +29,6 @@ export function cases() {
 const norm = x => ({ text: x.text ?? null, error: x.error ?? null, warning: x.error ? null : x.warning ?? null });
 export const ldlink = async cs => drive("ldassoc", cs.map(({ geneName, ...c }) => ({ module: "ldassoc", file: FILE[c.build], ...c, name: geneName })))
   .map(r => norm(r.exception ? { error: "Internal server error. Please contact LDlink admin." } : { text: r.text ?? undefined, error: r.json.error, warning: r.json.warning }));
-const texts = {};
 export async function ours(ctx, { geneName, ...c }) {
-  texts[c.build] ??= readFileSync(`${ctx.root}/examples/${FILE[c.build]}`, "utf8");
-  return norm(await ldassoc(ctx, { ...c, name: geneName, text: texts[c.build] }));
+  return norm(await ldassoc(ctx, { ...c, name: geneName, text: await example(ctx, FILE[c.build]) }));
 }

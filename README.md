@@ -21,7 +21,7 @@ pipeline/   offline release build: dbsnp, ncbi, genotypes, annotations, ldscore,
 verify/     data verifiers (data/), ldsc checks (ldsc/), LDlink comparisons (ldlink/), run.sh
 test/       unit tests and fixtures
 bench/      benchmarks and recorded results
-tools/      config.{mjs,sh} (every machine path), serve.js, run_sql.py, move.py, ldlink-local/ (oracle kit)
+tools/      config.js / config.sh (every machine path), serve.js, build_site.js, run_sql.py, check_docs.js, ldlink-local/ (oracle kit)
 docs/       STATUS · ARCHITECTURE · DATA (release contract) · PARITY · decisions · REQUIREMENTS · history/
 ```
 

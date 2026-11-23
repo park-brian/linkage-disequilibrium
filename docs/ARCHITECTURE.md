@@ -72,18 +72,17 @@ haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regr
 - **`workers/`:**
   - `pyramid.js`: band + pixel aggregation in a worker;
   - `pool.js`: shares of equal pair counts, merged by pixel max, deterministic ties.
-- **`check.html`:** runs 18 cases in the page against the local LDlink.
 
 ## pipeline/: building a release (offline)
 
 | stage | scripts | produces |
 |---|---|---|
 | `dbsnp/` | `bson_stream`, `bson2tsv`, `sort.sql`, `build`, `dup_rsids` | `dbsnp/` |
-| `ncbi/` | `fetch.sh`, `vcf2tsv`, `merged2tsv.py`, `compare.sql`, `allele_join` | NCBI b155 allele slices (the `allele_rsids` input) |
+| `ncbi/` | `fetch.sh`, `vcf2tsv`, `merged2tsv.py` | NCBI b155 allele slices (the `allele_rsids` input); the one-off comparisons are in `docs/history/ncbi_analysis/` |
 | `genotypes/` | `slices.sql`, `build_all.sh` → `build.js` (uses `rsid_label`, `vcf_gt`) | `genotypes/` |
 | `annotations/` | `fetch.sh`, `annotations.sql`, `build.js` | `annotations/` |
 | `ldscore/` | `convert_ref`, `l2_cli` | `ldscore/` |
-| `release/` | `manifest`, `check`, `presign.sh` | `manifest.json`; the integrity report |
+| `release/` | `manifest`, `extras`, `check` | `manifest.json`, panels, examples, ldsc counts; the integrity report |
 | `profile/` | one-off profiling scripts and their results | — |
 
 **Working directory:** every script runs with it set to `$LD_DATA` (`tools/config.js` `useDataCwd()`, or
@@ -98,10 +97,10 @@ the script's own location.
 - **`verify/ldsc/`:** the ldsc ports against ldsc.
 - **`verify/ldlink/`:** the module ports against a local LDlink.
 - **`verify/run.sh`:** runs them (`npm run verify`, `npm run verify:ldlink`).
-- **`bench/`:** benchmarks and their recorded results.
+- **`bench/`:** benchmarks; they write their results to `$LD_DATA/bench/results/`.
 - **`tools/`:**
-  - `config.{mjs,sh}`: every machine path;
-  - `serve.js`: the dev server;
+  - `config.js`, `config.sh`: every machine path;
+  - `serve.js`: the dev server; `build_site.js`: the static site;
+  - `check_docs.js`: every path the docs name exists (in `npm test`);
   - `run_sql.py`: the DuckDB statement runner;
-  - `move.py`: scripted moves with import rewriting;
   - `ldlink-local/`: the oracle kit.

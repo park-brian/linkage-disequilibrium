@@ -1,1 +1,0 @@
-{"collection": "platforms", "docs": 83, "types": {"platform": {"str": 83}, "code": {"str": 83}}, "na_or_empty": {}, "numeric_range": {}, "max_str_len": {"platform": 46, "code": 14}, "low_cardinality": {}}

@@ -2,7 +2,7 @@
 // Web Workers in the browser). Verifies the union of worker results equals the single-thread result.
 // usage: node bench/threads.js release_v4 <panelDir (e.g. $LD_PANELS)>
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { loadKernel, KERNEL_WASM } from "../src/ld/kernel.js";
 import { useDataCwd } from "../tools/config.js";
@@ -40,5 +40,6 @@ if (!isMainThread) {
       out.push(o); console.log(JSON.stringify(o));
     }
   }
-  writeFileSync(new URL("./results/threads_report.json", import.meta.url), JSON.stringify(out, null, 2));
+  mkdirSync("bench/results", { recursive: true }); // $LD_DATA/bench/results (cwd = LD_DATA)
+  writeFileSync("bench/results/threads_report.json", JSON.stringify(out, null, 2));
 }

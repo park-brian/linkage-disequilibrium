@@ -1,9 +1,8 @@
 // LDscore: the REST text (GET /LDlinkRest/ldscore) on LDlink's example PLINK fileset (22.bed/bim/fam, isExample=true):
 // cM and kb windows, Python int() edge cases of ldwindow, units, and file-list errors. The two time lines are masked
 // (ldherit.js); errors compare on `error`.
-import { readFileSync, existsSync } from "node:fs";
 import { ldscore } from "../../../src/ldlink/ldscore.js";
-import { get, asText } from "../lib.js";
+import { get, asText, example } from "../lib.js";
 import { verdict } from "./ldherit.js";
 
 const EX = "22.bed,22.bim,22.fam";
@@ -23,13 +22,9 @@ export function cases() {
 }
 const query = c => new URLSearchParams({ pop: "EUR", genome_build: "grch37", filename: c.filename, ldwindow: c.ldwindow, windUnit: c.windUnit, isExample: "true" });
 export const ldlink = cs => Promise.all(cs.map(async c => asText(await get("ldscore", query(c)))));
-const cache = {};
-export function ours(ctx, c) {
+export async function ours(ctx, c) {
   const files = {};
-  for (const f of c.filename.split(",")) {
-    const p = `${ctx.root}/examples/${f}`;
-    files[f] = cache[f] ??= existsSync(p) ? (f.endsWith(".bed") ? new Uint8Array(readFileSync(p)) : readFileSync(p, "utf8")) : null;
-  }
+  for (const f of c.filename.split(",")) files[f] = await example(ctx, f, { binary: f.endsWith(".bed") });
   const o = ldscore({ ...c, isExample: true, files });
   return typeof o === "string" ? { text: o } : { error: o.error };
 }

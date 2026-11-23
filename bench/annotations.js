@@ -1,5 +1,5 @@
 // Window cost of each annotation track (cold, local file byte counting). usage: node bench_annotations.js <releaseRoot>
-import { openSync, readSync, fstatSync, writeFileSync } from "node:fs";
+import { openSync, readSync, fstatSync, writeFileSync, mkdirSync } from "node:fs";
 import { parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 import { rangeScan } from "../src/parquet.js";
@@ -32,4 +32,5 @@ for (const [span, lo] of [[1e6, 25e6], [1e7, 25e6]]) {
     results.push(o); console.log(JSON.stringify(o));
   }
 }
-writeFileSync(repo("bench/results/v2_annotations_bench.json"), JSON.stringify(results, null, 2));
+mkdirSync("bench/results", { recursive: true }); // $LD_DATA/bench/results (cwd = LD_DATA)
+writeFileSync("bench/results/annotations_bench.json", JSON.stringify(results, null, 2));

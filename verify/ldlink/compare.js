@@ -5,9 +5,8 @@
 // Reports: $LD_DATA/verify/ldlink/<module>.json; prints one line per differing case, then the totals (last line).
 // usage: node verify/ldlink/compare.js <module|all>     modules: ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc
 import { writeFileSync, mkdirSync } from "node:fs";
-import { nodeContext, canon, textDiff, CONFIG } from "./lib.js";
+import { nodeContext, canon, textDiff, CONFIG, MODULES } from "./lib.js";
 
-const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc", "ldherit", "ldcorrelation", "ldscore"];
 const arg = process.argv[2];
 if (!arg || (arg !== "all" && !MODULES.includes(arg))) { console.error(`usage: compare.js <${MODULES.join("|")}|all>`); process.exit(2); }
 
