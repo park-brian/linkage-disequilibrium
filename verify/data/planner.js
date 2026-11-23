@@ -136,4 +136,5 @@ for (const forceRsid of [undefined, "direct"]) {
   results.push({ check: "non-canonical inputs == resolver", label: forceRsid ?? "auto", inputs: odd.length, differences: bad.length, examples: bad.slice(0, 8) });
   console.log(JSON.stringify(results.at(-1)));
 }
-writeFileSync(`${root}/planner_report.json`, JSON.stringify(results, null, 2));
+writeFileSync("verify/planner_report.json", JSON.stringify(results, null, 2)); // $LD_DATA/verify, not the release
+if (results.some(r => r.differences > 0)) process.exitCode = 1;

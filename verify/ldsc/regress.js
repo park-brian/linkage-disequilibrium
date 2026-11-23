@@ -45,3 +45,4 @@ for (const g of ["eas", "eur"]) {
   }
 }
 writeFileSync(`${runDir}/verify_regress.json`, JSON.stringify(results, null, 2));
+if (results.some(r => !(r.worst_rel_diff <= 1e-10))) process.exitCode = 1;

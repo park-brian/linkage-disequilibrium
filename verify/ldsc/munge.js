@@ -39,3 +39,5 @@ results.pipeline = { h2: [h.tot, href.tot, rel(h.tot, href.tot)], h2_se: [h.tot_
   rg: [r.rg_ratio, rref.rg_ratio, rel(r.rg_ratio, rref.rg_ratio)], rg_se: [r.rg_se, rref.rg_se, rel(r.rg_se, rref.rg_se)], p: [r.p, rref.p] };
 console.log(JSON.stringify({ pipeline: results.pipeline }));
 writeFileSync(`${runDir}/verify_munge.json`, JSON.stringify(results, null, 2));
+const TOL = 1e-10, p = results.pipeline;
+if (!results.BBJ_HDLC22.identical || !results.BBJ_LDLC22.identical || [p.h2, p.h2_se, p.rg, p.rg_se].some(([, , r]) => !(r <= TOL))) process.exitCode = 1;

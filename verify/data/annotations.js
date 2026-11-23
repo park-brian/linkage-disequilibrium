@@ -118,4 +118,5 @@ for (const b of ["37", "38"]) {
   }
   tally("range_tracks", cases, bad);
 }
-writeFileSync(`${root}/annotations/parity_report.json`, JSON.stringify(report, null, 2));
+writeFileSync("verify/annotations_report.json", JSON.stringify(report, null, 2)); // $LD_DATA/verify, not the release
+if (Object.values(report).some(r => r.mismatches > 0)) process.exitCode = 1;

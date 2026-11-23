@@ -32,3 +32,4 @@ for (const m of arg === "all" ? MODULES : [arg]) {
   console.log(JSON.stringify({ module: m, ...totals, seconds: Math.round((performance.now() - t0) / 1000) }));
 }
 if (arg === "all") console.log(JSON.stringify(all));
+if (Object.values(all).some(t => t.differ > 0)) process.exitCode = 1; // tie_order / degenerate_z are documented, not failures

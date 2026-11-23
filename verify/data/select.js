@@ -3,7 +3,7 @@
 //            it (tabix region semantics), compared by (pos, ref, alt list) with the picked row's source record
 //   allele — rows whose alleles match the rsID's NCBI alleles, recomputed here from the NCBI slice (not from the
 //            build's allele_rsids column)
-// usage: node verify/data/select.js <vcf.gz> <genoPrefix e.g. v3_grch37_chr22> <ncbi_slice.parquet> <out.json> [nSample]
+// usage: node verify/data/select.js <vcf.gz> <genotypes prefix, e.g. release_v4/genotypes/grch37/chr22> <ncbi_slice.parquet> <out.json> [nSample]
 //   The NCBI slice must carry p_dump (LDlink's position from the dump, see compare_ncbi.sql / step 8).
 import { createReadStream, writeFileSync } from "node:fs";
 import { createGunzip } from "node:zlib";
@@ -30,7 +30,7 @@ await parquetRead({ file: nf, metadata: nm, compressors, columns: Object.keys(N)
   onComplete: rows => { for (const r of rows) Object.keys(N).forEach((c, i) => N[c].push(num(r[i]))); } });
 // genotype files
 const files = await Promise.all(["common", "low", "rare"].map(async tier => {
-  const file = await asyncBufferFromFile(`${prefix}/${tier === "rare" ? "rare_sparse_p16k" : `${tier}_bits_p64k`}.parquet`);
+  const file = await asyncBufferFromFile(`${prefix}.${tier}.parquet`); // the release's chr<N>.<tier>.parquet
   return { tier, file, metadata: await parquetMetadataAsync(file) };
 }));
 const cols = ["pos", "ref", "alt", "vcf_order", "allele_is_label", "allele_rsids", "multiallelic_source", "rsid"];
@@ -87,4 +87,5 @@ for (const i of sample) {
   else { res.allele.disagree++; if (res.allele.examples.length < 10) res.allele.examples.push({ rsid: N.rsid[i], ncbi: `${N.pos[i]}:${N.ref[i]}>${N.alt[i]}`, p, expRows, gotRows, status: a.status }); }
 }
 writeFileSync(outPath, JSON.stringify(res, null, 2));
+if (res.parity.disagree > 0 || res.allele.disagree > 0) process.exitCode = 1;
 console.log(JSON.stringify(res, (k, v) => (k === "examples" && !v.length ? undefined : v)));

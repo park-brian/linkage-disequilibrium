@@ -142,4 +142,5 @@ for (const pop of pops) {
 }
 report.failures = report.populations.reduce((a, p) => a + p.failures, 0);
 writeFileSync(outPath, JSON.stringify(report, null, 2));
+if (report.failures > 0) process.exitCode = 1;
 console.log(JSON.stringify({ snps: report.snps, by_tier: report.by_tier, indels: report.indels, masked_rows: report.masked_rows, failures: report.failures }));

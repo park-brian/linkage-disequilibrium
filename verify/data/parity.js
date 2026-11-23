@@ -77,5 +77,6 @@ for (const [build, f] of Object.entries(TEST_VECTORS)) {
     report[`inputs_${build}_ldmatrix_gate_rejects`] = want.filter(w => w.found && !w.ldmatrix_gate).map(w => w.input).slice(0, 20);
   }
 }
-writeFileSync(`${root}/parity_report.json`, JSON.stringify(report, null, 2));
+writeFileSync("verify/parity_report.json", JSON.stringify(report, null, 2)); // $LD_DATA/verify, not the release
+if (Object.values(report).some(r => r && (Array.isArray(r.mismatches) ? r.mismatches.length : r.mismatches) > 0)) process.exitCode = 1;
 console.log(JSON.stringify(report, (k, v) => (k === "examples" && !v.length ? undefined : v), 2));
