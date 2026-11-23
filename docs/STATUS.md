@@ -15,7 +15,8 @@
   - links: every form reads and writes its inputs in the URL; a pyramid pair opens LDpair / LDproxy, a locus point
     LDpair.
 - **The release:** 326 Parquet files + manifest + `examples/`, about 34.8 GB, in `$LD_RELEASE` (self-contained: panels
-  and example inputs inside). The private test bucket's `v4/` predates the panels, examples, counts and manifest v2.
+  and example inputs inside), and **public at `https://d2x2yo644ey89o.cloudfront.net`** (CloudFront over the private
+  bucket's `ldlink-parquet/v5/`; DATA.md). The built site runs every view against it (`check.html` 18/18).
 
 ## Verified
 
@@ -37,6 +38,9 @@
 | LDexpress | 0.5 s |
 | LDherit / LDcorrelation (chr22 example, EUR) | 3–4 s |
 | LDscore (chr22 example, 1 cM) | 3.5 s |
+
+Over CloudFront (cold edge, from a home connection): LDmatrix 2.7 s, LDpair 1.1 s, LDproxy 14 s (505 requests: the
+`sortedLookup` follow-up below), LDtrait 1.9 s, LDassoc 3.0 s, LDherit 4.1 s, Pyramid 0.9 s.
 | Pyramid 1 Mb EUR, common | 0.22 s on 4 workers |
 | Pyramid 3 Mb ALL, common + low (228 M pairs) | 1.0 s on 8 workers (7.0 s on 1) |
 | Pyramid chrX 2 Mb EUR, common | 0.1 s on 8 workers (0.17–0.24 s before the same-mask path) |
@@ -74,11 +78,10 @@ release on another origin; `.github/workflows/pages.yml` deploys it once Pages u
 
 ## Open decisions (yours)
 
-- **Pushing** `restructure` to `main` (a fast-forward). Switch Pages to the Actions workflow first, or in the same
-  step: the legacy build would serve `app/` with an import map into the untracked `node_modules/`.
-- **A public data host** for the release (Range + CORS): a public S3 bucket behind CloudFront, a Cloudflare R2
-  bucket, or a Hugging Face dataset; then set the repository variable `LD_DATA_URL` (history/PLAN.md §6).
-- **Uploads:** the release to that host (copy `examples/` too: the manifest lists Parquet only), and the version 2
-  manifest to the test bucket's `v4/`.
+- **Going live on Pages:** set the repository variable `LD_DATA_URL` to `https://d2x2yo644ey89o.cloudfront.net`,
+  switch Pages to the Actions workflow, then push `restructure` to `main` (a fast-forward). Switch before pushing, or
+  in the same step: the legacy build would serve `app/` with an import map into the untracked `node_modules/`.
+- **The test bucket's older prefixes** (`ldlink-parquet/v2/`–`v4/`, about 80 GB): keep or delete. `v4/` still has
+  manifest version 1.
 - **About 870 GB of regenerable intermediates** in `$LD_DATA` (`ncbi_dbsnp`, `dbsnp_dump`, `phaseB` build copies):
   keep or delete.

@@ -14,6 +14,15 @@ A release is a directory of Parquet files plus `manifest.json`, served as static
 - **Builds:** `grch37`, `grch38` and `grch38_high_coverage`. High Coverage uses GRCh38 positions, so its dbSNP and
   annotation files are the `grch38` ones (`src/genome.js` `BUILDS`).
 
+## Hosted copy
+
+`https://d2x2yo644ey89o.cloudfront.net` serves `release_v4` as uploaded to `s3://eaap-ac-test-bucket/ldlink-parquet/v5/`
+(AWS account 285397596138, us-east-1). The bucket stays private (Block Public Access on); CloudFront distribution
+`E1S1X441YI89BW` reads it through an origin access control, and the bucket policy lets only that distribution read
+`v5/`. Responses allow any origin (CORS with `Range`, `Timing-Allow-Origin`), are compressed (the manifest travels as
+0.6 MB), cached a day at the edge (`Cache-Control: public, max-age=86400`), over HTTP/2 and 3 (price class 100).
+A new release goes to a new prefix (`v6/`) and a new origin path, not over `v5/`.
+
 ## manifest.json
 
 Version 2: `{ version: 2, created, files: { <path>: { byteLength, numRows, footer: { offset, length }, key, columns,
