@@ -33,6 +33,11 @@ export function createAnnotations(file) {
   let plat;
   const platforms = () => (plat ??= (async () => { const { file: f, metadata } = await file("annotations/platforms.parquet"); let r = [];
     await parquetRead({ file: f, metadata, compressors, columns: ["platform", "code"], rowFormat: "object", onComplete: x => { r = x; } }); return r; })());
+  /** LDlink's population sample lists (annotations/panels.parquet, read once): Map(pop → [sample IDs in file order]) */
+  let pan;
+  const panels = () => (pan ??= (async () => { const { file: f, metadata } = await file("annotations/panels.parquet"); let r = [];
+    await parquetRead({ file: f, metadata, compressors, columns: ["pop", "sample"], rowFormat: "object", onComplete: x => { r = x; } });
+    const m = new Map(); for (const { pop, sample } of r) { if (!m.has(pop)) m.set(pop, []); m.get(pop).push(sample); } return m; })());
   /** db.snp_col.find({chromosome, position}) → Map("chrom:pos" → [platforms "a|b" per doc, dump order]) */
   async function arrays(build, points) {
     const { file: f, metadata } = await file(`annotations/${BUILDS[build].positions}/arrays.parquet`), out = new Map();
@@ -101,5 +106,5 @@ export function createAnnotations(file) {
     const { file: f, metadata } = await file(`annotations/${BUILDS[build].positions}/recomb.parquet`);
     return (await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "rate"], compressors })).map(r => ({ pos: keyPos(r.key), rate: r.rate }));
   }
-  return { genes, recomb, forge, forgeAt, regulome, platforms, arrays, gwas, eqtl, eqtlRange, gene, gtexTissueIds: async () => [...(await gtexRefs()).tissues.keys()] };
+  return { genes, recomb, forge, forgeAt, regulome, platforms, panels, arrays, gwas, eqtl, eqtlRange, gene, gtexTissueIds: async () => [...(await gtexRefs()).tissues.keys()] };
 }

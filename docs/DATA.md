@@ -83,8 +83,10 @@ Built by `pipeline/dbsnp/` from the mongodump (`bson2tsv` → `sort.sql` → `bu
 | `<b>/gtex_eqtl.parquet` | position | `gene_id`, `tissue`, `slope`, `pval_nominal`, … (doubles; `%.6g` reproduces GTEx text) | LDexpress `gtex_tissue_eqtl` |
 | `gtex_tissues.parquet`, `gtex_genes.parquet` | id | joined like LDexpress's `$lookup` / `$unwind` | |
 | `gene_names.parquet` | name | per-build chromosome / begin / end | `genes_name_coords.find_one` (LDassoc gene mode) |
+| `panels.parquet` | — | `pop`, `sample` (each list in file order; 32 pops, 7,512 rows) | LDlink's `<POP>.txt` sample lists |
 
-Built by `pipeline/annotations/` (`fetch.sh` → `annotations.sql` → `build.mjs`).
+Built by `pipeline/annotations/` (`fetch.sh` → `annotations.sql` → `build.mjs`); `panels.parquet` by
+`pipeline/release/extras.mjs`.
 
 ## ldscore/: LD score reference panels
 
@@ -92,7 +94,12 @@ One file per population (`afr`, `eur`, …): `CHR`, `SNP`, `BP`, `L2`, plus `M` 
 metadata. `w_hm3.snplist.parquet` holds HapMap3 SNPs and alleles. Used by `src/ldsc/` (heritability, genetic
 correlation).
 
-## Outside the release
+## examples/: LDlink's example inputs
 
-The **population panels** (`<POP>.txt`, LDlink's sample lists) are served from `$LD_PANELS` today (`/panels/` on the
-dev server).
+Plain files, copied byte for byte by `pipeline/release/extras.mjs`, for the example buttons:
+- LDassoc: `prostate_example_grch37.txt` and `prostate_example_grch38.txt`;
+- LDscore: `22.bed`, `22.bim`, `22.fam`;
+- LDherit / LDcorrelation: `BBJ_HDLC22.txt`, `BBJ_LDLC22.txt`.
+
+With panels and examples inside, the app needs one data URL and nothing else. `$LD_PANELS` stays the pipeline's
+source for the genotype build and the kernel verifier.

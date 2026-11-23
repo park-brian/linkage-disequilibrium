@@ -51,7 +51,7 @@ const strip = o => (o && typeof o === "object" && !Array.isArray(o) ? Object.fro
 const kernel = await loadKernel(new Uint8Array(await (await fetch(KERNEL_WASM)).arrayBuffer()));
 const root = new URL("../release", location.href).href, manifest = await (await fetch(`${root}/manifest.json`)).json();
 const ctx = await createContext({ root, open: async (url, byteLength) => cachedAsyncBuffer(await asyncBufferFromUrl({ url, byteLength })),
-  readPanel: async pop => (await (await fetch(`../panels/${pop}.txt`)).text()).split(/\s+/).filter(Boolean), kernel, manifest });
+  kernel, manifest });
 let same = 0, ties = 0;
 for (const [k, c] of CASES.entries()) {
   status.textContent = `${k + 1} / ${CASES.length}: ${c.module} ${c.label}`;

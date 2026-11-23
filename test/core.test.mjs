@@ -12,7 +12,7 @@ import { getSeparators } from "../src/ldsc/regress.mjs";
 import { pyFixed3 } from "../src/ldsc/l2.mjs";
 import { parseCoord } from "../src/genome.mjs";
 import { isNotFound } from "../src/source.mjs";
-import { RELEASE } from "../tools/config.mjs";
+import { RELEASE, PANELS } from "../tools/config.mjs";
 
 const here = new URL(".", import.meta.url);
 // release-backed tests: skipped only on request (LD_SKIP_DATA=1); a configured but missing release is a failure
@@ -351,4 +351,18 @@ test("K5: masked rows with identical masks (one popcount) match the general path
     k.reset();
   }
   assert.deepEqual(results[0], results[1], "wasm = js");
+});
+
+test("D1: the release's population panels equal LDlink's <POP>.txt lists (createContext's default readPanel)", needData, async () => {
+  haveRelease();
+  const { createContext } = await import("../src/ldlink/context.mjs");
+  const { asyncBufferFromFile, cachedAsyncBuffer } = await import("hyparquet");
+  const { readdirSync } = await import("node:fs");
+  const ctx = await createContext({ root: RELEASE, open: async p => cachedAsyncBuffer(await asyncBufferFromFile(p)), kernel: jsKernel() });
+  const pops = readdirSync(PANELS).filter(f => f.endsWith(".txt")).map(f => f.slice(0, -4));
+  assert.equal(pops.length, 32);
+  const m = await ctx.panels();
+  for (const p of pops) assert.deepEqual(m.get(p), readFileSync(`${PANELS}/${p}.txt`, "utf8").split(/\s+/).filter(Boolean), p);
+  assert.deepEqual([...(await ctx.popIds("CEU+YRI"))].sort(), [...new Set([...m.get("CEU"), ...m.get("YRI")])].sort());
+  assert.equal((await ctx.popIds("NOPE")).size, 0);
 });

@@ -1,17 +1,14 @@
 // Local dev server for the browser app: static files with HTTP Range support (what hyparquet's asyncBufferFromUrl
-// needs), mapping four roots — the repo (app/, src/, node_modules/), the release, the population panels and LDlink's LDassoc
-// example files.
+// needs), mapping two roots: the repo (app/, src/, node_modules/) and the release (panels and example inputs included).
 // Local only (binds 127.0.0.1). usage: node tools/serve.mjs [port=8095] [release=$LD_RELEASE]   (npm run serve)
 import { createServer } from "node:http";
 import { createReadStream, statSync } from "node:fs";
 import { extname, join, normalize, resolve, sep } from "node:path";
-import { REPO, RELEASE, PANELS, LDASSOC_EXAMPLES } from "./config.mjs";
+import { REPO, RELEASE } from "./config.mjs";
 
 const [port = "8095", release = RELEASE] = process.argv.slice(2), here = REPO;
 const MOUNTS = [ // URL prefix → directory (first match wins)
   ["/release/", resolve(release)],
-  ["/panels/", PANELS],
-  ["/examples/", LDASSOC_EXAMPLES], // LDlink's bundled LDassoc example files
   ["/", here],
 ];
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",

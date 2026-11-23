@@ -10,10 +10,9 @@ import * as CONFIG from "../../tools/config.mjs";
 export { CONFIG };
 export const BASE = CONFIG.LDLINK_URL;
 
-/** the module context the ports run on: local release files, panels from config, the WASM kernel */
+/** the module context the ports run on: local release files (panels included), the WASM kernel */
 export async function nodeContext(root = process.env.ROOT || CONFIG.RELEASE) {
-  return createContext({ root, open: async p => cachedAsyncBuffer(await asyncBufferFromFile(p)),
-    readPanel: async p => readFileSync(`${CONFIG.PANELS}/${p}.txt`, "utf8").split(/\s+/).filter(Boolean), kernel: await loadKernel(readFileSync(KERNEL_WASM)) });
+  return createContext({ root, open: async p => cachedAsyncBuffer(await asyncBufferFromFile(p)), kernel: await loadKernel(readFileSync(KERNEL_WASM)) });
 }
 
 /** the LDmatrix cases every comparison draws inputs from (verify/ldlink/cases/) */

@@ -2,7 +2,7 @@
 // prostate example: the table text, plus the JSON's error and warning.
 import { readFileSync } from "node:fs";
 import { ldassoc } from "../../../src/ldlink/ldassoc.mjs";
-import { drive, CONFIG } from "../lib.mjs";
+import { drive } from "../lib.mjs";
 
 const FILE = { grch37: "prostate_example_grch37.txt", grch38: "prostate_example_grch38.txt", grch38_high_coverage: "prostate_example_grch38.txt" };
 export function cases() {
@@ -32,6 +32,6 @@ export const ldlink = async cs => drive("ldassoc", cs.map(({ geneName, ...c }) =
   .map(r => norm(r.exception ? { error: "Internal server error. Please contact LDlink admin." } : { text: r.text ?? undefined, error: r.json.error, warning: r.json.warning }));
 const texts = {};
 export async function ours(ctx, { geneName, ...c }) {
-  texts[c.build] ??= readFileSync(`${CONFIG.LDASSOC_EXAMPLES}/${FILE[c.build]}`, "utf8");
+  texts[c.build] ??= readFileSync(`${ctx.root}/examples/${FILE[c.build]}`, "utf8");
   return norm(await ldassoc(ctx, { ...c, name: geneName, text: texts[c.build] }));
 }

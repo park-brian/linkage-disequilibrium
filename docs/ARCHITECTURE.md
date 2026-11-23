@@ -41,7 +41,7 @@ haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regr
 | `pyfmt.mjs` | Python-exact formatting: `round`, `'%.nf'`, `str(float)`, `nextafter`; C `%g` |
 | `ld/kernel.mjs` | one LD API: `prepare`, `band` (row ranges, masked or unmasked), `tile`, `counts`, `exact`. Backends: `kernel.wasm` (C, scalar popcount) and `kernel_js.mjs`, with identical results. Masked rows carry a mask class: pairs with identical masks take one popcount |
 | `ldsc/` | LD score regression (`regress`), sumstats munging (`munge`), LD score estimation (`l2`), shared numerics (`stats`) |
-| `ldlink/context.mjs` | composes planner, genotypes, annotations, dbSNP, panels and kernel for the module ports |
+| `ldlink/context.mjs` | composes planner, genotypes, annotations, dbSNP, panels (from the release unless the caller passes `readPanel`) and kernel for the module ports |
 | `ldlink/common.mjs` | LDlink's shared pieces: populations, the input `gate`, `validsnp`'s `dedupeLists`, the chrY message, `set_alleles`, kernel counts → 2×2 (`cells`, `table2x2`, `ldStats`), the chunked window (`chunkWindow`, `chunkedWindow`, `countsAgainst`), `get_query_variant_c`, positional annotation lookups |
 | `ldlink/<module>.mjs` | LDmatrix, LDpair, LDpop, LDhap, LDproxy, SNPclip, SNPchip, LDtrait, LDexpress, LDassoc: each returns LDlink's own output (text / JSON / error), byte for byte, including LDlink's bugs ([PARITY.md](PARITY.md)) |
 
@@ -56,7 +56,7 @@ haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regr
 ## app/: the UI
 
 - **`index.html`:** an import map for `hyparquet*` (no bundler).
-- **`main.mjs`:** the core in the page (kernel, release, panels) and navigation.
+- **`main.mjs`:** the core in the page (kernel and release) and navigation.
 - **`forms.mjs`:** the module table: each module's fields, the port it calls, how its result is shown.
 - **`render.mjs`:** outputs as LDlink prints them (text blocks → tables, LDpair, the matrix and pyramid cards).
 - **`region.mjs`:** the region view's data (window rows and tracks), LD + pixels on the worker pool.

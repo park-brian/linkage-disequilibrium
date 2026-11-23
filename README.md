@@ -31,7 +31,7 @@ See `tools/config.mjs` for every path and its environment variable.
 
 | | |
 |---|---|
-| `npm run serve` | dev server with Range support → `http://localhost:8095/app/` (the release, panels and LDassoc examples are mounted from config) |
+| `npm run serve` | dev server with Range support → `http://localhost:8095/app/` (the repo and the release, from config) |
 | `npm test` | unit tests (seconds; needs the release unless `LD_SKIP_DATA=1`) |
 | `npm run verify` | data verifiers: planner, parity, annotations, kernel (chr1, chrX), selection, ldsc (about 20 min) |
 | `npm run verify:ldlink` | the ten module comparisons against a local LDlink (about 1.5 h; `tools/ldlink-local/README.md`) |

@@ -64,7 +64,7 @@ export const MODULES = {
     show: showText,
     run: async (ctx, a) => {
       // no file chosen: LDlink's bundled prostate-cancer example for the build
-      const text = a.file ? await a.file.text() : await (await fetch(`../examples/prostate_example_${a.build === "grch37" ? "grch37" : "grch38"}.txt`)).text();
+      const text = a.file ? await a.file.text() : await (await fetch(`${ctx.root}/examples/prostate_example_${a.build === "grch37" ? "grch37" : "grch38"}.txt`)).text();
       return ldassoc(ctx, { text, columns: a.columns.split(",").map(s => s.trim()), region: a.region, origin: a.origin || undefined, name: a.name, start: a.start, end: a.end,
         window: a.region === "region" ? undefined : +a.window, pop: join(a.pop), build: a.build });
     },

@@ -7,7 +7,7 @@ import { coalesce } from "../src/parquet.mjs";
 import { MODULES, buildForm } from "./forms.mjs";
 import { $, show, notice } from "./render.mjs";
 
-const RELEASE = new URL("../release", location.href).href.replace(/\/$/, ""), PANELS = new URL("../panels/", location.href).href;
+const RELEASE = new URL("../release", location.href).href.replace(/\/$/, "");
 const status = msg => { $("#status").textContent = msg; };
 
 let ctxPromise;
@@ -17,9 +17,8 @@ function context() {
     const kernel = await loadKernel(new Uint8Array(await (await fetch(KERNEL_WASM)).arrayBuffer()));
     // byteLength from the manifest: no HEAD request per file; reads issued together share Range requests
     const open = async (url, byteLength) => cachedAsyncBuffer(coalesce(await asyncBufferFromUrl({ url, byteLength })));
-    const readPanel = async pop => (await (await fetch(`${PANELS}${pop}.txt`)).text()).split(/\s+/).filter(Boolean);
     const manifest = await (await fetch(`${RELEASE}/manifest.json`)).json();
-    const ctx = await createContext({ root: RELEASE, open, readPanel, kernel, manifest });
+    const ctx = await createContext({ root: RELEASE, open, kernel, manifest });
     status(`ready (${kernel.backend} kernel, ${Math.round(performance.now() - t0)} ms)`);
     return ctx;
   })());
