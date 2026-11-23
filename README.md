@@ -21,7 +21,7 @@ pipeline/   offline release build: dbsnp, ncbi, genotypes, annotations, ldscore,
 verify/     data verifiers (data/), ldsc checks (ldsc/), LDlink comparisons (ldlink/), run.sh
 test/       unit tests and fixtures
 bench/      benchmarks and recorded results
-tools/      config.js / config.sh (every machine path), serve.js, build_site.js, run_sql.py, check_docs.js, ldlink-local/ (oracle kit)
+tools/      config.js / config.sh (every machine path), serve.js, build_site.js, run_sql.py, check_docs.js, coverage.js, ldlink-local/ (oracle kit)
 docs/       STATUS · ARCHITECTURE · DATA (release contract) · PARITY · decisions · REQUIREMENTS · history/
 ```
 
@@ -36,6 +36,8 @@ See `tools/config.js` for every path and its environment variable.
 | `npm run build:site -- --data <url>` | the static site for GitHub Pages in `dist/` (the release is read from `<url>`; `.github/workflows/pages.yml` runs it) |
 | `npm test` | unit tests (seconds; needs the release unless `LD_SKIP_DATA=1`) |
 | `npm run verify` | data verifiers: planner, parity, annotations, kernel (chr1, chrX), selection, ldsc (about 20 min) |
+| `npm run verify:snapshot` | the parity snapshot: every LDlink comparison case through our ports, hashed against `verify/ldlink/snapshot.json` (about 13 min, no Docker; `-- --http <url>` reads the release over HTTP) |
+| `npm run coverage` | line coverage of `src/` from the unit tests (`coverage:snapshot`: from the parity snapshot, about 92%; `tools/coverage.js`) |
 | `npm run verify:ldlink` | the thirteen module comparisons against a local LDlink (about 1.5 h; `tools/ldlink-local/README.md`) |
 | `npm run bench` | WASM vs JS kernel benchmark (`bench/` has the others) |
 | `npm run build:kernel` | rebuild `src/ld/kernel.wasm` (`CLANG=<emsdk>/upstream/bin/clang`) |

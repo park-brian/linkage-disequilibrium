@@ -10,6 +10,8 @@
     "verify": "bash verify/run.sh data",
     "verify:ldlink": "bash verify/run.sh ldlink",
     "verify:snapshot": "node verify/ldlink/snapshot.js",
+    "coverage": "node tools/coverage.js -- --test \"test/*.test.js\"",
+    "coverage:snapshot": "node tools/coverage.js -- verify/ldlink/snapshot.js",
     "bench": "node bench/js_vs_wasm.js",
     "build:kernel": "bash src/ld/build.sh"
   },
