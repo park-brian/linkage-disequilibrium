@@ -5,7 +5,7 @@ export const CHROMS = [...Array.from({ length: 22 }, (_, i) => String(i + 1)), "
 export const chromCode = c => (c === "X" ? 23 : c === "Y" ? 24 : c === "MT" ? 25 : +c);
 export const chromName = c => (c === 23 ? "X" : c === 24 ? "Y" : c === 25 ? "MT" : String(c));
 export const key = (chrom, pos) => BigInt(chromCode(chrom)) * 1_000_000_000n + BigInt(pos);
-export const keyPos = k => Number(BigInt(k) % 1_000_000_000n);
+export const keyPos = k => Number(k) % 1e9; // exact: keys stay below 2^53 (Number or BigInt in)
 
 /**
  * genotypes: genotype directory; positions: dbSNP/annotation position build (High Coverage uses GRCh38 positions);

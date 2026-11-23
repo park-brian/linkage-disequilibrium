@@ -6,10 +6,11 @@ import { createGenotypes } from "../genotypes.mjs";
 import { createAnnotations } from "../annotations.mjs";
 
 /**
- * @param {{ root: string, open: (path: string) => Promise<AsyncBuffer>, readPanel: (pop: string) => Promise<string[]>, kernel }} o
+ * @param {{ root: string, open: (path: string, byteLength?: number) => Promise<AsyncBuffer>, readPanel: (pop: string) => Promise<string[]>,
+ *   kernel, manifest?: object }} o manifest: the parsed manifest.json when the caller has it (else read through open)
  */
-export async function createContext({ root, open, readPanel, kernel }) {
-  const planner = await openPlanner(root, open), panels = new Map();
+export async function createContext({ root, open, readPanel, kernel, manifest }) {
+  const planner = await openPlanner(root, open, { manifest }), panels = new Map();
   const genotypes = createGenotypes(planner.file), annotations = createAnnotations(planner.file);
   /** population sample IDs: the union of the panels in "CEU+YRI" (LDlink: list(set(ids))) */
   async function popIds(pop) {

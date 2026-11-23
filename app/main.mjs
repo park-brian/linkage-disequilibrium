@@ -3,6 +3,7 @@
 import { asyncBufferFromUrl, cachedAsyncBuffer } from "hyparquet";
 import { loadKernel, KERNEL_WASM } from "../src/ld/kernel.mjs";
 import { createContext } from "../src/ldlink/context.mjs";
+import { coalesce } from "../src/parquet.mjs";
 import { MODULES, buildForm } from "./forms.mjs";
 import { $, show, notice } from "./render.mjs";
 
@@ -14,9 +15,11 @@ function context() {
   return (ctxPromise ??= (async () => {
     const t0 = performance.now();
     const kernel = await loadKernel(new Uint8Array(await (await fetch(KERNEL_WASM)).arrayBuffer()));
-    const open = async url => cachedAsyncBuffer(await asyncBufferFromUrl({ url }));
+    // byteLength from the manifest: no HEAD request per file; reads issued together share Range requests
+    const open = async (url, byteLength) => cachedAsyncBuffer(coalesce(await asyncBufferFromUrl({ url, byteLength })));
     const readPanel = async pop => (await (await fetch(`${PANELS}${pop}.txt`)).text()).split(/\s+/).filter(Boolean);
-    const ctx = await createContext({ root: RELEASE, open, readPanel, kernel });
+    const manifest = await (await fetch(`${RELEASE}/manifest.json`)).json();
+    const ctx = await createContext({ root: RELEASE, open, readPanel, kernel, manifest });
     status(`ready (${kernel.backend} kernel, ${Math.round(performance.now() - t0)} ms)`);
     return ctx;
   })());

@@ -159,3 +159,28 @@ export async function rangeScan({ file, metadata, column, lo, hi, columns, compr
   });
   return parts.flat();
 }
+
+/**
+ * An AsyncBuffer that merges reads issued together: slices requested in the same task are sorted and any within `gap`
+ * bytes of each other (up to `maxSpan` per request) become one read of the outer range. Over HTTP this turns the
+ * page-by-page reads of a pruned lookup into a few Range requests; the bytes each caller gets are unchanged.
+ */
+export function coalesce(file, { gap = 32 << 10, maxSpan = 8 << 20 } = {}) {
+  let queue = [], timer = null;
+  function flush() {
+    const q = queue.sort((a, b) => a.start - b.start); queue = []; timer = null;
+    for (let i = 0; i < q.length;) {
+      const start = q[i].start; let end = q[i].end, j = i + 1;
+      while (j < q.length && q[j].start - end <= gap && Math.max(end, q[j].end) - start <= maxSpan) end = Math.max(end, q[j++].end);
+      const group = q.slice(i, j);
+      Promise.resolve(file.slice(start, end)).then(buf => { for (const r of group) r.resolve(buf.slice(r.start - start, r.end - start)); }, err => group.forEach(r => r.reject(err)));
+      i = j;
+    }
+  }
+  return {
+    byteLength: file.byteLength,
+    slice(start, end = file.byteLength) {
+      return new Promise((resolve, reject) => { queue.push({ start, end, resolve, reject }); timer ??= setTimeout(flush, 0); });
+    },
+  };
+}

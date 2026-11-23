@@ -8,6 +8,7 @@
 // key-value metadata `max_ref_len`), across all tiers, for a complete candidate set.
 import { rangeScan, pool } from "./parquet.mjs";
 import { tierPath } from "./genome.mjs";
+import { kv } from "./source.mjs";
 export { decodeHaps } from "./haps.mjs";
 import { parquetMetadataAsync } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
@@ -70,7 +71,6 @@ const TIERS = ["common", "low", "rare"];
 
 /** Genotype rows and samples over a source's file(rel) → { file, metadata } (e.g. planner.file). */
 export function createGenotypes(file) {
-  const kv = metadata => Object.fromEntries((metadata.key_value_metadata ?? []).map(x => [x.key, x.value]));
   const colsOf = metadata => ROW_COLS.concat(metadata.schema.some(c => c.name === "vcf_id") ? ["vcf_id"] : []);
   /** the full row for a selected row reference { tier, pos, vcf_order } (planner select) */
   async function row(build, chrom, ref) {

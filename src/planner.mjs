@@ -9,11 +9,12 @@
 //   r.plan        decisions with predicted bytes (compare with measured bytes in verify_planner.mjs)
 //   query({ ..., select: "parity" | "allele" }) also sets variants[i].selected = { status, row, parity? }: the genotype
 //   row each variant uses — LDlink's last overlapping row, or the allele-aware match (select_rows.mjs)
-import { parquetMetadataAsync, parquetRead } from "hyparquet";
+import { parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 import { sortedLookup, pool } from "./parquet.mjs";
 import { createResolver } from "./dbsnp.mjs";
-import { parseCoord, firstToken, tierPath } from "./genome.mjs";
+import { createSource } from "./source.mjs";
+import { parseCoord, firstToken, tierPath, key } from "./genome.mjs";
 import { candidateRows, pickParity, pickAllele } from "./genotypes.mjs";
 
 const ROW_COLUMNS = ["pos", "rsid", "haps", "missing", "male_haploid", "multiallelic_source"];
@@ -26,17 +27,17 @@ export const COST = {
   directMax: 32,           // lists up to this size always resolve directly
 };
 
-export async function openPlanner(root, openFile) {
-  const manifest = JSON.parse(new TextDecoder().decode(await (await openFile(`${root}/manifest.json`)).slice(0)));
-  const cache = new Map();
-  function open(path) { // footer fetched with one exact range request from the manifest
-    if (!cache.has(path)) cache.set(path, (async () => {
-      const file = await openFile(`${root}/${path}`), m = manifest.files[path];
-      return { file, metadata: await parquetMetadataAsync(file, { initialFetchSize: m ? m.footer.length : 64 << 10 }) };
-    })());
-    return cache.get(path);
-  }
-  const resolver = createResolver(root, async p => (await open(p.slice(root.length + 1))).file, { exists: p => !!manifest.files[p] });
+/**
+ * @param {string} root release root (path or URL prefix)
+ * @param {(path: string, byteLength?: number) => Promise<AsyncBuffer>} openFile
+ * @param {{ manifest?: object }} [opts] manifest: the parsed manifest.json, when the caller already has it (browser: fetch)
+ */
+export async function openPlanner(root, openFile, { manifest } = {}) {
+  manifest ??= JSON.parse(new TextDecoder().decode(await (await openFile(`${root}/manifest.json`)).slice(0)));
+  // one cached { file, metadata } per path: size and footer from the manifest (no size probe, one exact footer read)
+  const size = rel => { const f = manifest.files[rel]; return f && { byteLength: f.byteLength, footer: f.footer.length }; };
+  const { file: open } = createSource(root, openFile, { size });
+  const resolver = createResolver({ file: rel => (manifest.files[rel] ? open(rel) : Promise.resolve(null)) });
 
   const tierFiles = (build, chrom, tiers) => tiers.map(t => tierPath(build, chrom, t)).filter(p => manifest.files[p]);
 
@@ -77,7 +78,7 @@ export async function openPlanner(root, openFile) {
   function coordBytes(build, chrom, lo, hi, k) {
     const path = `dbsnp/${build === "grch37" ? "grch37" : "grch38"}/chr${chrom}.parquet`, f = manifest.files[path];
     if (!f) return 0;
-    const base = BigInt(chrom === "X" ? 23 : chrom === "Y" ? 24 : +chrom) * 1000000000n, klo = Number(base + BigInt(Math.max(0, lo))), khi = Number(base + BigInt(Math.max(0, hi)));
+    const klo = Number(key(chrom, Math.max(0, lo))), khi = Number(key(chrom, Math.max(0, hi)));
     let pages = 0, bytes = 0, b = f.footer.length;
     for (const rg of f.rowGroups) {
       if (Number(rg.max) < klo || Number(rg.min) > khi) continue;

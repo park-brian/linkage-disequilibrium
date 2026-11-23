@@ -6,16 +6,16 @@
 // Index files (see build_dbsnp_v2.mjs): <root>/dbsnp/rsid/part-<rsid>>26>.parquet, <root>/dbsnp/grch<37|38>/chr<N>.parquet
 import { compressors } from "hyparquet-compressors";
 import { sortedLookup } from "./parquet.mjs";
-import { BUILDS, chromName, firstToken, parseCoord, key as gkey } from "./genome.mjs";
+import { BUILDS, chromName, firstToken, parseCoord, key as gkey, keyPos } from "./genome.mjs";
 import { createSource } from "./source.mjs";
 
 /**
- * @param {(path: string) => Promise<AsyncBuffer>} openFile
- * @param {{ exists?: (relPath: string) => boolean }} [opts] exists: e.g. manifest membership. An absent file is "not
- *   found" without a request; with no exists(), only ENOENT/404 errors count as absent and every other error throws.
+ * createResolver(source) or createResolver(root, openFile, { exists }): source = { file(rel) → { file, metadata } | null }
+ * (e.g. the planner's, sharing its cache). An absent file is "not found" (with exists(): without a request; without,
+ * only ENOENT/404 errors count as absent and every other error throws).
  */
 export function createResolver(root, openFile, { exists } = {}) {
-  const { file: open } = createSource(root, openFile, { exists }); // → { file, metadata } or null when absent
+  const { file: open } = typeof root === "object" ? root : createSource(root, openFile, { exists }); // → { file, metadata } | null
 
   /** rsIDs → [{ input, rsid, chrom, pos, ref_rsid, found }] in input order (one entry per input, parity: first doc) */
   async function resolveRsids(inputs, build) {
@@ -36,7 +36,7 @@ export function createResolver(root, openFile, { exists } = {}) {
       const key = row[BUILDS[build].dbsnpKey];
       return { input, found: true, rsid: `rs${row.rsid}`, ref_rsid: row.ref_rsid == null ? null : `rs${row.ref_rsid}`,
         chrom: row.chrom == null ? null : chromName(Number(row.chrom)),
-        pos: key == null ? null : Number(BigInt(key) % 1_000_000_000n) }; // null ⇔ position "NA" for this build
+        pos: key == null ? null : keyPos(key) }; // null ⇔ position "NA" for this build
     });
   }
 
@@ -113,7 +113,7 @@ export function createResolver(root, openFile, { exists } = {}) {
   async function findAllAt(build, chrom, positions) {
     const out = new Map(positions.map(p => [p, []])), f = positions.length ? await open(`dbsnp/${BUILDS[build].positions}/chr${chrom}.parquet`) : null;
     if (f) for (const r of (await sortedLookup({ file: f.file, metadata: f.metadata, column: "key", keys: positions.map(p => gkey(chrom, p)), columns: ["key", "rsid", "function"], compressors })).rows)
-      out.get(Number(BigInt(r.key) % 1_000_000_000n))?.push(r);
+      out.get(keyPos(r.key))?.push(r);
     return out;
   }
   /** rsIDs with more than one dbSNP doc (dbsnp/duplicated_rsids.parquet, read once): Set of digit strings */
