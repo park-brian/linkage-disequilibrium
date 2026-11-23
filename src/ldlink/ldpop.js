@@ -7,9 +7,9 @@ import { decodeHaps } from "../haps.js";
 import { TITLE } from "../genome.js";
 import { POPS, POP_ERROR, chrYMessage, ldStats, cells, queryVariant, addCoordWarning } from "./common.js";
 
-export const GROUPS = { AFR: ["YRI", "LWK", "GWD", "MSL", "ESN", "ASW", "ACB"], AMR: ["MXL", "PUR", "CLM", "PEL"], EAS: ["CHB", "JPT", "CHS", "CDX", "KHV"], EUR: ["CEU", "TSI", "FIN", "GBR", "IBS"], SAS: ["GIH", "PJL", "BEB", "STU", "ITU"] };
+const GROUPS = { AFR: ["YRI", "LWK", "GWD", "MSL", "ESN", "ASW", "ACB"], AMR: ["MXL", "PUR", "CLM", "PEL"], EAS: ["CHB", "JPT", "CHS", "CDX", "KHV"], EUR: ["CEU", "TSI", "FIN", "GBR", "IBS"], SAS: ["GIH", "PJL", "BEB", "STU", "ITU"] };
 // LDpop.py location_data, in pop_order (the table's row order): [location, super-population, latitude, longitude]
-export const LOCATIONS = {
+const LOCATIONS = {
   ALL: ["All Populations"], AFR: ["African"],
   YRI: ["Yoruba in Ibadan, Nigeria", "AFR", 7.40026, 3.910742], LWK: ["Luhya in Webuye, Kenya", "AFR", 0.59738, 34.777227],
   GWD: ["Gambian in Western Divisions in the Gambia", "AFR", 13.474133, -16.394272], MSL: ["Mende in Sierra Leone", "AFR", 8.176076, -11.040253],

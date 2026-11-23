@@ -2,7 +2,7 @@
 // options, time.ctime(), sec_to_str(), and Python's str() of a dict of strings (munge_sumstats prints one).
 import { pyStr, pyRound } from "../pyfmt.js";
 
-export const VERSION = "3.0.1";
+const VERSION = "3.0.1";
 export const MASTHEAD = "*********************************************************************\n" +
   "* LD Score Regression (LDSC)\n" + `* Version ${VERSION}\n` + "* (C) 2014-2019 Brendan Bulik-Sullivan and Hilary Finucane\n" +
   "* Broad Institute of MIT and Harvard / MIT Department of Mathematics\n" + "* GNU General Public License v3\n" +

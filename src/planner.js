@@ -41,7 +41,7 @@ export function expandManifest(m) {
   return { ...m, files };
 }
 // cost-model constants (bytes), calibrated in steps 1-2; verify_planner.js checks predictions against measurements
-export const COST = {
+const COST = {
   rsidPage: 8_000,         // pages read per rsID key across the 5 rsID-index columns
   pointOverhead: 8_000,    // per point read beyond the haps page: pos/other column pages and index slices
   clusterGap: 2_000_000,   // positions closer than this form one cluster

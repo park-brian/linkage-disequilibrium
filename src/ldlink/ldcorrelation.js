@@ -11,7 +11,6 @@ import { ctime, secToStr } from "../ldsc/log.js";
 import { probability, hsqSummary } from "./ldherit.js";
 
 const LDSC_POP = /^[A-Za-z0-9_+-]{1,64}$/;
-export const CORR_FAILED = "The genetic correlation calculation failed. This can happen when the selected LD score source does not overlap with the summary statistics (e.g. different chromosome coverage or genome build).";
 
 /** _parse_probability_pair: two comma-separated probabilities → "a,b" (each re-printed with ".15g") */
 function probabilityPair(raw, field) {

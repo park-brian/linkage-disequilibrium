@@ -12,7 +12,7 @@ const VALID = /^(rs\d+|chr\d+:\d+|chr[X|Y]:\d+)/i; // LDpair.py: re.match (a pre
  * ties keep dict insertion order: first appearance while iterating a Python set of sample IDs (hash-randomized per
  * process), then the zero-filled keys. Ours: observed ties in key order, zero-filled keys last in LDlink's fill order.
  */
-export function pairTable(label1, label2, row1, row2, [n, p1, p2, x]) {
+function pairTable(label1, label2, row1, row2, [n, p1, p2, x]) {
   const [a1, b1] = vcfAlleles(row1.ref, row1.alt), [a2, b2] = vcfAlleles(row2.ref, row2.alt);
   const hap = { [`${b1}_${b2}`]: x, [`${b1}_${a2}`]: p1 - x, [`${a1}_${b2}`]: p2 - x, [`${a1}_${a2}`]: n - p1 - p2 + x };
   const fill = [`${a1}_${a2}`, `${a1}_${b2}`, `${b1}_${a2}`, `${b1}_${b2}`]; // LDpair.py zero-fill order

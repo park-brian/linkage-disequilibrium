@@ -20,7 +20,7 @@ const DESCRIBE = {
   LOG_ODDS: "Log odds ratio (0 --> no effect; above 0 --> A1 is risk increasing)", INFO: "INFO score (imputation quality; higher --> better imputation)",
   FRQ: "Allele frequency", SIGNED_SUMSTAT: "Directional summary statistic as specified by --signed-sumstats.", NSTUDY: "Number of studies in which the SNP was genotyped.",
 };
-export const HERIT_FAILED = "The heritability calculation failed. This can happen when the selected LD score source does not overlap with the summary statistics (e.g. different chromosome coverage or genome build).";
+const HERIT_FAILED = "The heritability calculation failed. This can happen when the selected LD score source does not overlap with the summary statistics (e.g. different chromosome coverage or genome build).";
 
 /** _parse_probability_value: float(...) strictly between 0 and 1, re-printed with format(x, ".15g") */
 export function probability(raw, field) {
@@ -31,7 +31,7 @@ export function probability(raw, field) {
 }
 
 /** munge_sumstats.py's stdout for LDlink's call (sumstatsPath as LDlink passes it; out = the file's base name) */
-export function mungeLog(m, sumstatsPath, base, t0 = Date.now()) {
+function mungeLog(m, sumstatsPath, base, t0 = Date.now()) {
   const L = m.log, out = [];
   out.push(callHeader("munge_sumstats.py", [["sumstats", sumstatsPath], ["out", base], ["merge-alleles", `${EXAMPLE_DIR}/w_hm3.snplist`]]));
   out.push(pyDictRepr(L.cnames)); // print(cname_translation)

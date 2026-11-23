@@ -13,8 +13,8 @@ import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning,
 
 const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
 /** castFloat: str(float(v)) when Python's float() accepts v, else v */
-export const castFloat = v => (PYFLOAT.test(v) ? pyStr(/inf/i.test(v) ? (v.includes("-") ? -Infinity : Infinity) : /nan/i.test(v) ? NaN : Number(v.trim().replace(/_/g, ""))) : v);
-export const rangeString = v => v.replace(/\[*\]*[a-zA-Z]*\s*/g, "") || "NA"; // findRangeString
+const castFloat = v => (PYFLOAT.test(v) ? pyStr(/inf/i.test(v) ? (v.includes("-") ? -Infinity : Infinity) : /nan/i.test(v) ? NaN : Number(v.trim().replace(/_/g, ""))) : v);
+const rangeString = v => v.replace(/\[*\]*[a-zA-Z]*\s*/g, "") || "NA"; // findRangeString
 const nz = v => (v != null && v.length > 0 ? v : "NA");
 
 export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshold = 0.1, window = 500000, build = "grch37" }) {
