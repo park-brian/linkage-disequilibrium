@@ -1,13 +1,14 @@
 # Status
 
-**Updated:** 2026-11-23 · **branch:** `restructure` (from tag `parity-complete`) · **release:** `release_v4`
+**Updated:** 2026-11-23 · **branch:** `restructure` = `main` · **release:** `release_v4` · **live:** https://park-brian.github.io/linkage-disequilibrium/ (data: https://d2x2yo644ey89o.cloudfront.net)
 
 ## What works
 
 - **Every LDlink module runs on the core and reproduces LDlink.** LDmatrix, LDpair, LDpop, LDhap, LDproxy, SNPclip,
   SNPchip, LDtrait, LDexpress and LDassoc on GRCh37, GRCh38 and GRCh38 High Coverage, and LDherit, LDcorrelation and
   LDscore (ldsc 3.0.1), byte for byte against a real local LDlink. Bugs are reproduced too ([PARITY.md](PARITY.md)).
-- **The browser app** (`npm run serve` → `/app/`; `npm run build:site` for GitHub Pages):
+- **The browser app** (`npm run serve` → `/app/`; live on GitHub Pages, deployed by `.github/workflows/pages.yml` on
+  every push to `main`, with the release URL from the repository variable `LD_DATA_URL`):
   - all thirteen modules, plus the region view;
   - LDlink's LDproxy and LDassoc figures; an LDmatrix plot with a gene track;
   - a region view: an LD pyramid up to 5 Mb under GWAS, eQTL, FORGEdb / RegulomeDB, recombination and gene tracks,
@@ -78,9 +79,6 @@ release on another origin; `.github/workflows/pages.yml` deploys it once Pages u
 
 ## Open decisions (yours)
 
-- **Going live on Pages:** set the repository variable `LD_DATA_URL` to `https://d2x2yo644ey89o.cloudfront.net`,
-  switch Pages to the Actions workflow, then push `restructure` to `main` (a fast-forward). Switch before pushing, or
-  in the same step: the legacy build would serve `app/` with an import map into the untracked `node_modules/`.
 - **The test bucket's older prefixes** (`ldlink-parquet/v2/`–`v4/`, 94 GB: 24.5 + 34.8 + 34.8): keep or delete. `v4/` still has
   manifest version 1.
 - **About 870 GB of regenerable intermediates** in `$LD_DATA` (`ncbi_dbsnp`, `dbsnp_dump`, `phaseB` build copies):
