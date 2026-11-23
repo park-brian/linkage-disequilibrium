@@ -1,6 +1,6 @@
 // Region view: annotation tracks (tracks.js) over a shared genomic axis, and the LD pyramid below them (pairs at
 // midpoint × half distance, pixels = the strongest pair). Hover anywhere for the underlying record.
-import { axisOf, gwasTrack, eqtlTrack, scoresTrack, recombTrack, genesTrack, axisTrack, layout, drawTracks, hoverAt } from "./tracks.js";
+import { axisOf, gwasTrack, eqtlTrack, scoresTrack, recombTrack, genesTrack, axisTrack, layout, drawTracks, hoverAt, pointer } from "./tracks.js";
 
 const RAMP = { r2: [205, 40, 40], d: [36, 87, 197] };
 
@@ -23,7 +23,7 @@ export function renderPyramid(holder, v) {
   // hover
   const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true;
   cv.addEventListener("mousemove", e => {
-    const rc = cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top, gpos = lo + (mx / W) * ax.span;
+    const [mx, my] = pointer(cv, e), gpos = lo + (mx / W) * ax.span;
     let text = null;
     if (my >= Y0) {
       const o = Math.floor(my - Y0) * W + Math.floor(mx);
@@ -34,7 +34,7 @@ export function renderPyramid(holder, v) {
   });
   cv.addEventListener("mouseleave", () => { tip.hidden = true; });
   if (v.onPair) cv.addEventListener("click", e => { // a pixel → its strongest pair
-    const rc = cv.getBoundingClientRect(), my = e.clientY - rc.top, o = Math.floor(my - Y0) * W + Math.floor(e.clientX - rc.left);
+    const [mx, my] = pointer(cv, e), o = Math.floor(my - Y0) * W + Math.floor(mx);
     if (my >= Y0 && grid[o] >= 0) v.onPair(labels[bi[o]], labels[bj[o]], e);
   });
   holder.replaceChildren(cv, tip);

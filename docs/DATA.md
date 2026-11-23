@@ -8,7 +8,9 @@ A release is a directory of Parquet files plus `manifest.json`, served as static
 - **Genome key** = chromosome code · 10⁹ + position (INT64). Codes: 1–22, X = 23, Y = 24, MT = 25. Positions are in
   the file's build.
 - **Order** = sorted by key, then by the source's dump order (`ord`). Wherever LDlink reads Mongo with `find_one`,
-  the first row for a key is the row LDlink returns.
+  the first row for a key is the row LDlink returns. **This is a contract:** the readers return every row for a key in
+  file order, and the LDlink ports choose among them (first, last, all), so parity depends on it. A rebuild must keep
+  rows of one key in dump order (a stable sort on the key); the genotype files do the same with `vcf_order`.
 - **Compression and indexes:** ZSTD; page indexes on the sort column.
 - **Metadata:** `source`, `order` and other provenance keys in the key-value metadata.
 - **Builds:** `grch37`, `grch38` and `grch38_high_coverage`. High Coverage uses GRCh38 positions, so its dbSNP and

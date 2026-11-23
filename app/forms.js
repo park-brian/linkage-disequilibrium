@@ -35,10 +35,16 @@ const f = {
 
 // LDlink's LD score populations (client/src/components/select/ldscore-pop-select.tsx)
 const LDSC_POPS = ["EUR", "EAS", "AFR", "AMR", "ASJ", "EST", "FIN", "NFE", "NWE", "SEU"];
+/** one of LDlink's example inputs from the release's examples/ → a Blob (a failed fetch throws, naming the file) */
+async function example(ctx, name) {
+  const res = await fetch(`${ctx.root}/examples/${name}`);
+  if (!res.ok) throw new Error(`could not read the example ${name} (HTTP ${res.status})`);
+  return res.blob();
+}
 /** a sumstats input: the uploaded file, or LDlink's example from the release → { text, filename, isExample } */
-async function sumstats(ctx, file, example) {
+async function sumstats(ctx, file, name) {
   if (file) return { text: await file.text(), filename: file.name, isExample: false };
-  return { text: await (await fetch(`${ctx.root}/examples/${example}`)).text(), filename: example, isExample: true };
+  return { text: await (await example(ctx, name)).text(), filename: name, isExample: true };
 }
 
 export const MODULES = {
@@ -77,13 +83,18 @@ export const MODULES = {
     run: (ctx, a) => ldexpress(ctx, { ...a, pop: join(a.pop), tissues: join(a.tissues), r2_d_threshold: +a.r2_d_threshold, p_threshold: +a.p_threshold, window: +a.window }),
   },
   LDassoc: {
-    fields: [{ name: "file", type: "file", label: "Association file (blank: LDlink's prostate example)" }, f.text("columns", "Column names (chr, pos, p)", "chr,pos,p"),
+    fields: [{ name: "file", type: "file", label: "Association file" },
+      { name: "example", type: "select", label: "No file: use", value: ["no"],
+        options: [["no", "nothing (choose a file)"], ["yes", "LDlink's prostate example (17 MB)"]] },
+      f.text("columns", "Column names (chr, pos, p)", "chr,pos,p"),
       { name: "region", type: "select", label: "Region", options: ["variant", "gene", "region"], value: ["variant"] }, f.text("origin", "Index variant (rsID; blank = lowest p)", "rs7837688"),
       f.text("name", "Gene (gene mode)", "MYC"), f.text("start", "Start (region mode)", "chr8:128000000"), f.text("end", "End (region mode)", "chr8:128700000"), f.num("window", "Window (bp)", 100000), f.pop(true, ["EUR"]), f.build(), f.stat(), f.annotate(), f.transcripts()],
     show: showAssoc,
     run: async (ctx, a) => {
-      // no file chosen: LDlink's bundled prostate-cancer example for the build
-      const text = a.file ? await a.file.text() : await (await fetch(`${ctx.root}/examples/prostate_example_${a.build === "grch37" ? "grch37" : "grch38"}.txt`)).text();
+      // no file chosen: LDlink's bundled prostate-cancer example for the build, only when asked for (a 17 MB download)
+      if (!a.file && a.example !== "yes") throw new Error("Choose an association file, or LDlink's prostate example.");
+      const ex = `prostate_example_${a.build === "grch37" ? "grch37" : "grch38"}.txt`;
+      const text = a.file ? await a.file.text() : await (await example(ctx, ex)).text();
       return ldassoc(ctx, { text, columns: a.columns.split(",").map(s => s.trim()), region: a.region, origin: a.origin || undefined, name: a.name, start: a.start, end: a.end,
         window: a.region === "region" ? undefined : +a.window, pop: join(a.pop), build: a.build }, { plot: true, stat: a.r2_d });
     },
@@ -115,7 +126,7 @@ export const MODULES = {
     run: async (ctx, a) => {
       const picked = a.files?.length ? a.files : null, names = picked ? picked.map(f => f.name) : ["22.bed", "22.bim", "22.fam"], files = {};
       for (const [k, n] of names.entries()) {
-        const blob = picked ? picked[k] : await (await fetch(`${ctx.root}/examples/${n}`)).blob();
+        const blob = picked ? picked[k] : await example(ctx, n);
         files[n] = n.endsWith(".bed") ? new Uint8Array(await blob.arrayBuffer()) : await blob.text();
       }
       return ldscore({ filename: names.join(","), ldwindow: a.ldwindow, windUnit: a.windUnit, isExample: !picked, files });
@@ -133,7 +144,10 @@ function field(fd, context, given, loading) {
     // value "all" selects every option (SNPchip: LDlink's form starts with all platforms, client/src/app/snpchip/form.tsx)
     const fill = opts => el.replaceChildren(...opts.map(o => { const [v, t] = Array.isArray(o) ? o : [o, o]; const op = new Option(t, v); op.selected = fd.value === "all" || fd.value.includes(v); return op; }));
     fill(fd.options);
-    if (fd.source) loading.push(context().then(async ctx => fill(fd.source === "platforms" ? (await ctx.platforms()).map(p => [p.code, p.platform]) : await ctx.gtexTissueIds())));
+    // a list that fails to load keeps its defaults (a linked run still goes ahead, and reports what it can)
+    const options = async ctx => (fd.source === "platforms" ? (await ctx.platforms()).map(p => [p.code, p.platform]) : ctx.gtexTissueIds());
+    if (fd.source) loading.push(context().then(async ctx => fill(await options(ctx)))
+      .catch(err => console.error(`${fd.label} list:`, err)));
   } else { el = document.createElement("input"); el.type = fd.type; if (fd.value !== undefined) el.value = fd.value; if (fd.type === "number") el.step = "any"; if (fd.multiple) el.multiple = true; }
   el.name = fd.name;
   return el;
@@ -148,22 +162,33 @@ export const toQuery = (name, a) => new URLSearchParams(Object.entries(a).filter
  * draw module `name`'s form; context() → the core (memoized), status(msg) → the status line; query: initial field values
  * (URLSearchParams from the hash), with run=1 to run at once. Running writes the inputs back to the hash.
  */
+// the latest run (or form): a result that arrives after another run started, or after the module changed, is dropped
+let current = 0, running = false;
 export function buildForm(name, { context, status, query = new URLSearchParams() }) {
   const form = $("#form"), m = MODULES[name];
+  current++;
+  if (running) { running = false; status(""); } // the run in flight no longer reports
   form.replaceChildren();
   const loading = []; // option lists read from the release (SNPchip arrays, GTEx tissues)
   for (const fd of m.fields) { const label = document.createElement("label"); label.textContent = fd.label; label.append(field(fd, context, query.get(fd.name), loading)); form.append(label); }
   const go = document.createElement("button"); go.type = "submit"; go.textContent = `Run ${name}`; form.append(go);
   form.onsubmit = async e => {
     e.preventDefault(); go.disabled = true;
+    const run = ++current, stale = () => run !== current;
+    running = true;
     const a = Object.fromEntries(m.fields.map(fd => [fd.name, value(fd, form.elements[fd.name])]));
     history.replaceState(null, "", `${location.search}#${name}?${toQuery(name, a)}`);
     try {
       status("running…"); const ctx = await context(), t0 = performance.now();
       const o = await m.run(ctx, a);
+      if (stale()) return;
+      running = false;
       status(`${name}: ${Math.round(performance.now() - t0)} ms`);
       await m.show(o, a, ctx);
-    } catch (err) { console.error(err); show([notice(String(err?.stack ?? err), true)]); status("error"); }
+    } catch (err) {
+      console.error(err);
+      if (!stale()) { running = false; show([notice(String(err?.message ?? err), true)]); status("error"); }
+    }
     finally { go.disabled = false; }
   };
   if (query.get("run") === "1") Promise.all(loading).then(() => form.requestSubmit(go)); // run once the options are there

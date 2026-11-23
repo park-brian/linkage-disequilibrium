@@ -8,12 +8,29 @@
 // key-value metadata `max_ref_len`), across all tiers, for a complete candidate set.
 import { rangeScan, pool } from "./parquet.js";
 import { tierPath } from "./genome.js";
-import { kv } from "./source.js";
+import { kv, required } from "./source.js";
 export { decodeHaps } from "./haps.js";
 import { parquetMetadataAsync } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 
 export const overlaps = (r, p) => r.pos <= p && r.pos + r.ref.length - 1 >= p;
+/** rows → (lo, hi) → the rows with lo ≤ pos ≤ hi in the input order (a binary search over a pos-sorted index, not a
+ *  scan of every row per query: uploads ask about hundreds of thousands of positions) */
+export function posRange(rows) {
+  const ix = rows.map((_, i) => i).sort((i, j) => rows[i].pos - rows[j].pos || i - j);
+  return (lo, hi) => {
+    let a = 0, b = ix.length;
+    while (a < b) { const m = (a + b) >> 1; if (rows[ix[m]].pos < lo) a = m + 1; else b = m; }
+    const hit = [];
+    for (let k = a; k < ix.length && rows[ix[k]].pos <= hi; k++) hit.push(ix[k]);
+    return hit.sort((i, j) => i - j).map(i => rows[i]);
+  };
+}
+/** rows → p → the rows overlapping p (overlaps(), tabix p-p) in the input order */
+export function overlapping(rows) {
+  const range = posRange(rows), reach = rows.reduce((m, r) => Math.max(m, r.ref.length), 1) - 1;
+  return p => range(p - reach, p).filter(x => overlaps(x, p));
+}
 
 /** LDlink parity: last overlapping row in VCF order, or null ("Variant is not in 1000G reference panel.") */
 export function pickParity(rows, p) {
@@ -70,7 +87,8 @@ const ROW_COLS = ["pos", "vcf_order", "rsid", "rsid_source", "rsid_pos_delta", "
 const TIERS = ["common", "low", "rare"];
 
 /** Genotype rows and samples over a source's file(rel) → { file, metadata } (e.g. planner.file). */
-export function createGenotypes(file) {
+export function createGenotypes(fileOrNull) {
+  const file = required(fileOrNull); // every genotype file a query names must exist
   const colsOf = metadata => ROW_COLS.concat(metadata.schema.some(c => c.name === "vcf_id") ? ["vcf_id"] : []);
   /** the full row for a selected row reference { tier, pos, vcf_order } (planner select) */
   async function row(build, chrom, ref) {

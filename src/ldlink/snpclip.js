@@ -77,22 +77,24 @@ export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_th
   }
   for (const k of kept) if (!order.includes(k.label) && !details.has(k.label)) set(k.label, [`chr${chrom}:${k.v.pos}-${k.v.pos}`, "NA", "Variant not in 1000G data, variant removed."]);
   // greedy pruning; pairs whose rows differ in haploid-ness use the set without haploid males
-  const p = await ctx.prepare(build, rows, pop);
-  const noMales = [...haploidMales].some(i => panel.has(samples[i])) && rows.some(r => r.male_haploid) && rows.some(r => !r.male_haploid)
-    ? ctx.kernel.prepare(rows, { samples: samples.length, haploidMales, hapIndexes: idx.filter(i => !haploidMales.has(i)).flatMap(i => [2 * i, 2 * i + 1]) }) : null;
   const alive = rows.map(() => true), s2 = new Float64Array(2);
-  for (let i = 0; i < rows.length; i++) {
-    if (!alive[i]) continue;
-    details.get(order[i]).push("Variant kept.");
-    const J = []; for (let j = i + 1; j < rows.length; j++) if (alive[j]) J.push(j);
-    const mixed = j => noMales && rows[i].male_haploid !== rows[j].male_haploid;
-    const cA = ctx.kernel.counts(p, J.map(() => i), J), cB = noMales ? ctx.kernel.counts(noMales, J.map(() => i), J) : null;
-    for (const [k, j] of J.entries()) {
-      if (!stats(...(mixed(j) ? cB[k] : cA[k]), s2)) { ctx.kernel.reset(); return INTERNAL; } // r2 None: TypeError in LDlink
-      if (r2_threshold <= s2[0]) { alive[j] = false; details.get(order[j]).push(`Variant in LD with ${order[i]} (R2=${pyStr(pyRound(s2[0], 4))}), variant removed.`); }
+  const failed = await ctx.withPrepared(build, rows, pop, p => { // synchronous: both prepared sets live until the reset
+    const noMales = [...haploidMales].some(i => panel.has(samples[i])) && rows.some(r => r.male_haploid) && rows.some(r => !r.male_haploid)
+      ? ctx.kernel.prepare(rows, { samples: samples.length, haploidMales, hapIndexes: idx.filter(i => !haploidMales.has(i)).flatMap(i => [2 * i, 2 * i + 1]) }) : null;
+    for (let i = 0; i < rows.length; i++) {
+      if (!alive[i]) continue;
+      details.get(order[i]).push("Variant kept.");
+      const J = []; for (let j = i + 1; j < rows.length; j++) if (alive[j]) J.push(j);
+      const mixed = j => noMales && rows[i].male_haploid !== rows[j].male_haploid;
+      const cA = ctx.kernel.counts(p, J.map(() => i), J), cB = noMales ? ctx.kernel.counts(noMales, J.map(() => i), J) : null;
+      for (const [k, j] of J.entries()) {
+        if (!stats(...(mixed(j) ? cB[k] : cA[k]), s2)) return true; // r2 None: TypeError in LDlink
+        if (r2_threshold <= s2[0]) { alive[j] = false; details.get(order[j]).push(`Variant in LD with ${order[i]} (R2=${pyStr(pyRound(s2[0], 4))}), variant removed.`); }
+      }
     }
-  }
-  ctx.kernel.reset();
+    return false;
+  });
+  if (failed) return INTERNAL;
   const out = ["RS Number\tPosition\tAlleles\tDetails"];
   for (const t of labels) { const d = details.get(t); if (!d) return INTERNAL; out.push(`${t}\t${d.join("\t")}`); }
   return { text: out.join("\n") + "\n" };

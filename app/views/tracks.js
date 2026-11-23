@@ -13,6 +13,12 @@ export function axisOf(lo, hi, W) {
 export const nlp = p => (p > 0 ? -Math.log10(p) : 0);
 const GWS = nlp(5e-8);
 function title(g, text, top) { g.fillStyle = "#8a93a3"; g.fillText(text, 2, top); }
+/** the pointer in the canvas's drawing coordinates (its style size), also when CSS scales it down (max-width: 100%,
+ *  aspect kept: one scale for both axes) */
+export function pointer(cv, e) {
+  const rc = cv.getBoundingClientRect(), k = parseFloat(cv.style.width) / rc.width;
+  return [(e.clientX - rc.left) * k, (e.clientY - rc.top) * k];
+}
 export function line(g, a, b, c, d) { g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }
 export function nearest(list, p, at, tol) { let best = null, bd = tol; for (const o of list) { const d = Math.abs(at(o) - p); if (d <= bd) { bd = d; best = o; } } return best; }
 export const niceStep = s => { const p = 10 ** Math.floor(Math.log10(s)), m = s / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };

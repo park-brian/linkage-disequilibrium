@@ -2,6 +2,7 @@
 // (ColumnIndex min/max + OffsetIndex) to read only the pages that can contain the keys.
 // This is the access pattern the browser app needs for rsID → position and position-list queries.
 import { parquetRead, readColumnIndex, readOffsetIndex } from "hyparquet";
+import { memo } from "./source.js";
 
 /** Run async tasks with at most `limit` in flight (bounds memory; browsers cap concurrent requests anyway). */
 export async function pool(items, limit, fn) {
@@ -158,6 +159,17 @@ export async function rangeScan({ file, metadata, column, lo, hi, columns, compr
     return rows.filter(r => r[column] >= lo && r[column] <= hi);
   });
   return parts.flat();
+}
+
+/**
+ * hyparquet's cachedAsyncBuffer (a file under minSize is read whole once; larger files cache each slice by range),
+ * except that a failed read is not kept: the next read of that range tries again (one network error would otherwise
+ * poison the range for the session).
+ */
+export function cached(file, { minSize = 1 << 19 } = {}) {
+  const m = new Map(), n = file.byteLength;
+  if (n < minSize) return { byteLength: n, slice: async (s, e) => (await memo(m, "all", () => file.slice(0, n))).slice(s, e) };
+  return { byteLength: n, slice: (s, e = n) => memo(m, `${s}:${e}`, () => file.slice(s, e)) };
 }
 
 /**

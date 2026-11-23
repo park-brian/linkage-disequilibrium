@@ -20,9 +20,13 @@ const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
   ".json": "application/json", ".wasm": "application/wasm", ".txt": "text/plain; charset=utf-8", ".parquet": "application/octet-stream", ".svg": "image/svg+xml" };
 
+// a read error (file removed, permissions) closes the response instead of crashing the server
+const send = (stream, res) => stream.on("error", () => res.destroy()).pipe(res);
+
 createServer((req, res) => {
   if (cors && req.method === "OPTIONS") { res.writeHead(204, CORS).end(); return; }
-  const url = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  let url;
+  try { url = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400, cors ? CORS : {}).end("bad URL"); return; }
   const [prefix, dir] = MOUNTS.find(([p]) => url.startsWith(p));
   let path = normalize(join(dir, url.slice(prefix.length)));
   if (!path.startsWith(dir + sep) && path !== dir) { res.writeHead(403, cors ? CORS : {}).end(); return; } // no escaping the mount
@@ -35,10 +39,10 @@ createServer((req, res) => {
     if (start > end || start >= st.size) { res.writeHead(416, { "Content-Range": `bytes */${st.size}`, ...(cors ? CORS : {}) }).end(); return; }
     res.writeHead(206, { ...headers, "Content-Range": `bytes ${start}-${end}/${st.size}`, "Content-Length": end - start + 1 });
     if (req.method === "HEAD") return res.end();
-    createReadStream(path, { start, end }).pipe(res);
+    send(createReadStream(path, { start, end }), res);
   } else {
     res.writeHead(200, { ...headers, "Content-Length": st.size });
     if (req.method === "HEAD") return res.end();
-    createReadStream(path).pipe(res);
+    send(createReadStream(path), res);
   }
 }).listen(+port, "127.0.0.1", () => console.log(`serving ${here} on http://127.0.0.1:${port}/app/${MOUNTS.length > 1 ? ` (release: ${MOUNTS[0][1]})` : ""}${cors ? " with CORS" : ""}`));

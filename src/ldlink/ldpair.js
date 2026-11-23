@@ -55,7 +55,7 @@ export async function ldpair(ctx, { var1 = "", var2 = "", pop, build = "grch37" 
   for (const { label, v } of snps) rows.push(await queryVariant(ctx, build, label, v, o));
   if (o.error !== undefined) return fail(o.error);
   snps.forEach(({ v }, i) => { if (rows[i].pos !== v.pos) o.warning = `${W()}VCF File does not match variant coordinates for SNP${i + 1}. `; });
-  const p = await ctx.prepare(build, rows, pop), c = ctx.kernel.counts(p, [0], [1])[0]; ctx.kernel.reset();
+  const c = await ctx.withPrepared(build, rows, pop, p => ctx.kernel.counts(p, [0], [1])[0]);
   const t = pairTable(s1.label, s2.label, rows[0], rows[1], c);
   t.snp1.coord = `chr${s1.v.chrom}:${s1.v.pos}`; t.snp2.coord = `chr${s2.v.chrom}:${s2.v.pos}`;
   return [{ ...t, pair: [var1, var2], ...(o.warning !== undefined ? { warning: o.warning } : {}) }];

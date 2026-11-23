@@ -14,6 +14,7 @@
 //  - a coordinate origin raises KeyError in LDlink (var_coord has 'position', not 'position_grchNN')
 import { pyRound, pyStr } from "../pyfmt.js";
 import { decodeHaps } from "../haps.js";
+import { overlapping } from "../genotypes.js";
 import { TITLE, BUILDS, CHROMS } from "../genome.js";
 import { POPS, POP_ERROR, chrYMessage, vcfAlleles, vcfId, rsAnnotations, cells, table2x2 } from "./common.js";
 
@@ -93,7 +94,7 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
   if (!assoc.length) return fail("There are no variants in the association file with genomic coordinates inside the plotting window.");
   for (const p of String(pop).split("+")) if (!POPS.includes(p)) return fail(POP_ERROR(p));
 
-  const all = await ctx.windowRows(build, chromosome, c1, c2), at = p => all.filter(x => x.pos <= p && x.pos + x.ref.length - 1 >= p);
+  const all = await ctx.windowRows(build, chromosome, c1, c2), at = overlapping(all); // the rows over p, VCF order
   const { ids: samples, haploidMales } = await ctx.samples(build, chromosome), panel = await ctx.popIds(pop), hbytes = Math.ceil((2 * samples.length) / 8);
   const polymorphic = row => { // get_query_variant_c / LDassoc: '0' and '1' characters of the population's GT strings
     const bits = decodeHaps(row.haps, hbytes); let n0 = 0, n1 = 0;
@@ -130,8 +131,8 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
   // LD of the origin with every row listed under each association position (file order), Ms ≠ 0, POS in the file
   const listed = assoc.flatMap(([p]) => at(p)).filter(x => !x.multiallelic_source);
   const uniq = [...new Set([q, ...listed])], idx = new Map(uniq.map((x, i) => [x, i]));
-  const prep = await ctx.prepare(build, uniq.map(x => ({ ...x, chrom: chromosome })), pop);
-  const counts = ctx.kernel.counts(prep, uniq.map(() => 0), uniq.map((_, i) => i)); ctx.kernel.reset();
+  const counts = await ctx.withPrepared(build, uniq.map(x => ({ ...x, chrom: chromosome })), pop,
+    p => ctx.kernel.counts(p, uniq.map(() => 0), uniq.map((_, i) => i)));
   const [qa0, qa1] = vcfAlleles(q.ref, q.alt), qal = { 0: qa0, 1: qa1 }, out = [];
   for (const x of listed) {
     const [A, B, C, D] = cells(counts[idx.get(x)]), N = A + B + C + D;

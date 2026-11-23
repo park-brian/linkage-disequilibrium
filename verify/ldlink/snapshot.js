@@ -27,7 +27,7 @@ for (const m of pick.length ? pick : MODULES) {
   if (update) out[m] = got;
 }
 // one case per line, so a diff of snapshot.json names the cases that changed
-const write = o => `{\n${Object.entries(o).map(([m, cs]) => ` ${JSON.stringify(m)}: [\n${cs.map(c => `  ${JSON.stringify(c)}`).join(",\n")}\n ]`)
-  .join(",\n")}\n}\n`;
+const block = ([m, cs]) => ` ${JSON.stringify(m)}: [\n${cs.map(c => `  ${JSON.stringify(c)}`).join(",\n")}\n ]`;
+const write = o => `{\n${Object.entries(o).map(block).join(",\n")}\n}\n`;
 if (update) { writeFileSync(FILE, write(out)); console.log(`wrote ${FILE}`); }
 else if (Object.values(totals).some(t => t.differ > 0)) process.exitCode = 1;

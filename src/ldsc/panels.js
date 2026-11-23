@@ -7,13 +7,14 @@
 // becomes the SNP; those rows count but never merge (an rsID never equals a bare number), so they are skipped here.
 import { parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
+import { required } from "../source.js";
 
 const kvOf = metadata => Object.fromEntries((metadata.key_value_metadata ?? []).map(x => [x.key, x.value]));
 const readAll = async (f, columns) => { let r = []; await parquetRead({ file: f.file, metadata: f.metadata, compressors, columns, onComplete: x => { r = x; } }); return r; };
 
 /** ldscore/ldsc_counts.parquet → Map(pop → the SNP count ldsc logs for that panel) */
 export async function ldscCounts(file) {
-  const f = await file("ldscore/ldsc_counts.parquet");
+  const f = await required(file)("ldscore/ldsc_counts.parquet");
   return new Map((await readAll(f, ["pop", "rows"])).map(([p, n]) => [p, Number(n)]));
 }
 
@@ -41,6 +42,6 @@ export async function ldscPanel(file, pop, need) {
 /** w_hm3.snplist (ldscore/w_hm3.snplist.parquet) → { SNP, A1, A2 } column arrays, file order */
 export async function mergeAlleles(file) {
   const out = { SNP: [], A1: [], A2: [] };
-  for (const [s, a, b] of await readAll(await file("ldscore/w_hm3.snplist.parquet"), ["SNP", "A1", "A2"])) { out.SNP.push(s); out.A1.push(a); out.A2.push(b); }
+  for (const [s, a, b] of await readAll(await required(file)("ldscore/w_hm3.snplist.parquet"), ["SNP", "A1", "A2"])) { out.SNP.push(s); out.A1.push(a); out.A2.push(b); }
   return out;
 }

@@ -10,6 +10,7 @@
 import { pyRound, pyStr } from "../pyfmt.js";
 import { TITLE } from "../genome.js";
 import { POPS, POP_ERROR, chrYMessage, dedupeLists, vcfAlleles, addCoordWarning, gate, table2x2 } from "./common.js";
+import { overlapping } from "../genotypes.js";
 
 const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
 /** castFloat: str(float(v)) when Python's float() accepts v, else v */
@@ -45,7 +46,7 @@ export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshol
     const lo = Math.max(0, v.pos - window), hi = v.pos + window, recs = await ctx.gwas(build, v.chrom, lo, hi);
     // one read of the window; rowAt(p) = the last 1000G row overlapping p (tabix p-p), as each LDtrait_ld_sub lookup
     const win = await ctx.windowRows(build, v.chrom, Math.min(lo, v.pos), Math.max(hi, v.pos));
-    const rowAt = p => { let r = null; for (const x of win) if (x.pos <= p && x.pos + x.ref.length - 1 >= p) r = x; return r && { ...r, chrom: v.chrom }; };
+    const over = overlapping(win), rowAt = p => { const r = over(p).at(-1); return r ? { ...r, chrom: v.chrom } : null; };
     const q = rowAt(v.pos), ld = new Map(), pairs = []; // ldInfo[query]["rs" + SNP_ID_CURRENT]
     for (const rec of recs) {
       const key = `rs${rec.snp_id_current ?? ""}`;
@@ -55,7 +56,7 @@ export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshol
       if (usable(q, v.pos) && usable(g, rec.pos)) pairs.push({ key, g });
     }
     if (pairs.length) { // every pair against the query in one kernel call
-      const p = await ctx.prepare(build, [q, ...pairs.map(x => x.g)], pop), counts = ctx.kernel.counts(p, pairs.map(() => 0), pairs.map((_, i) => i + 1)); ctx.kernel.reset();
+      const counts = await ctx.withPrepared(build, [q, ...pairs.map(x => x.g)], pop, p => ctx.kernel.counts(p, pairs.map(() => 0), pairs.map((_, i) => i + 1)));
       const [a1, b1] = vcfAlleles(q.ref, q.alt);
       pairs.forEach(({ key, g }, i) => {
         const [n, p1, p2, x] = counts[i], [a2, b2] = vcfAlleles(g.ref, g.alt);

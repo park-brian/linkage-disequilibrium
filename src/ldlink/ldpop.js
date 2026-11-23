@@ -67,7 +67,7 @@ export async function ldpop(ctx, { var1 = "", var2 = "", pop, build = "grch37" }
     if (!tot) return { error: `Insufficient haplotype data for ${s1.label} and ${s2.label} in 1000G reference panel.` };
     const freq = g => { let ref = 0, alt = 0; for (const c of g) if (c) { if (c.h) { ref++; alt++; } else { ref += 2 - c.a; alt += c.a; } } return [r((ref / tot) * 100, 2), r((alt / tot) * 100, 2)]; };
     const [f1, f2] = [freq(g1), freq(g2)];
-    const p = await ctx.prepare(build, rows, P), st = ldStats(...cells(ctx.kernel.counts(p, [0], [1])[0])); ctx.kernel.reset();
+    const st = ldStats(...cells(await ctx.withPrepared(build, rows, P, p => ctx.kernel.counts(p, [0], [1])[0])));
     const num = v => (st ? r(v, 4) : "NA");
     out.push([LOCATIONS[P][0], P, panel.size, `${rows[0].ref}: ${f1[0]}%, ${rows[0].alt}: ${f1[1]}%`, `${rows[1].ref}: ${f2[0]}%, ${rows[1].alt}: ${f2[1]}%`,
       num(st?.r2), num(st?.dprime), num(st?.chisq), num(st?.p)].join("\t"));

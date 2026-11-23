@@ -24,7 +24,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: node tools/build_site.js ${{ vars.LD_DATA_URL && format('--data {0}', vars.LD_DATA_URL) || '' }}
+      - run: npm test # the release-backed tests skip; the docs check and unit tests still run
+        env:
+          LD_SKIP_DATA: "1"
+      - run: test -n "$LD_DATA_URL" || { echo "set the repository variable LD_DATA_URL (the release's URL)"; exit 1; }
+        env:
+          LD_DATA_URL: ${{ vars.LD_DATA_URL }}
+      - run: node tools/build_site.js --data "${{ vars.LD_DATA_URL }}"
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

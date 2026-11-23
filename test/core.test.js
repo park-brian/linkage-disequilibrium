@@ -11,7 +11,9 @@ import { mungeSumstats } from "../src/ldsc/munge.js";
 import { getSeparators } from "../src/ldsc/regress.js";
 import { pyFixed3 } from "../src/ldsc/l2.js";
 import { parseCoord } from "../src/genome.js";
-import { isNotFound } from "../src/source.js";
+import { isNotFound, memo, once, required } from "../src/source.js";
+import { cached } from "../src/parquet.js";
+import { overlapping, overlaps, posRange } from "../src/genotypes.js";
 import { RELEASE, PANELS } from "../tools/config.js";
 
 const here = new URL(".", import.meta.url);
@@ -374,4 +376,36 @@ test("F1: npStr4 = numpy's str() of a float under ldsc's precision=4 (1,852 case
   const bad = j.cases.filter(([v, want]) => npStr4(num(v)) !== want);
   assert.equal(j.cases.length, 1852);
   assert.deepEqual(bad.slice(0, 5), []);
+});
+
+test("caches drop a failed read: memo, once, cached() retry; required() names an absent file", async () => {
+  let calls = 0;
+  const flaky = async () => { if (++calls === 1) throw new Error("network"); return calls; };
+  const m = new Map();
+  await assert.rejects(memo(m, "k", flaky), /network/);
+  assert.equal(await memo(m, "k", flaky), 2);
+  assert.equal(await memo(m, "k", flaky), 2, "a success stays cached");
+  calls = 0; const o = once(flaky);
+  await assert.rejects(o(), /network/); assert.equal(await o(), 2);
+  for (const byteLength of [100, 1 << 20]) { // whole-file and per-range paths
+    let n = 0;
+    const file = { byteLength, slice: async (s, e) => { if (++n === 1) throw new Error("network"); return new Uint8Array(e - s).buffer; } };
+    const c = cached(file);
+    await assert.rejects(c.slice(0, 10), /network/);
+    assert.equal((await c.slice(0, 10)).byteLength, 10); await c.slice(0, 10);
+    assert.equal(n, 2, `one retry, then cached (byteLength ${byteLength})`);
+  }
+  await assert.rejects(required(async () => null)("x/y.parquet"), /the release has no x\/y\.parquet/);
+});
+
+test("posRange / overlapping = the per-position filter (same rows, input order), random rows with duplicates", () => {
+  let seed = 7; const rnd = n => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return seed % n; };
+  for (let t = 0; t < 50; t++) {
+    const rows = Array.from({ length: rnd(60) }, (_, i) => ({ pos: 100 + rnd(80), ref: "A".repeat(1 + rnd(6)), i }));
+    const range = posRange(rows), over = overlapping(rows);
+    for (let p = 90; p < 200; p++) {
+      assert.deepEqual(over(p), rows.filter(r => overlaps(r, p)));
+      assert.deepEqual(range(p - 3, p), rows.filter(r => r.pos >= p - 3 && r.pos <= p));
+    }
+  }
 });

@@ -13,9 +13,9 @@ import { parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 import { sortedLookup, pool } from "./parquet.js";
 import { createResolver } from "./dbsnp.js";
-import { createSource } from "./source.js";
+import { createSource, required } from "./source.js";
 import { parseCoord, firstToken, tierPath, key } from "./genome.js";
-import { candidateRows, pickParity, pickAllele } from "./genotypes.js";
+import { candidateRows, pickParity, pickAllele, posRange } from "./genotypes.js";
 
 const ROW_COLUMNS = ["pos", "rsid", "haps", "missing", "male_haploid", "multiallelic_source"];
 const LABEL_COLS = ["pos", "rsid", "rsid_source", "rsid_pos_delta"];
@@ -58,7 +58,7 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
   manifest = expandManifest(manifest ?? JSON.parse(new TextDecoder().decode(await (await openFile(`${root}/manifest.json`)).slice(0))));
   // one cached { file, metadata } per path: size and footer from the manifest (no size probe, one exact footer read)
   const size = rel => { const f = manifest.files[rel]; return f && { byteLength: f.byteLength, footer: f.footer.length }; };
-  const { file: open } = createSource(root, openFile, { size });
+  const { file: open } = createSource(root, openFile, { size }), need = required(open);
   const resolver = createResolver({ file: rel => (manifest.files[rel] ? open(rel) : Promise.resolve(null)) });
 
   const tierFiles = (build, chrom, tiers) => tiers.map(t => tierPath(build, chrom, t)).filter(p => manifest.files[p]);
@@ -135,13 +135,13 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
   }
 
   async function readRange(path, lo, hi, columns) {
-    const { file, metadata } = await open(path);
+    const { file, metadata } = await need(path);
     let rows = [];
     await parquetRead({ file, metadata, compressors, rowFormat: "object", columns, utf8: false, filter: { pos: { $gte: lo, $lte: hi } }, onComplete: r => { rows = r; } }); // utf8: binary haps/missing
     return rows;
   }
   async function readPoints(path, keys, columns) {
-    const { file, metadata } = await open(path);
+    const { file, metadata } = await need(path);
     return (await sortedLookup({ file, metadata, column: "pos", keys, columns, compressors, payloadColumn: "haps" })).rows;
   }
 
@@ -153,8 +153,8 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     const all = rsids.map((_, i) => i);
     if (forceRsid === "direct" || (!forceRsid && rsids.length <= COST.directMax)) { plan.rsid = { strategy: "direct", n: rsids.length, predicted: Math.round(directRsidBytes(ids)) }; return direct(all); }
     // duplicated rsIDs always go direct (their answer depends on dump order)
-    const dupFile = await open("dbsnp/duplicated_rsids.parquet");
-    const dupRows = (await sortedLookup({ ...dupFile, column: "rsid", keys: ids.filter(x => x !== null), columns: ["rsid"], compressors })).rows;
+    const dupFile = await open("dbsnp/duplicated_rsids.parquet"); // absent: no duplicates
+    const dupRows = dupFile ? (await sortedLookup({ ...dupFile, column: "rsid", keys: ids.filter(x => x !== null), columns: ["rsid"], compressors })).rows : [];
     const dups = new Set(dupRows.map(r => String(r.rsid)));
     const eligible = all.filter(i => ids[i] !== null && !dups.has(String(ids[i])));
     // discover regions from a sample
@@ -256,11 +256,12 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
       const byChrom = new Map();
       for (const v of variants) if (v?.pos != null && v.chrom) { if (!byChrom.has(v.chrom)) byChrom.set(v.chrom, []); byChrom.get(v.chrom).push(v); }
       for (const [chrom, vs] of byChrom) {
-        const files = await Promise.all(tierFiles(build, chrom, tiers).map(async f => ({ tier: f.split(".").at(-2), ...(await open(f)) })));
+        const files = await Promise.all(tierFiles(build, chrom, tiers).map(async f => ({ tier: f.split(".").at(-2), ...(await need(f)) })));
         const { rows: cand, reach } = await candidateRows(files, vs.map(v => v.pos), { columns: SEL });
         plan.select.windows += vs.length;
+        const range = posRange(cand);
         for (const v of vs) {
-          const w = cand.filter(r => r.pos >= v.pos - reach + 1 && r.pos <= v.pos);
+          const w = range(v.pos - reach + 1, v.pos);
           v.selected = select === "allele" ? pickAllele(w, v.pos, v.ref_rsid ?? v.rsid ?? "") : pickParity(w, v.pos);
         }
       }

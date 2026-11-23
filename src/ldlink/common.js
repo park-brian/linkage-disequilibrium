@@ -68,8 +68,9 @@ export function chunkWindow(pos, window, n) {
 
 /** the query row against each row (duplicates counted once) in one kernel call → Map(row → [A, B, C, D]) */
 export async function countsAgainst(ctx, build, chrom, q, rows, pop) {
-  const uniq = [...new Set(rows)], p = await ctx.prepare(build, [q, ...uniq.map(x => ({ ...x, chrom }))], pop);
-  const counts = ctx.kernel.counts(p, uniq.map(() => 0), uniq.map((_, i) => i + 1)); ctx.kernel.reset();
+  const uniq = [...new Set(rows)];
+  const counts = await ctx.withPrepared(build, [q, ...uniq.map(x => ({ ...x, chrom }))], pop,
+    p => ctx.kernel.counts(p, uniq.map(() => 0), uniq.map((_, i) => i + 1)));
   return new Map(uniq.map((x, i) => [x, cells(counts[i])]));
 }
 

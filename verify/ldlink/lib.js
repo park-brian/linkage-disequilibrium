@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { asyncBufferFromFile, asyncBufferFromUrl, cachedAsyncBuffer } from "hyparquet";
-import { coalesce } from "../../src/parquet.js";
+import { cached, coalesce } from "../../src/parquet.js";
 import { loadKernel, KERNEL_WASM } from "../../src/ld/kernel.js";
 import { createContext } from "../../src/ldlink/context.js";
 import * as CONFIG from "../../tools/config.js";
@@ -24,7 +24,7 @@ export async function nodeContext(root = process.env.ROOT || CONFIG.RELEASE, { h
   const url = http.replace(/\/$/, ""), res = await fetch(`${url}/manifest.json`);
   if (!res.ok) throw new Error(`no release at ${url}: manifest.json returned HTTP ${res.status}`);
   return createContext({ root: url, manifest: await res.json(), kernel,
-    open: async (u, byteLength) => cachedAsyncBuffer(coalesce(await asyncBufferFromUrl({ url: u, byteLength }))) });
+    open: async (u, byteLength) => cached(coalesce(await asyncBufferFromUrl({ url: u, byteLength }))) });
 }
 
 /** an example input from the release's examples/ (local file or over HTTP): text, or bytes when binary; null if absent */

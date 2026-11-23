@@ -24,9 +24,9 @@ export async function ldmatrix(ctx, { inputs, pop, build = "grch37" }) {
   if (!keep.length) return { ids: [], r2: [], d: [] };
   const rows = [];
   for (const k of keep) rows.push({ ...(await ctx.row(build, k.chrom, k.ref)), chrom: k.chrom });
-  const p = await ctx.prepare(build, rows, pop), n = rows.length, I = [], J = [];
+  const n = rows.length, I = [], J = [];
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { I.push(i); J.push(j); }
-  const e = ctx.kernel.exact(p, I, J); ctx.kernel.reset();
+  const e = await ctx.withPrepared(build, rows, pop, p => ctx.kernel.exact(p, I, J));
   const mat = a => Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => cell(a[i * n + j])));
   return { ids: keep.map(k => k.label), r2: mat(e.r2), d: mat(e.dprime) };
 }

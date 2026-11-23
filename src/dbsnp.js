@@ -7,7 +7,7 @@
 import { compressors } from "hyparquet-compressors";
 import { sortedLookup } from "./parquet.js";
 import { BUILDS, chromName, firstToken, parseCoord, key as gkey, keyPos } from "./genome.js";
-import { createSource } from "./source.js";
+import { createSource, once } from "./source.js";
 
 /**
  * createResolver(source) or createResolver(root, openFile, { exists }): source = { file(rel) → { file, metadata } | null }
@@ -117,12 +117,11 @@ export function createResolver(root, openFile, { exists } = {}) {
     return out;
   }
   /** rsIDs with more than one dbSNP doc (dbsnp/duplicated_rsids.parquet, read once): Set of digit strings */
-  let dups;
-  const duplicated = () => (dups ??= (async () => {
+  const duplicated = once(async () => {
     const f = await open("dbsnp/duplicated_rsids.parquet"); if (!f) return new Set();
     const { parquetRead } = await import("hyparquet"); let rows = [];
     await parquetRead({ file: f.file, metadata: f.metadata, columns: ["rsid"], compressors, onComplete: r => { rows = r; } });
     return new Set(rows.map(r => String(r[0])));
-  })());
+  });
   return { resolveRsids, resolveCoords, resolveInputs, findAt, findById, findAllAt, duplicated };
 }

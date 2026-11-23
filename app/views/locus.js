@@ -4,7 +4,7 @@
 // (tracks.js). Each module maps its rows to points; this file only draws them.
 //   spec = { title, xlo, xhi, yLabel, y0, y1, points: [{ pos, y, color, alpha, size, stroke?, label?, hover }],
 //            recomb: [{ pos, rate }], recombY: rate → y, hline?: y, genes, collapsed, onPoint?(point) }
-import { axisOf, genesTrack, axisTrack, layout, drawTracks, hoverAt, line } from "./tracks.js";
+import { axisOf, genesTrack, axisTrack, layout, drawTracks, hoverAt, line, pointer } from "./tracks.js";
 
 const PLOT = 300, RUG = 22, PAD = { left: 46, right: 46, top: 22 };
 
@@ -53,7 +53,7 @@ export function renderLocus(holder, spec) {
     return best;
   };
   cv.addEventListener("mousemove", e => {
-    const rc = cv.getBoundingClientRect(), mx = e.clientX - rc.left, my = e.clientY - rc.top;
+    const [mx, my] = pointer(cv, e);
     let text = null;
     if (my < PAD.top + PLOT) text = hit(mx, my)?.hover ?? null;
     else if (my >= lay.tops[0]) text = hoverAt(tracks, lay, ax.lo + ((mx - PAD.left) / inner) * ax.span, my);
@@ -62,7 +62,7 @@ export function renderLocus(holder, spec) {
     tip.textContent = text; tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; tip.hidden = false;
   });
   cv.addEventListener("mouseleave", () => { tip.hidden = true; });
-  if (spec.onPoint) cv.addEventListener("click", e => { const rc = cv.getBoundingClientRect(), p = hit(e.clientX - rc.left, e.clientY - rc.top); if (p) spec.onPoint(p); });
+  if (spec.onPoint) cv.addEventListener("click", e => { const p = hit(...pointer(cv, e)); if (p) spec.onPoint(p); });
   holder.replaceChildren(cv, tip);
 }
 
