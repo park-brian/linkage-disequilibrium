@@ -1,0 +1,9 @@
+node_modules/
+.claude/
+*.log
+# generated data lives outside the repo (LD_DATA, default ../data); never commit outputs
+experiments/out/
+data/
+# local secrets / machine config
+server.env
+.env

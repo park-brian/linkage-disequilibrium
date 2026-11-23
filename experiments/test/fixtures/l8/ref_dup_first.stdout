@@ -1,0 +1,40 @@
+D:\Projects\LDlink\ldsc-ref\ldscore\parse.py:45: SyntaxWarning: invalid escape sequence '\s'
+  return pd.read_csv(fh,  sep='\s+', na_values='.', **kwargs)
+D:\Projects\LDlink\ldsc-ref\ldscore\parse.py:299: SyntaxWarning: invalid escape sequence '\s'
+  sep='\s+', compression=comp)
+D:\Projects\LDlink\ldsc-ref\ldsc.py:475: SyntaxWarning: invalid escape sequence '\e'
+  'i.e., \ell_j := \sum_k p_k(1-p_k)r^2_{jk}, where p_k denotes the MAF '
+D:\Projects\LDlink\ldsc-ref\ldsc.py:479: SyntaxWarning: invalid escape sequence '\e'
+  'i.e., \ell_j := \sum_k (p_k(1-p_k))^a r^2_{jk}, where p_k denotes the MAF '
+*********************************************************************
+* LD Score Regression (LDSC)
+* Version 3.0.1
+* (C) 2014-2019 Brendan Bulik-Sullivan and Hilary Finucane
+* Broad Institute of MIT and Harvard / MIT Department of Mathematics
+* GNU General Public License v3
+*********************************************************************
+Call: 
+./munge_sumstats.py \
+--sumstats dup_first.txt \
+--out ref_dup_first \
+--merge-alleles mini.snplist 
+
+{'SNP': 'SNP', 'A1': 'A1', 'A2': 'A2', 'BETA': 'BETA', 'P': 'P', 'N': 'N'}
+
+ERROR converting summary statistics:
+
+Traceback (most recent call last):
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 617, in munge_sumstats
+    raise ValueError('Found {num} columns named {C}'.format(C=field,num=str(numk)))
+ValueError: Found 2 columns named SNP
+
+
+Conversion finished at Sat Nov 21 12:09:13 2026
+Total time elapsed: 0.01s
+Traceback (most recent call last):
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 729, in <module>
+    munge_sumstats(parser.parse_args(), p=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\LDlink\ldsc-ref\munge_sumstats.py", line 617, in munge_sumstats
+    raise ValueError('Found {num} columns named {C}'.format(C=field,num=str(numk)))
+ValueError: Found 2 columns named SNP

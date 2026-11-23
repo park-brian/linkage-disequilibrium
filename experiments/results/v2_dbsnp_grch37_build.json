@@ -1,0 +1,170 @@
+{
+  "chr1.parquet": {
+    "rows": 81890032,
+    "bytes": 368942860,
+    "bytes_per_row": 4.51,
+    "sorted": true,
+    "seconds": 71.4
+  },
+  "chr2.parquet": {
+    "rows": 88642738,
+    "bytes": 399008498,
+    "bytes_per_row": 4.5,
+    "sorted": true,
+    "seconds": 76.6
+  },
+  "chr3.parquet": {
+    "rows": 72582584,
+    "bytes": 326350740,
+    "bytes_per_row": 4.5,
+    "sorted": true,
+    "seconds": 67.1
+  },
+  "chr4.parquet": {
+    "rows": 70574778,
+    "bytes": 318196529,
+    "bytes_per_row": 4.51,
+    "sorted": true,
+    "seconds": 62.9
+  },
+  "chr5.parquet": {
+    "rows": 65872196,
+    "bytes": 296599003,
+    "bytes_per_row": 4.5,
+    "sorted": true,
+    "seconds": 58.4
+  },
+  "chr6.parquet": {
+    "rows": 61651531,
+    "bytes": 278278985,
+    "bytes_per_row": 4.51,
+    "sorted": true,
+    "seconds": 54
+  },
+  "chr7.parquet": {
+    "rows": 58688465,
+    "bytes": 264504560,
+    "bytes_per_row": 4.51,
+    "sorted": true,
+    "seconds": 50.9
+  },
+  "chr8.parquet": {
+    "rows": 55623116,
+    "bytes": 250012433,
+    "bytes_per_row": 4.49,
+    "sorted": true,
+    "seconds": 51.3
+  },
+  "chr9.parquet": {
+    "rows": 45526129,
+    "bytes": 204070289,
+    "bytes_per_row": 4.48,
+    "sorted": true,
+    "seconds": 39.6
+  },
+  "chr10.parquet": {
+    "rows": 48672892,
+    "bytes": 218190233,
+    "bytes_per_row": 4.48,
+    "sorted": true,
+    "seconds": 43.2
+  },
+  "chr11.parquet": {
+    "rows": 49475053,
+    "bytes": 222001195,
+    "bytes_per_row": 4.49,
+    "sorted": true,
+    "seconds": 42.6
+  },
+  "chr12.parquet": {
+    "rows": 48099178,
+    "bytes": 216905546,
+    "bytes_per_row": 4.51,
+    "sorted": true,
+    "seconds": 41.2
+  },
+  "chr13.parquet": {
+    "rows": 35393254,
+    "bytes": 159231615,
+    "bytes_per_row": 4.5,
+    "sorted": true,
+    "seconds": 29.6
+  },
+  "chr14.parquet": {
+    "rows": 32904866,
+    "bytes": 148657765,
+    "bytes_per_row": 4.52,
+    "sorted": true,
+    "seconds": 27.6
+  },
+  "chr15.parquet": {
+    "rows": 30439986,
+    "bytes": 136889320,
+    "bytes_per_row": 4.5,
+    "sorted": true,
+    "seconds": 25.1
+  },
+  "chr16.parquet": {
+    "rows": 32569877,
+    "bytes": 146435251,
+    "bytes_per_row": 4.5,
+    "sorted": true,
+    "seconds": 26.6
+  },
+  "chr17.parquet": {
+    "rows": 29066505,
+    "bytes": 131760053,
+    "bytes_per_row": 4.53,
+    "sorted": true,
+    "seconds": 23.8
+  },
+  "chr18.parquet": {
+    "rows": 27658518,
+    "bytes": 124092958,
+    "bytes_per_row": 4.49,
+    "sorted": true,
+    "seconds": 22.9
+  },
+  "chr19.parquet": {
+    "rows": 22469677,
+    "bytes": 101615289,
+    "bytes_per_row": 4.52,
+    "sorted": true,
+    "seconds": 18.9
+  },
+  "chr20.parquet": {
+    "rows": 22099564,
+    "bytes": 99659752,
+    "bytes_per_row": 4.51,
+    "sorted": true,
+    "seconds": 18.8
+  },
+  "chr21.parquet": {
+    "rows": 13570352,
+    "bytes": 61071574,
+    "bytes_per_row": 4.5,
+    "sorted": true,
+    "seconds": 11.7
+  },
+  "chr22.parquet": {
+    "rows": 13539246,
+    "bytes": 61403330,
+    "bytes_per_row": 4.54,
+    "sorted": true,
+    "seconds": 11.2
+  },
+  "chrX.parquet": {
+    "rows": 42069016,
+    "bytes": 189947925,
+    "bytes_per_row": 4.52,
+    "sorted": true,
+    "seconds": 35.7
+  },
+  "chrY.parquet": {
+    "rows": 2445419,
+    "bytes": 10439506,
+    "bytes_per_row": 4.27,
+    "sorted": true,
+    "seconds": 2.1
+  }
+}

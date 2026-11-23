@@ -1,0 +1,114 @@
+[
+  {
+    "track": "recomb",
+    "window": "1 Mb",
+    "rows": 1102,
+    "requests": 6,
+    "KB": 107,
+    "ms": 9
+  },
+  {
+    "track": "regulome",
+    "window": "1 Mb",
+    "rows": 7805,
+    "requests": 7,
+    "KB": 106,
+    "ms": 8
+  },
+  {
+    "track": "forge",
+    "window": "1 Mb",
+    "rows": 14236,
+    "requests": 8,
+    "KB": 187,
+    "ms": 11
+  },
+  {
+    "track": "genes",
+    "window": "1 Mb",
+    "rows": 27,
+    "requests": 14,
+    "KB": 557,
+    "ms": 30
+  },
+  {
+    "track": "gwas",
+    "window": "1 Mb",
+    "rows": 189,
+    "requests": 20,
+    "KB": 1583,
+    "ms": 64
+  },
+  {
+    "track": "gtex_eqtl",
+    "window": "1 Mb",
+    "rows": 31340,
+    "requests": 12,
+    "KB": 523,
+    "ms": 24
+  },
+  {
+    "track": "arrays",
+    "window": "1 Mb",
+    "rows": 4648,
+    "requests": 7,
+    "KB": 5033,
+    "ms": 181
+  },
+  {
+    "track": "recomb",
+    "window": "10 Mb",
+    "rows": 13737,
+    "requests": 6,
+    "KB": 209,
+    "ms": 5
+  },
+  {
+    "track": "regulome",
+    "window": "10 Mb",
+    "rows": 59987,
+    "requests": 7,
+    "KB": 183,
+    "ms": 24
+  },
+  {
+    "track": "forge",
+    "window": "10 Mb",
+    "rows": 134169,
+    "requests": 8,
+    "KB": 826,
+    "ms": 47
+  },
+  {
+    "track": "genes",
+    "window": "10 Mb",
+    "rows": 432,
+    "requests": 13,
+    "KB": 694,
+    "ms": 30
+  },
+  {
+    "track": "gwas",
+    "window": "10 Mb",
+    "rows": 3055,
+    "requests": 20,
+    "KB": 1583,
+    "ms": 46
+  },
+  {
+    "track": "gtex_eqtl",
+    "window": "10 Mb",
+    "rows": 256563,
+    "requests": 12,
+    "KB": 2704,
+    "ms": 141
+  },
+  {
+    "track": "arrays",
+    "window": "10 Mb",
+    "rows": 46920,
+    "requests": 7,
+    "KB": 5152,
+    "ms": 201
+  }
+]

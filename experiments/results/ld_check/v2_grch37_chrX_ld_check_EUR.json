@@ -1,0 +1,11 @@
+{
+  "dir": "out/v2_grch37_chrX",
+  "population": "EUR.txt",
+  "snps": 25,
+  "ref_snps": 25,
+  "ref_samples": 503,
+  "pop_samples": 503,
+  "pairs_compared": 600,
+  "mismatches": 0,
+  "examples": []
+}

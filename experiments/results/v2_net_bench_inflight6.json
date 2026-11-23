@@ -1,0 +1,134 @@
+[
+  {
+    "label": "window 1 Mb, all tiers",
+    "rows": 33451,
+    "found": 0,
+    "rsid": "direct",
+    "fetch": {
+      "scan": 3
+    },
+    "requests": 12,
+    "max_in_flight": 6,
+    "MB": 2.82,
+    "predicted_MB": 1.48,
+    "manifest_ms": 75,
+    "query_ms": 302,
+    "MB_per_s": 9.3
+  },
+  {
+    "label": "window 10 Mb, common (+ LD EUR r2>=0.8)",
+    "rows": 59372,
+    "found": 0,
+    "rsid": "direct",
+    "fetch": {
+      "scan": 1
+    },
+    "requests": 24,
+    "max_in_flight": 6,
+    "MB": 10.44,
+    "predicted_MB": 8.12,
+    "manifest_ms": 39,
+    "query_ms": 517,
+    "MB_per_s": 20.2,
+    "ld_ms": 1320,
+    "pairs_evaluated": 8012524,
+    "pairs_pruned": 167175018,
+    "kept": 713124
+  },
+  {
+    "label": "window 10 Mb, all tiers",
+    "rows": 302633,
+    "found": 0,
+    "rsid": "direct",
+    "fetch": {
+      "scan": 3
+    },
+    "requests": 61,
+    "max_in_flight": 6,
+    "MB": 13.9,
+    "predicted_MB": 11.6,
+    "manifest_ms": 63,
+    "query_ms": 904,
+    "MB_per_s": 15.4
+  },
+  {
+    "label": "300 rsIDs clustered in 2 Mb",
+    "rows": 300,
+    "found": 300,
+    "rsid": "hybrid",
+    "fetch": {
+      "points": 3
+    },
+    "requests": 441,
+    "max_in_flight": 6,
+    "MB": 6.43,
+    "predicted_MB": 5.73,
+    "manifest_ms": 46,
+    "query_ms": 4312,
+    "MB_per_s": 1.5
+  },
+  {
+    "label": "3000 rsIDs clustered in 2 Mb",
+    "rows": 2933,
+    "found": 3000,
+    "rsid": "hybrid",
+    "fetch": {
+      "points": 3
+    },
+    "requests": 353,
+    "max_in_flight": 6,
+    "MB": 7.28,
+    "predicted_MB": 5.68,
+    "manifest_ms": 50,
+    "query_ms": 3709,
+    "MB_per_s": 2
+  },
+  {
+    "label": "300 rsIDs scattered chr22 + chrX",
+    "rows": 309,
+    "found": 300,
+    "rsid": "direct",
+    "fetch": {
+      "points": 63
+    },
+    "requests": 2843,
+    "max_in_flight": 6,
+    "MB": 27.1,
+    "predicted_MB": 27.23,
+    "manifest_ms": 52,
+    "query_ms": 19462,
+    "MB_per_s": 1.4
+  },
+  {
+    "label": "30 coords scattered on chr22",
+    "rows": 31,
+    "found": 30,
+    "rsid": "direct",
+    "fetch": {
+      "points": 15
+    },
+    "requests": 305,
+    "max_in_flight": 6,
+    "MB": 3.09,
+    "predicted_MB": 2.69,
+    "manifest_ms": 76,
+    "query_ms": 2168,
+    "MB_per_s": 1.4
+  },
+  {
+    "label": "300 coords in 2 Mb",
+    "rows": 310,
+    "found": 300,
+    "rsid": "direct",
+    "fetch": {
+      "points": 3
+    },
+    "requests": 292,
+    "max_in_flight": 6,
+    "MB": 3.84,
+    "predicted_MB": 3,
+    "manifest_ms": 77,
+    "query_ms": 2062,
+    "MB_per_s": 1.9
+  }
+]

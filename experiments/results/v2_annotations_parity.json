@@ -1,0 +1,67 @@
+{
+  "regulome37": {
+    "cases": 1900,
+    "mismatches": 0,
+    "examples": []
+  },
+  "recomb37": {
+    "cases": 100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "genes37": {
+    "cases": 100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "gwas37": {
+    "cases": 100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "gtex37": {
+    "cases": 150,
+    "mismatches": 0,
+    "examples": []
+  },
+  "arrays37": {
+    "cases": 1100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "regulome38": {
+    "cases": 1900,
+    "mismatches": 0,
+    "examples": []
+  },
+  "recomb38": {
+    "cases": 100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "genes38": {
+    "cases": 100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "gwas38": {
+    "cases": 100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "gtex38": {
+    "cases": 150,
+    "mismatches": 0,
+    "examples": []
+  },
+  "arrays38": {
+    "cases": 1100,
+    "mismatches": 0,
+    "examples": []
+  },
+  "forge_rsid": {
+    "cases": 2050,
+    "mismatches": 0,
+    "examples": []
+  }
+}

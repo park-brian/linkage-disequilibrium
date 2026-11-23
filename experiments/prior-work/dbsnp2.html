@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DBSNP Tests</title>
+  </head>
+  <body>
+    <form id="inputForm">
+      <input id="url" type="text" name="url" value="http://ldlink.io/data/dbsnp.parquet" oninput="window.metadataCache = {}" /><br />
+      <button type="button" onclick="snps.value = window.exampleSnps.slice(0, 10).join('\n')">Load 10</button>
+      <button type="button" onclick="snps.value = window.exampleSnps.slice(0, 40).join('\n')">Load 40</button>
+      <button type="button" onclick="snps.value = window.exampleSnps.slice(0, 100).join('\n')">Load 100</button>
+      <button type="button" onclick="snps.value = window.exampleSnps.slice(0, 400).join('\n')">Load 400</button>'
+      <br />
+      <textarea id="snps" name="snps" rows="11" cols="50"></textarea>
+      <br />
+      <button id="submit" type="submit">Submit</button>
+    </form>
+
+    <pre id="output"></pre>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "hyparquet/": "https://cdn.jsdelivr.net/gh/hyparam/hyparquet@parse-indices/",
+          "fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/+esm"
+        }
+      }
+    </script>
+    <script type="module">
+      import { readColumnIndex, readOffsetIndex, } from "hyparquet/src/indexes.js";
+      import { readColumn } from "hyparquet/src/column.js";
+      import { parquetMetadataAsync } from "hyparquet/src/metadata.js";
+      import { getSchemaPath } from "hyparquet/src/schema.js";
+      import { concat } from "hyparquet/src/utils.js";
+      import { decompressSync, strToU8, strFromU8 } from "fflate";
+      import * as fflate from "fflate";
+
+      window.fflate = fflate;
+
+      inputForm.onsubmit = submit;
+      // const compressors = {
+      //   SNAPPY: snappyUncompressor(),
+      // };
+
+      window.metadataCache = {};
+
+      async function submit(event) {
+        event.preventDefault();
+        let startTime = performance.now();
+        const form = event.target;
+        const url = form.url.value;
+        const snps = form.snps.value
+          .split("\n")
+          .map((snp) => +snp.trim().replace("rs", ""))
+          .filter(Boolean);
+        // const file = await remoteFileToAsyncBuffer(url);
+        const columns = ["id", "ref_id", "chromosome", "position_grch37"];
+        const predicateColumn = "id";
+        const predicateValuesMap = snps.reduce((acc, snp) => ({ ...acc, [snp]: true }), {});
+        const predicate = (min, max) => (max === undefined) ? predicateValuesMap[min] : snps.some((snp) => min <= snp && snp <= max);
+        const data = await queryParquet(url, columns, predicateColumn, predicate);
+        let endTime = performance.now();
+        console.table(data)
+
+        const chromosome = data[0][2]
+        const haplotypesFile = (`haplotypes/1000g/grch37v2/${chromosome}.parquet`);
+        const positions = [0].concat(data.map(row => row[3]))
+        const positionsValueMap = positions.reduce((acc, pos) => ({ ...acc, [pos]: true }), {});
+        const haplotypesPredicate = (min, max) => (max === undefined) ? positionsValueMap[min] : positions.some((pos) => min <= pos && pos <= max);
+        const haplotypes = await queryParquet(haplotypesFile, ["pos", "id", "ref", "alt", "samples"], "pos", haplotypesPredicate);
+        haplotypes.forEach(row => {
+          row[4] = strFromU8(decompressSync(base64ToUint8Array(row[4]))).split(';')
+        })
+        console.log(haplotypes)
+
+
+        const duration = endTime - startTime;
+        const performanceMessage = `${data.length} records fetched in ${duration} ms`;
+
+        // console.table(data);
+        // console.log(performanceMessage);
+
+        const tableData = [columns].concat(data);
+        const maxColumnWidths = columns.map((_, i) => Math.max(...tableData.slice(0, 400).map((row) => String(row[i]).length)));
+
+        // console.log(max)
+
+        output.innerText =
+          performanceMessage +
+          "\n\n" +
+          tableData
+            .slice(0, 400)
+            .map((row) => row.map((v, i) => String(v).padStart(maxColumnWidths[i], " ")).join("\t"))
+            .join("\n");
+      }
+
+      function base64ToUint8Array(base64) {
+          // Decode the base64 string to a binary string
+          const binaryString = window.atob(base64);
+
+          // Convert the binary string to an array of character codes
+          const charCodes = new Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+              charCodes[i] = binaryString.charCodeAt(i);
+          }
+
+          // Create a Uint8Array from the array of character codes
+          return new Uint8Array(charCodes);
+      }
+
+      async function queryParquet(url, columns, predicateColumn, predicate) {
+        // read metadata
+        let s1 = performance.now();
+        const file = await remoteFileToAsyncBuffer(url);
+        // const metadata = await parquetMetadataAsync(file);
+        const metadata = window.metadataCache[url] || (await parquetMetadataAsync(file));
+        window.metadataCache[url] = metadata;
+        const findColumnIndex = (name) => metadata.schema.findIndex((el) => el.name === name) - 1;
+        const predicateColumnIndex = findColumnIndex(predicateColumn);
+        const columnNameIndexes = columns.map(findColumnIndex);
+        const resultsPredicateColumnIndex = columns.indexOf(predicateColumn);
+
+        let s2 = performance.now();
+        console.log("metadata read in", s2 - s1, "ms");
+
+        // find row groups containing values that fulfill the predicate
+        const rowGroups = metadata.row_groups.filter((group) => {
+          const { statistics } = group.columns[predicateColumnIndex].meta_data;
+          return predicate(statistics.min_value, statistics.max_value);
+        });
+
+        // find column index, offset index, and dictionary locations for each row group's columns
+        const indexLocations = rowGroups
+          .map((rowGroup) =>
+            columnNameIndexes.map((columnNameIndex) => {
+              const rowGroupIndex = metadata.row_groups.indexOf(rowGroup);
+              const column = rowGroup.columns[columnNameIndex];
+              const columnIndexOffset = Number(column.column_index_offset);
+              const columnIndexLength = Number(column.column_index_length);
+              const offsetIndexOffset = Number(column.offset_index_offset);
+              const offsetIndexLength = Number(column.offset_index_length);
+              const dictionaryOffset = Number(column.meta_data?.dictionary_page_offset);
+              const dataPageOffset = Number(column.meta_data?.data_page_offset);
+
+              return {
+                rowGroup: rowGroupIndex,
+                column: columnNameIndex,
+                columnIndex: [columnIndexOffset, columnIndexOffset + columnIndexLength],
+                offsetIndex: [offsetIndexOffset, offsetIndexOffset + offsetIndexLength],
+                dictionary: dictionaryOffset ? [dictionaryOffset, dataPageOffset] : null,
+              };
+            })
+          )
+          .flat();
+
+        // fetch column index, offset index, and dictionary data for each column
+        const [columnIndexData, offsetIndexData, dictionaryData] = await Promise.all([
+          file.sliceBatch(indexLocations.map((location) => location.columnIndex)),
+          file.sliceBatch(indexLocations.map((location) => location.offsetIndex)),
+          file.sliceBatch(indexLocations.map((location) => location.dictionary)),
+        ]);
+
+        let s3 = performance.now();
+        console.log("index data read in", s3 - s2, "ms");
+
+        // read column index and offset index data
+        const columnPageData = indexLocations
+          .map((location, i) => {
+            const columnIndexReader = { view: new DataView(columnIndexData[i]), offset: 0 };
+            const offsetIndexReader = { view: new DataView(offsetIndexData[i]), offset: 0 };
+            const column = metadata.row_groups[location.rowGroup].columns[location.column];
+            const schemaPath = getSchemaPath(metadata.schema, column.meta_data?.path_in_schema ?? []);
+            const schema = schemaPath.at(-1)?.element || { name: "" };
+
+            const columnIndex = readColumnIndex(columnIndexReader, schema);
+            const offsetIndex = readOffsetIndex(offsetIndexReader);
+
+            return offsetIndex.page_locations.map((pageLocation, j) => ({
+              rowGroup: location.rowGroup,
+              column: location.column,
+              page: j,
+              dictionary: dictionaryData[i],
+              offset: Number(pageLocation.offset),
+              length: Number(pageLocation.compressed_page_size),
+              minValue: columnIndex.min_values[j],
+              maxValue: columnIndex.max_values[j],
+            }));
+          })
+          .flat();
+
+        // find pages containing values that fulfill the predicate
+        const filteredColumnPageData = columnPageData.filter(
+          (p) => p.column === predicateColumnIndex && predicate(p.minValue, p.maxValue)
+        );
+        const rowGroupPages = groupBy(filteredColumnPageData, (p) => p.rowGroup);
+        const pages = columnPageData.filter((page) => rowGroupPages[page.rowGroup].find((rp) => rp.page === page.page));
+        console.log(pages)
+        window.pages = pages
+
+        // fetch and parse pages
+        const pageData = await file.sliceBatch(pages.map((page) => [page.offset, page.offset + page.length]));
+        let s4 = performance.now();
+        console.log("page data retrieved in", s4 - s3, "ms");
+
+        // let combinedPageData = pages.map((page, i) => ({ ...pages, data: pageData[i] }))
+        // console.log("combined page data", combinedPageData)
+        // window.combinedPageData = combinedPageData
+
+        // new approach: construct a single array buffer with all page data and read it all at once (so just use readColumn once per rowGroup's column, instead of once per page)
+
+
+        // old approach (below): read page by page
+
+
+        const parsedPages = pages
+          .map((page, i) => {
+            const pageArrayBuffer = concatenateArrayBuffers([page.dictionary, pageData[i]]);
+            const pageReader = { view: new DataView(pageArrayBuffer), offset: 0 };
+            const column = metadata.row_groups[page.rowGroup].columns[page.column];
+            const schemaPath = getSchemaPath(metadata.schema, column.meta_data?.path_in_schema);
+            return { page, data: readColumn(pageReader, 1, column.meta_data, schemaPath, { }) };
+          })
+          .sort(
+            (a, b) => a.page.rowGroup - b.page.rowGroup || a.page.page - b.page.page || a.page.column - b.page.column
+          );
+
+        let s5 = performance.now();
+        console.log("page data read in", s5 - s4, "ms");
+
+        
+
+        /** @type any[][] */
+        const data = [];
+
+        // account for column order in each row group
+        const columnOrderValues = Array.from(new Set(columnNameIndexes)).sort((a, b) => a - b);
+        const columnOrder = columnNameIndexes.map((value) => columnOrderValues.indexOf(value));
+
+        for (let i = 0; i < parsedPages.length; i += columns.length) {
+          const rowGroupData = new Array(parsedPages[i].data.length)
+            .fill(null)
+            .map(() => new Array(columns.length).fill(null));
+          for (let j = 0; j < columns.length; j++) {
+            const columnData = parsedPages[i + j].data;
+            for (let k = 0; k < columnData.length; k++) {
+              rowGroupData[k][columnOrder[j]] = columnData[k];
+            }
+          }
+          concat(
+            data,
+            rowGroupData.filter((row) => predicate(row[resultsPredicateColumnIndex]))
+          );
+        }
+
+        let s6 = performance.now();
+        console.log("data arranged and processed in", s6 - s5, "ms");
+        console.log("total time", s6 - s1, "ms")
+
+        return data;
+      }
+
+      /**
+       * Wraps a remote file in an AsyncBuffer
+       * @param {string} url
+       * @returns {Promise<import('../src/types.js').AsyncBuffer>}
+       */
+      export async function remoteFileToAsyncBuffer(url) {
+        return {
+          byteLength: await getLength(url),
+          slice: async (start, end) => {
+            return await getBytes(url, start, end);
+          },
+          sliceBatch: async (ranges) => {
+            const requests = chunk(ranges, 100).map((ranges) => getBytesFromRanges(url, ranges));
+            const results = await Promise.all(requests);
+            return results.flat();
+          },
+        };
+      }
+
+      /**
+       * Chunks an array into smaller arrays of the specified size.
+       *
+       * @param {any[]} list
+       * @param {number} size
+       * @returns {any[][]}
+       */
+      function chunk(list, size) {
+        return Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, i * size + size));
+      }
+
+      /**
+       * Returns the length of a remote file
+       *
+       * @param {string} url
+       * @returns {Promise<number>}
+       */
+      export async function getLength(url) {
+        const response = await fetch(url, { method: "HEAD", cache: "no-store" });
+        return parseInt(response.headers.get("Content-Length"));
+      }
+
+      /**
+       * Fetches a range of bytes from a remote file
+       *
+       *
+       * @param {url} url
+       * @param {number} start
+       * @param {number} end
+       * @returns {Promise<ArrayBuffer>}
+       */
+      export async function getBytes(url, start, end) {
+        const response = await fetch(url, {
+          headers: { Range: `bytes=${start}-${end - 1}` },
+          cache: "no-store",
+        });
+        return await response.arrayBuffer();
+      }
+
+      /**
+       * Returns an ArrayBuffer[] from a multirange request
+       *
+       * @param {string} url
+       * @param {(null | [number, number])[]} ranges
+       * @returns {Promise<ArrayBuffer[]>}
+       */
+      export async function getBytesFromRanges(url, ranges) {
+        const arrayBuffers = new Array(ranges.length).fill(null).map((_) => new ArrayBuffer(0));
+        if (!ranges.filter(Boolean).length) return arrayBuffers;
+
+        const headers = {
+          range:
+            "bytes=" +
+            ranges
+              .filter(Boolean)
+              .map(([start, end]) => [start, end - 1].join("-"))
+              .join(","),
+        };
+        const getRangeIndex = (ranges, contentRange) => {
+          const matches = contentRange?.match(/bytes (\d+)-(\d+)\/(\d+)/);
+          if (!matches) return -1;
+          const start = parseInt(matches[1]);
+          const end = 1 + parseInt(matches[2]);
+          return ranges.findIndex((r) => r && r[0] === start && r[1] === end);
+        };
+
+        const response = await fetch(url, { headers, cache: "no-store" });
+        const contentType = response.headers.get("content-type");
+
+        if (contentType?.includes("application/octet-stream")) {
+          const contentRange = response.headers.get("content-range");
+          const rangeIndex = getRangeIndex(ranges, contentRange);
+          arrayBuffers[rangeIndex] = await response.arrayBuffer();
+          return arrayBuffers;
+        } else if (contentType?.includes("multipart/byteranges")) {
+          const boundary = "--" + contentType?.split("boundary=")[1];
+          const responseArrayBuffer = await response.arrayBuffer();
+          const responseText = new TextDecoder("ascii", { fatal: true }).decode(responseArrayBuffer); // use ascii since it maps nicely to Uint8Array
+          const parts = responseText
+            .split(boundary)
+            .filter((part) => !["", "--"].includes(part.trim()))
+            .map((part) => part.split("\r\n\r\n").map((p) => p.replace(/\r\n$/, "")));
+
+          let offset = 0;
+          for (const [header, body] of parts) {
+            const parsedHeaders = header
+              .split("\r\n")
+              .filter(Boolean)
+              .reduce((acc, line) => {
+                const [key, value] = line.split(": ");
+                return { ...acc, [key.toLowerCase()]: value };
+              }, {});
+
+            const bodyStartIndex = responseText.indexOf(body, offset);
+            offset = bodyStartIndex + body.length;
+            const bodyArrayBuffer = responseArrayBuffer.slice(bodyStartIndex, offset);
+
+            const rangeIndex = getRangeIndex(ranges, parsedHeaders["content-range"]);
+            arrayBuffers[rangeIndex] = bodyArrayBuffer;
+          }
+        }
+
+        return arrayBuffers;
+      }
+
+      /**
+       * Concatenate array buffers into a single buffer.
+       *
+       * @param {ArrayBuffer[]} buffers
+       * @returns {ArrayBuffer}
+       */
+      export function concatenateArrayBuffers(buffers) {
+        const bufferLength = buffers.reduce((acc, buffer) => acc + buffer.byteLength, 0);
+        const buffer = new ArrayBuffer(bufferLength);
+        const array = new Uint8Array(buffer);
+        let offset = 0;
+        for (const buffer of buffers) {
+          array.set(new Uint8Array(buffer), offset);
+          offset += buffer.byteLength;
+        }
+        return buffer;
+      }
+
+      /**
+       * Groups an array by a predicate function, returning an object with keys as the predicate result.
+       *
+       * @param {any[]} array
+       * @param {(item: any) => string} predicate
+       * @returns {Record<string, any[]>}
+       */
+      export function groupBy(array, predicate) {
+        return array.reduce((acc, el) => {
+          const key = predicate(el);
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(el);
+          return acc;
+        }, {});
+      }
+
+      window.exampleSnps = [
+        "rs6707874",
+        "rs7599470",
+        "rs71430382",
+        "rs4538241",
+        "rs7608524",
+        "rs4234096",
+        "rs1106639",
+        "rs79626458",
+        "rs78147778",
+        "rs77984138",
+        "rs62192037",
+        "rs146871826",
+        "rs62192027",
+        "rs35305862",
+        "rs4449174",
+        "rs2002092",
+        "rs6746151",
+        "rs6754066",
+        "rs7582691",
+        "rs77062581",
+        "rs78350525",
+        "rs77433658",
+        "rs62192024",
+        "rs35061832",
+        "rs62193068",
+        "rs4073694",
+        "rs28631456",
+        "rs28605921",
+        "rs10933568",
+        "rs10933569",
+        "rs12998967",
+        "rs10755057",
+        "rs7582582",
+        "rs6733823",
+        "rs71430385",
+        "rs34762429",
+        "rs6747623",
+        "rs35350837",
+        "rs6756901",
+        "rs6740752",
+        "rs7576068",
+        "rs35359354",
+        "rs34077392",
+        "rs35249772",
+        "rs143628759",
+        "rs13408030",
+        "rs741776",
+        "rs35360790",
+        "rs4425108",
+        "rs744986",
+        "rs10184669",
+        "rs35235166",
+        "rs62193073",
+        "rs35320439",
+        "rs34767042",
+        "rs35070043",
+        "rs141343442",
+        "rs6715894",
+        "rs4675882",
+        "rs62192009",
+        "rs113730074",
+        "rs62192002",
+        "rs35532480",
+        "rs6721985",
+        "rs62192013",
+        "rs34293993",
+        "rs4075957",
+        "rs34647532",
+        "rs62192003",
+        "rs113047262",
+        "rs4234097",
+        "rs34519321",
+        "rs78280775",
+        "rs4675883",
+        "rs4366942",
+        "rs62192004",
+        "rs35386923",
+        "rs62192005",
+        "rs62192001",
+        "rs60611916",
+        "rs62191982",
+        "rs4073890",
+        "rs4073889",
+        "rs10171845",
+        "rs145967151",
+        "rs34337830",
+        "rs66924973",
+        "rs35964352",
+        "rs66492541",
+        "rs148541768",
+        "rs4675886",
+        "rs5001228",
+        "rs62193122",
+        "rs199568359",
+        "rs62193123",
+        "rs150400910",
+        "rs62641586",
+        "rs111792955",
+        "rs150107870",
+        "rs73010174",
+        "rs111543205",
+        "rs11552660",
+        "rs35671465",
+        "rs62193130",
+        "rs55677174",
+        "rs62193087",
+        "rs2293760",
+        "rs62193131",
+        "rs62193129",
+        "rs78536152",
+        "rs11545301",
+        "rs35301767",
+        "rs1553620400",
+        "rs35218641",
+        "rs80241045",
+        "rs3749158",
+        "rs79248835",
+        "rs28528975",
+        "rs141906940",
+        "rs114368048",
+        "rs759314645",
+        "rs41438146",
+        "rs73014052",
+        "rs4075467",
+        "rs116047226",
+        "rs35715487",
+        "rs3892357",
+        "rs34211035",
+        "rs149204343",
+        "rs4443030",
+        "rs66668102",
+        "rs7569717",
+        "rs62193111",
+        "rs62193116",
+        "rs34980723",
+        "rs75517014",
+        "rs73011976",
+        "rs62193115",
+        "rs34346880",
+        "rs139344622",
+        "rs77940364",
+        "rs143441946",
+        "rs73011950",
+        "rs760133",
+        "rs73011977",
+        "rs111941933",
+        "rs142205045",
+        "rs112910522",
+        "rs11676038",
+        "rs9973663",
+        "rs73106166",
+        "rs73011964",
+        "rs201043890",
+        "rs149870990",
+        "rs7370843",
+        "rs73014012",
+        "rs73011956",
+        "rs7577590",
+        "rs34707996",
+        "rs62193125",
+        "rs4549127",
+        "rs34339758",
+        "rs76356158",
+        "rs35039363",
+        "rs36111671",
+        "rs34071003",
+        "rs62193093",
+        "rs35670872",
+        "rs62193128",
+        "rs62193119",
+        "rs60185457",
+        "rs71351116",
+        "rs35670545",
+        "rs7420347",
+        "rs3749157",
+        "rs62193117",
+        "rs2293759",
+        "rs4413188",
+        "rs78707837",
+        "rs2293763",
+        "rs2293761",
+        "rs7421861",
+        "rs5839829",
+        "rs7419333",
+        "rs6721711",
+        "rs3749153",
+        "rs3749154",
+        "rs35449025",
+        "rs76100726",
+        "rs41414844",
+        "rs62191168",
+        "rs66492261",
+        "rs34189210",
+        "rs35214534",
+        "rs16747",
+        "rs62191174",
+        "rs62191175",
+        "rs35788187",
+        "rs55829775",
+        "rs185303382",
+        "rs28548938",
+        "rs28756669",
+        "rs34761692",
+        "rs112414038",
+        "rs73113420",
+        "rs28368848",
+        "rs28501156",
+        "rs7580133",
+        "rs28425751",
+        "rs28490306",
+        "rs28896590",
+        "rs28377719",
+        "rs147705388",
+        "rs28366438",
+        "rs28570544",
+        "rs28539662",
+        "rs7595205",
+        "rs67964063",
+        "rs62191977",
+        "rs62191169",
+        "rs112247677",
+        "rs66482163",
+        "rs73016194",
+        "rs2002091",
+        "rs6713318",
+        "rs7420202",
+        "rs28559662",
+        "rs28463046",
+        "rs62191173",
+        "rs7425592",
+        "rs77563040",
+        "rs113437814",
+        "rs76381606",
+        "rs74608291",
+        "rs111295396",
+        "rs62620233",
+        "rs75740353",
+        "rs35399295",
+        "rs67727847",
+        "rs74603454",
+        "rs78145032",
+        "rs78073278",
+        "rs140839849",
+        "rs150571294",
+        "rs73014018",
+        "rs28484736",
+        "rs28520318",
+        "rs73014070",
+        "rs112111808",
+        "rs10208011",
+        "rs76379979",
+        "rs775956358",
+        "rs36065626",
+        "rs68140142",
+        "rs78620448",
+        "rs114106326",
+        "rs4444571",
+        "rs114859158",
+        "rs78008916",
+        "rs4075279",
+        "rs7573250",
+        "rs4675885",
+        "rs148543601",
+        "rs139013602",
+        "rs141344799",
+        "rs147811780",
+        "rs546752536",
+        "rs115963514",
+        "rs77111076",
+        "rs1106416",
+        "rs62191172",
+        "rs62193121",
+        "rs141016633",
+        "rs376186280",
+        "rs7560086",
+        "rs141711339",
+        "rs111957722",
+        "rs112058555",
+        "rs36072737",
+        "rs577163648",
+        "rs139276818",
+        "rs139610220",
+        "rs180716604",
+        "rs34924235",
+        "rs140549311",
+        "rs74594321",
+        "rs62193090",
+        "rs7370514",
+        "rs60946542",
+        "rs142078977",
+        "rs145807836",
+        "rs55912101",
+        "rs147210645",
+        "rs3934496",
+        "rs62191182",
+        "rs146578303",
+        "rs11899246",
+        "rs34623950",
+        "rs13011933",
+        "rs66521038",
+        "rs12993969",
+        "rs34590332",
+        "rs13015845",
+        "rs143940595",
+        "rs147835654",
+        "rs11677068",
+        "rs11677070",
+        "rs62191312",
+        "rs62192015",
+        "rs6737028",
+        "rs4973668",
+        "rs12992932",
+        "rs115230843",
+        "rs115874667",
+        "rs35985230",
+        "rs12052582",
+        "rs13018275",
+        "rs140867577",
+        "rs150044832",
+        "rs35611507",
+        "rs532321747",
+        "rs141130385",
+        "rs368652561",
+        "rs116399465",
+        "rs78538207",
+        "rs3934504",
+        "rs114826745",
+        "rs150406548",
+        "rs62192029",
+        "rs148710832",
+        "rs116596424",
+        "rs138811002",
+        "rs144379709",
+        "rs78780160",
+        "rs145451947",
+        "rs6751010",
+        "rs569665203",
+        "rs146566663",
+        "rs35344581",
+        "rs28680420",
+        "rs4428044",
+        "rs147531749",
+        "rs145401039",
+        "rs80304737",
+        "rs138277491",
+        "rs73011960",
+        "rs78423262",
+        "rs568108685",
+        "rs73011971",
+        "rs111308487",
+        "rs12998368",
+        "rs139762431",
+        "rs369447346",
+        "rs79903379",
+        "rs568027684",
+        "rs4073891",
+        "rs34336836",
+        "rs7420143",
+        "rs6437284",
+        "rs189911709",
+        "rs62191225",
+        "rs79455001",
+        "rs149148950",
+        "rs541154253",
+        "rs768710784",
+        "rs144020262",
+        "rs148537529",
+        "rs62193127",
+        "rs188879226",
+        "rs542577031",
+        "rs12988887",
+        "rs33999075",
+        "rs13024084",
+        "rs6605274",
+        "rs186009260",
+        "rs139335428",
+        "rs34222421",
+        "rs112011439",
+        "rs6747186",
+        "rs58164922",
+        "rs6727713",
+        "rs112246762",
+        "rs7585192",
+        "rs111584532",
+        "rs7581318",
+        "rs903317307",
+        "rs34076412",
+        "rs62192202",
+        "rs4973661",
+        "rs62191961",
+        "rs145834243",
+        "rs114496196",
+        "rs3749152",
+        "rs150106715",
+        "rs78358334",
+        "rs7425282",
+        "rs56043607",
+        "rs10196834",
+        "rs115923645",
+        "rs6713471",
+      ];
+    </script>
+  </body>
+</html>

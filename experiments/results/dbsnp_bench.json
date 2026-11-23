@@ -1,0 +1,194 @@
+[
+  {
+    "label": "rsid lookup x1",
+    "file": "rsid_p128k_rg1m.parquet",
+    "found": 1,
+    "ranges": 1,
+    "rows_decoded": 16383,
+    "requests": 6,
+    "KB": 871,
+    "ms": 17
+  },
+  {
+    "label": "rsid lookup x1",
+    "file": "rsid_p32k_rg1m.parquet",
+    "found": 1,
+    "ranges": 1,
+    "rows_decoded": 4095,
+    "requests": 7,
+    "KB": 775,
+    "ms": 5
+  },
+  {
+    "label": "rsid lookup x1",
+    "file": "rsid_p32k_rg5m.parquet",
+    "found": 1,
+    "ranges": 1,
+    "rows_decoded": 4095,
+    "requests": 7,
+    "KB": 839,
+    "ms": 7
+  },
+  {
+    "label": "rsid lookup x1",
+    "file": "rsid_p8k_rg1m.parquet",
+    "found": 1,
+    "ranges": 1,
+    "rows_decoded": 1023,
+    "requests": 7,
+    "KB": 1227,
+    "ms": 4
+  },
+  {
+    "label": "rsid lookup x16",
+    "file": "rsid_p128k_rg1m.parquet",
+    "found": 16,
+    "ranges": 16,
+    "rows_decoded": 262128,
+    "requests": 66,
+    "KB": 5543,
+    "ms": 142
+  },
+  {
+    "label": "rsid lookup x16",
+    "file": "rsid_p32k_rg1m.parquet",
+    "found": 16,
+    "ranges": 16,
+    "rows_decoded": 65520,
+    "requests": 80,
+    "KB": 2203,
+    "ms": 48
+  },
+  {
+    "label": "rsid lookup x16",
+    "file": "rsid_p32k_rg5m.parquet",
+    "found": 16,
+    "ranges": 16,
+    "rows_decoded": 65520,
+    "requests": 82,
+    "KB": 2870,
+    "ms": 55
+  },
+  {
+    "label": "rsid lookup x16",
+    "file": "rsid_p8k_rg1m.parquet",
+    "found": 16,
+    "ranges": 16,
+    "rows_decoded": 16368,
+    "requests": 82,
+    "KB": 2517,
+    "ms": 33
+  },
+  {
+    "label": "rsid lookup x300",
+    "file": "rsid_p128k_rg1m.parquet",
+    "found": 300,
+    "ranges": 206,
+    "rows_decoded": 4357878,
+    "requests": 826,
+    "KB": 73432,
+    "ms": 2694
+  },
+  {
+    "label": "rsid lookup x300",
+    "file": "rsid_p32k_rg1m.parquet",
+    "found": 300,
+    "ranges": 274,
+    "rows_decoded": 1199835,
+    "requests": 1361,
+    "KB": 25571,
+    "ms": 996
+  },
+  {
+    "label": "rsid lookup x300",
+    "file": "rsid_p32k_rg5m.parquet",
+    "found": 300,
+    "ranges": 277,
+    "rows_decoded": 1187550,
+    "requests": 1387,
+    "KB": 37489,
+    "ms": 1700
+  },
+  {
+    "label": "rsid lookup x300",
+    "file": "rsid_p8k_rg1m.parquet",
+    "found": 300,
+    "ranges": 293,
+    "rows_decoded": 305877,
+    "requests": 1467,
+    "KB": 18275,
+    "ms": 624
+  },
+  {
+    "label": "rsid lookup x3000",
+    "file": "rsid_p128k_rg1m.parquet",
+    "found": 2999,
+    "ranges": 98,
+    "rows_decoded": 18477482,
+    "requests": 397,
+    "KB": 189450,
+    "ms": 11299
+  },
+  {
+    "label": "rsid lookup x3000",
+    "file": "rsid_p32k_rg1m.parquet",
+    "found": 2999,
+    "ranges": 1241,
+    "rows_decoded": 9136765,
+    "requests": 6145,
+    "KB": 148313,
+    "ms": 7050
+  },
+  {
+    "label": "rsid lookup x3000",
+    "file": "rsid_p32k_rg5m.parquet",
+    "found": 2999,
+    "ranges": 1233,
+    "rows_decoded": 9230130,
+    "requests": 6167,
+    "KB": 201940,
+    "ms": 8433
+  },
+  {
+    "label": "rsid lookup x3000",
+    "file": "rsid_p8k_rg1m.parquet",
+    "found": 2999,
+    "ranges": 2383,
+    "rows_decoded": 2842423,
+    "requests": 11917,
+    "KB": 140311,
+    "ms": 4603
+  },
+  {
+    "label": "pos window 1Mb (key+rsid only)",
+    "file": "pos37_chr22_p256k_rg1m.parquet",
+    "rows": 381529,
+    "requests": 3,
+    "KB": 4817,
+    "ms": 495
+  },
+  {
+    "label": "pos window 1Mb (key+rsid only)",
+    "file": "pos37_chr22_p64k_rg1m.parquet",
+    "rows": 381529,
+    "requests": 3,
+    "KB": 4755,
+    "ms": 449
+  },
+  {
+    "label": "pos window 10Mb (key+rsid only)",
+    "file": "pos37_chr22_p256k_rg1m.parquet",
+    "rows": 3712811,
+    "requests": 11,
+    "KB": 22031,
+    "ms": 2362
+  },
+  {
+    "label": "pos window 10Mb (key+rsid only)",
+    "file": "pos37_chr22_p64k_rg1m.parquet",
+    "rows": 3712811,
+    "requests": 11,
+    "KB": 21709,
+    "ms": 2238
+  }
+]

@@ -1,0 +1,302 @@
+[
+  {
+    "label": "region 1Mb",
+    "file": "bits_gzip_p64k.parquet",
+    "rows": 33451,
+    "requests": 4,
+    "meta_requests": 1,
+    "MB": 3.18,
+    "read_ms": 104
+  },
+  {
+    "label": "region 1Mb",
+    "file": "bits_snappy_p64k.parquet",
+    "rows": 33451,
+    "requests": 4,
+    "meta_requests": 1,
+    "MB": 4.76,
+    "read_ms": 50
+  },
+  {
+    "label": "region 1Mb",
+    "file": "bits_zstd3_p16k.parquet",
+    "rows": 33451,
+    "requests": 4,
+    "meta_requests": 1,
+    "MB": 3.69,
+    "read_ms": 136
+  },
+  {
+    "label": "region 1Mb",
+    "file": "bits_zstd3_p1m.parquet",
+    "rows": 33451,
+    "requests": 3,
+    "meta_requests": 1,
+    "MB": 2.33,
+    "read_ms": 78
+  },
+  {
+    "label": "region 1Mb",
+    "file": "bits_zstd3_p256k.parquet",
+    "rows": 33451,
+    "requests": 3,
+    "meta_requests": 1,
+    "MB": 2.55,
+    "read_ms": 77
+  },
+  {
+    "label": "region 1Mb",
+    "file": "bits_zstd3_p64k.parquet",
+    "rows": 33451,
+    "requests": 4,
+    "meta_requests": 1,
+    "MB": 2.96,
+    "read_ms": 84
+  },
+  {
+    "label": "region 1Mb",
+    "file": "sparse_zstd3_p64k.parquet",
+    "rows": 33451,
+    "requests": 3,
+    "meta_requests": 1,
+    "MB": 2.58,
+    "read_ms": 63
+  },
+  {
+    "label": "region 1Mb",
+    "file": "tier_common_zstd3_p256k.parquet",
+    "rows": 5890,
+    "requests": 3,
+    "meta_requests": 1,
+    "MB": 1.73,
+    "read_ms": 20
+  },
+  {
+    "label": "region 1Mb",
+    "file": "tier_low_zstd3_p256k.parquet",
+    "rows": 4586,
+    "requests": 3,
+    "meta_requests": 1,
+    "MB": 0.76,
+    "read_ms": 11
+  },
+  {
+    "label": "region 1Mb",
+    "file": "tier_rare_sparse_zstd3_p256k.parquet",
+    "rows": 22975,
+    "requests": 3,
+    "meta_requests": 1,
+    "MB": 0.72,
+    "read_ms": 16
+  },
+  {
+    "label": "region 1Mb",
+    "file": "tier_rare_zstd3_p256k.parquet",
+    "rows": 22975,
+    "requests": 3,
+    "meta_requests": 1,
+    "MB": 0.81,
+    "read_ms": 38
+  },
+  {
+    "label": "region 10Mb",
+    "file": "bits_gzip_p64k.parquet",
+    "rows": 302633,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 18,
+    "read_ms": 550
+  },
+  {
+    "label": "region 10Mb",
+    "file": "bits_snappy_p64k.parquet",
+    "rows": 302633,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 28.82,
+    "read_ms": 278
+  },
+  {
+    "label": "region 10Mb",
+    "file": "bits_zstd3_p16k.parquet",
+    "rows": 302633,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 21.41,
+    "read_ms": 792
+  },
+  {
+    "label": "region 10Mb",
+    "file": "bits_zstd3_p1m.parquet",
+    "rows": 302633,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 11.7,
+    "read_ms": 479
+  },
+  {
+    "label": "region 10Mb",
+    "file": "bits_zstd3_p256k.parquet",
+    "rows": 302633,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 13.47,
+    "read_ms": 596
+  },
+  {
+    "label": "region 10Mb",
+    "file": "bits_zstd3_p64k.parquet",
+    "rows": 302633,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 16.58,
+    "read_ms": 792
+  },
+  {
+    "label": "region 10Mb",
+    "file": "sparse_zstd3_p64k.parquet",
+    "rows": 302633,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 13.17,
+    "read_ms": 449
+  },
+  {
+    "label": "region 10Mb",
+    "file": "tier_common_zstd3_p256k.parquet",
+    "rows": 45369,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 7.63,
+    "read_ms": 149
+  },
+  {
+    "label": "region 10Mb",
+    "file": "tier_low_zstd3_p256k.parquet",
+    "rows": 36286,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 1.92,
+    "read_ms": 92
+  },
+  {
+    "label": "region 10Mb",
+    "file": "tier_rare_sparse_zstd3_p256k.parquet",
+    "rows": 220978,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 1.92,
+    "read_ms": 196
+  },
+  {
+    "label": "region 10Mb",
+    "file": "tier_rare_zstd3_p256k.parquet",
+    "rows": 220978,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 2.56,
+    "read_ms": 354
+  },
+  {
+    "label": "list 300 SNPs over 10Mb",
+    "file": "bits_zstd3_p16k.parquet",
+    "rows": 312,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 21.41,
+    "read_ms": 1872
+  },
+  {
+    "label": "list 300 SNPs over 10Mb",
+    "file": "bits_zstd3_p256k.parquet",
+    "rows": 312,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 13.47,
+    "read_ms": 1719
+  },
+  {
+    "label": "list 300 SNPs over 10Mb",
+    "file": "bits_zstd3_p64k.parquet",
+    "rows": 312,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 16.58,
+    "read_ms": 1824
+  },
+  {
+    "label": "list 300 SNPs over 10Mb",
+    "file": "tier_common_zstd3_p256k.parquet",
+    "rows": 304,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 7.63,
+    "read_ms": 339
+  },
+  {
+    "label": "list 3000 SNPs over 10Mb",
+    "file": "bits_zstd3_p16k.parquet",
+    "rows": 3106,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 21.41,
+    "read_ms": 8278
+  },
+  {
+    "label": "list 3000 SNPs over 10Mb",
+    "file": "bits_zstd3_p256k.parquet",
+    "rows": 3106,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 13.47,
+    "read_ms": 7606
+  },
+  {
+    "label": "list 3000 SNPs over 10Mb",
+    "file": "bits_zstd3_p64k.parquet",
+    "rows": 3106,
+    "requests": 22,
+    "meta_requests": 1,
+    "MB": 16.58,
+    "read_ms": 7067
+  },
+  {
+    "label": "list 3000 SNPs over 10Mb",
+    "file": "tier_common_zstd3_p256k.parquet",
+    "rows": 3043,
+    "requests": 15,
+    "meta_requests": 1,
+    "MB": 7.63,
+    "read_ms": 1639
+  },
+  {
+    "label": "LD banded 500kb, 10Mb common tier, CEU",
+    "variants": 45369,
+    "haplotypes": 198,
+    "pairs": 103295884,
+    "pairs_r2_ge_0_8": 589581,
+    "pack_ms": 47,
+    "ld_ms": 3939,
+    "Mpairs_per_s": 26.2
+  },
+  {
+    "label": "LD banded 500kb, 10Mb common tier, EUR",
+    "variants": 45369,
+    "haplotypes": 1006,
+    "pairs": 103295884,
+    "pairs_r2_ge_0_8": 606571,
+    "pack_ms": 222,
+    "ld_ms": 11064,
+    "Mpairs_per_s": 9.3
+  },
+  {
+    "label": "LD banded 500kb, 10Mb common tier, ALL",
+    "variants": 45369,
+    "haplotypes": 5008,
+    "pairs": 103295884,
+    "pairs_r2_ge_0_8": 396346,
+    "pack_ms": 948,
+    "ld_ms": 46189,
+    "Mpairs_per_s": 2.2
+  }
+]

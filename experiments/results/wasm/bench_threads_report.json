@@ -1,0 +1,102 @@
+[
+  {
+    "pop": "EUR",
+    "threads": 1,
+    "pairs": 175187542,
+    "kept": 713124,
+    "r2_sum": 682094.013,
+    "kernel_ms_max": 3215,
+    "wall_ms_incl_worker_start": 3453,
+    "Mpairs_per_s_kernel": 54.5
+  },
+  {
+    "pop": "EUR",
+    "threads": 2,
+    "pairs": 175187542,
+    "kept": 713124,
+    "r2_sum": 682094.013,
+    "kernel_ms_max": 2479,
+    "wall_ms_incl_worker_start": 2776,
+    "Mpairs_per_s_kernel": 70.7
+  },
+  {
+    "pop": "EUR",
+    "threads": 4,
+    "pairs": 175187542,
+    "kept": 713124,
+    "r2_sum": 682094.013,
+    "kernel_ms_max": 1196,
+    "wall_ms_incl_worker_start": 1527,
+    "Mpairs_per_s_kernel": 146.5
+  },
+  {
+    "pop": "EUR",
+    "threads": 8,
+    "pairs": 175187542,
+    "kept": 713124,
+    "r2_sum": 682094.013,
+    "kernel_ms_max": 611,
+    "wall_ms_incl_worker_start": 902,
+    "Mpairs_per_s_kernel": 286.8
+  },
+  {
+    "pop": "EUR",
+    "threads": 16,
+    "pairs": 175187542,
+    "kept": 713124,
+    "r2_sum": 682094.013,
+    "kernel_ms_max": 773,
+    "wall_ms_incl_worker_start": 1086,
+    "Mpairs_per_s_kernel": 226.6
+  },
+  {
+    "pop": "ALL",
+    "threads": 1,
+    "pairs": 175187542,
+    "kept": 503740,
+    "r2_sum": 469872.443,
+    "kernel_ms_max": 12375,
+    "wall_ms_incl_worker_start": 12522,
+    "Mpairs_per_s_kernel": 14.2
+  },
+  {
+    "pop": "ALL",
+    "threads": 2,
+    "pairs": 175187542,
+    "kept": 503740,
+    "r2_sum": 469872.443,
+    "kernel_ms_max": 8423,
+    "wall_ms_incl_worker_start": 8567,
+    "Mpairs_per_s_kernel": 20.8
+  },
+  {
+    "pop": "ALL",
+    "threads": 4,
+    "pairs": 175187542,
+    "kept": 503740,
+    "r2_sum": 469872.443,
+    "kernel_ms_max": 4266,
+    "wall_ms_incl_worker_start": 4420,
+    "Mpairs_per_s_kernel": 41.1
+  },
+  {
+    "pop": "ALL",
+    "threads": 8,
+    "pairs": 175187542,
+    "kept": 503740,
+    "r2_sum": 469872.443,
+    "kernel_ms_max": 2398,
+    "wall_ms_incl_worker_start": 2542,
+    "Mpairs_per_s_kernel": 73
+  },
+  {
+    "pop": "ALL",
+    "threads": 16,
+    "pairs": 175187542,
+    "kept": 503740,
+    "r2_sum": 469872.443,
+    "kernel_ms_max": 1652,
+    "wall_ms_incl_worker_start": 1819,
+    "Mpairs_per_s_kernel": 106
+  }
+]

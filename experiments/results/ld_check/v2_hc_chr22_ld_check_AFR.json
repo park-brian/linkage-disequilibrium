@@ -1,0 +1,11 @@
+{
+  "dir": "out/v2_hc_chr22",
+  "population": "AFR.txt",
+  "snps": 25,
+  "ref_snps": 25,
+  "ref_samples": 661,
+  "pop_samples": 661,
+  "pairs_compared": 600,
+  "mismatches": 0,
+  "examples": []
+}

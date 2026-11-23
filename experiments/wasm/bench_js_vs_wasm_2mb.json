@@ -1,0 +1,91 @@
+{
+  "file": "genotypes/grch37/chr22.common.parquet",
+  "window": [
+    25000000,
+    27000000
+  ],
+  "rows": 13986,
+  "maxDist": 500000,
+  "runs": 3,
+  "node": "v26.5.0",
+  "cases": [
+    {
+      "pop": "CEU",
+      "threshold": 0,
+      "evaluated": 42873305,
+      "kept": 15239384,
+      "pruned": 0,
+      "identical": true,
+      "wasm_mpairs_s": 76.8,
+      "js_mpairs_s": 15.2,
+      "wasm_ms": 558.3,
+      "js_ms": 2826.3,
+      "speedup": 5.06
+    },
+    {
+      "pop": "CEU",
+      "threshold": 0.8,
+      "evaluated": 1484051,
+      "kept": 84012,
+      "pruned": 41389254,
+      "identical": true,
+      "wasm_mpairs_s": 8.3,
+      "js_mpairs_s": 4.5,
+      "wasm_ms": 179.9,
+      "js_ms": 330.8,
+      "speedup": 1.84
+    },
+    {
+      "pop": "EUR",
+      "threshold": 0,
+      "evaluated": 42873305,
+      "kept": 21439149,
+      "pruned": 0,
+      "identical": true,
+      "wasm_mpairs_s": 31.2,
+      "js_mpairs_s": 6,
+      "wasm_ms": 1375.5,
+      "js_ms": 7139.2,
+      "speedup": 5.19
+    },
+    {
+      "pop": "EUR",
+      "threshold": 0.8,
+      "evaluated": 1756779,
+      "kept": 99062,
+      "pruned": 41116526,
+      "identical": true,
+      "wasm_mpairs_s": 8.7,
+      "js_mpairs_s": 4.3,
+      "wasm_ms": 201,
+      "js_ms": 405.8,
+      "speedup": 2.02
+    },
+    {
+      "pop": "ALL",
+      "threshold": 0,
+      "evaluated": 42873305,
+      "kept": 42873305,
+      "pruned": 0,
+      "identical": true,
+      "wasm_mpairs_s": 10.1,
+      "js_mpairs_s": 1.5,
+      "wasm_ms": 4239.4,
+      "js_ms": 27780.2,
+      "speedup": 6.55
+    },
+    {
+      "pop": "ALL",
+      "threshold": 0.8,
+      "evaluated": 3790238,
+      "kept": 58572,
+      "pruned": 39083067,
+      "identical": true,
+      "wasm_mpairs_s": 9.4,
+      "js_mpairs_s": 2.4,
+      "wasm_ms": 405.1,
+      "js_ms": 1607.4,
+      "speedup": 3.97
+    }
+  ]
+}

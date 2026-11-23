@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LD tools — browser-only LDlink</title>
+<link rel="stylesheet" href="./style.css">
+<script type="importmap">
+{ "imports": {
+  "hyparquet": "../node_modules/hyparquet/src/index.js",
+  "hyparquet-compressors": "../node_modules/hyparquet-compressors/src/index.js",
+  "fzstd": "../node_modules/fzstd/esm/index.mjs",
+  "hysnappy": "../node_modules/hysnappy/js/index.js"
+} }
+</script>
+<script type="module" src="./main.mjs"></script>
+</head>
+<body>
+<header>
+  <h1>LD tools</h1>
+  <nav id="modules" aria-label="Modules"></nav>
+  <span id="status" role="status"></span>
+</header>
+<main>
+  <form id="form" autocomplete="off"></form>
+  <section id="output" aria-live="polite"></section>
+</main>
+</body>
+</html>

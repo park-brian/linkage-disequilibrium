@@ -1,0 +1,135 @@
+{
+  "annotations/grch37/recomb.parquet": {
+    "rows": 3283362,
+    "bytes": 27937108,
+    "bytes_per_row": 8.51,
+    "sorted": true,
+    "seconds": 1.6
+  },
+  "annotations/grch37/regulome.parquet": {
+    "rows": 16357032,
+    "bytes": 24461491,
+    "bytes_per_row": 1.5,
+    "sorted": true,
+    "seconds": 7.3
+  },
+  "annotations/grch37/forge.parquet": {
+    "rows": 37953042,
+    "bytes": 211006970,
+    "bytes_per_row": 5.56,
+    "sorted": true,
+    "seconds": 16.6
+  },
+  "annotations/grch37/genes.parquet": {
+    "rows": 78105,
+    "bytes": 4286149,
+    "bytes_per_row": 54.88,
+    "sorted": false,
+    "seconds": 0.4
+  },
+  "annotations/grch37/gwas.parquet": {
+    "rows": 835534,
+    "bytes": 27668734,
+    "bytes_per_row": 33.12,
+    "sorted": true,
+    "seconds": 5
+  },
+  "annotations/grch37/gtex_eqtl.parquet": {
+    "rows": 70955246,
+    "bytes": 1276607865,
+    "bytes_per_row": 17.99,
+    "sorted": true,
+    "seconds": 135.5
+  },
+  "annotations/grch37/arrays.parquet": {
+    "rows": 10393379,
+    "bytes": 79267368,
+    "bytes_per_row": 7.63,
+    "sorted": true,
+    "seconds": 9.8
+  },
+  "annotations/grch38/recomb.parquet": {
+    "rows": 3282596,
+    "bytes": 27931799,
+    "bytes_per_row": 8.51,
+    "sorted": true,
+    "seconds": 1.8
+  },
+  "annotations/grch38/regulome.parquet": {
+    "rows": 16334982,
+    "bytes": 24433278,
+    "bytes_per_row": 1.5,
+    "sorted": true,
+    "seconds": 6.6
+  },
+  "annotations/grch38/forge.parquet": {
+    "rows": 37949750,
+    "bytes": 210992724,
+    "bytes_per_row": 5.56,
+    "sorted": true,
+    "seconds": 36
+  },
+  "annotations/grch38/genes.parquet": {
+    "rows": 78362,
+    "bytes": 4297716,
+    "bytes_per_row": 54.84,
+    "sorted": false,
+    "seconds": 1.7
+  },
+  "annotations/grch38/gwas.parquet": {
+    "rows": 835562,
+    "bytes": 27670862,
+    "bytes_per_row": 33.12,
+    "sorted": true,
+    "seconds": 21.7
+  },
+  "annotations/grch38/gtex_eqtl.parquet": {
+    "rows": 71478479,
+    "bytes": 1286869588,
+    "bytes_per_row": 18,
+    "sorted": true,
+    "seconds": 190.1
+  },
+  "annotations/grch38/arrays.parquet": {
+    "rows": 10383296,
+    "bytes": 79048429,
+    "bytes_per_row": 7.61,
+    "sorted": true,
+    "seconds": 9.7
+  },
+  "annotations/forge_rsid.parquet": {
+    "rows": 37962826,
+    "bytes": 24932200,
+    "bytes_per_row": 0.66,
+    "sorted": true,
+    "seconds": 12.8
+  },
+  "annotations/gene_names.parquet": {
+    "rows": 26195,
+    "bytes": 510824,
+    "bytes_per_row": 19.5,
+    "sorted": true,
+    "seconds": 0
+  },
+  "annotations/gtex_tissues.parquet": {
+    "rows": 54,
+    "bytes": 4179,
+    "bytes_per_row": 77.39,
+    "sorted": null,
+    "seconds": 0
+  },
+  "annotations/gtex_genes.parquet": {
+    "rows": 56200,
+    "bytes": 596622,
+    "bytes_per_row": 10.62,
+    "sorted": true,
+    "seconds": 0.2
+  },
+  "annotations/platforms.parquet": {
+    "rows": 83,
+    "bytes": 1648,
+    "bytes_per_row": 19.86,
+    "sorted": null,
+    "seconds": 0
+  }
+}

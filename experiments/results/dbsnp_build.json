@@ -1,0 +1,44 @@
+{
+  "rsid_p8k_rg1m": {
+    "bytes": 200884780,
+    "rows": 19996184,
+    "bytes_per_row": 10.05,
+    "pageSize": 8192,
+    "rowGroupSize": 1000000
+  },
+  "rsid_p32k_rg1m": {
+    "bytes": 198837062,
+    "rows": 19996184,
+    "bytes_per_row": 9.94,
+    "pageSize": 32768,
+    "rowGroupSize": 1000000
+  },
+  "rsid_p128k_rg1m": {
+    "bytes": 196060958,
+    "rows": 19996184,
+    "bytes_per_row": 9.8,
+    "pageSize": 131072,
+    "rowGroupSize": 1000000
+  },
+  "rsid_p32k_rg5m": {
+    "bytes": 198844987,
+    "rows": 19996184,
+    "bytes_per_row": 9.94,
+    "pageSize": 32768,
+    "rowGroupSize": 5000000
+  },
+  "pos37_chr22_p64k_rg1m": {
+    "bytes": 60503307,
+    "rows": 13539246,
+    "bytes_per_row": 4.47,
+    "pageSize": 65536,
+    "rowGroupSize": 1000000
+  },
+  "pos37_chr22_p256k_rg1m": {
+    "bytes": 61216100,
+    "rows": 13539246,
+    "bytes_per_row": 4.52,
+    "pageSize": 262144,
+    "rowGroupSize": 1000000
+  }
+}

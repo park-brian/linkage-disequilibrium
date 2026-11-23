@@ -1,0 +1,36 @@
+{
+  "vcf": "ALL.chrX.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz",
+  "records": 3468093,
+  "rows": 3501213,
+  "skipped_sv": 1798,
+  "rsid_source": [
+    301205,
+    1393810,
+    11501,
+    1794697
+  ],
+  "ambiguous_pos_type": 11901,
+  "vcf_rs_rows": 1471098,
+  "vcf_rs_found_at_pos": 1405311,
+  "pos_type_agrees_with_vcf": 1403564,
+  "multiallelic_rows": 65783,
+  "male_haploid_rows": 3389180,
+  "seconds": 447.8,
+  "files": {
+    "common_bits_p64k": {
+      "bytes": 69475438,
+      "rows": 622198,
+      "bytes_per_row": 111.7
+    },
+    "low_bits_p64k": {
+      "bytes": 24567103,
+      "rows": 1060436,
+      "bytes_per_row": 23.2
+    },
+    "rare_sparse_p16k": {
+      "bytes": 17933844,
+      "rows": 1818579,
+      "bytes_per_row": 9.9
+    }
+  }
+}

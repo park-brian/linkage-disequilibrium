@@ -1,0 +1,36 @@
+{
+  "rsid_grch37": {
+    "cases": 3700,
+    "found": 3649,
+    "mismatches": 0,
+    "examples": []
+  },
+  "rsid_grch38": {
+    "cases": 3700,
+    "found": 3649,
+    "mismatches": 0,
+    "examples": []
+  },
+  "coord_grch37": {
+    "cases": 3000,
+    "multi_doc": 1368,
+    "warnings_expected": 1235,
+    "mismatches": 0,
+    "examples": []
+  },
+  "coord_grch38": {
+    "cases": 3000,
+    "multi_doc": 1371,
+    "warnings_expected": 1235,
+    "mismatches": 0,
+    "examples": []
+  },
+  "test_vectors_grch37": {
+    "snps": 10,
+    "mismatches": []
+  },
+  "test_vectors_grch38": {
+    "snps": 10,
+    "mismatches": []
+  }
+}

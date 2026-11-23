@@ -1,0 +1,425 @@
+[
+  {
+    "file": "common_bits_p16k.parquet",
+    "test": "pages",
+    "haps_pages": 8396,
+    "haps_page_KB_median": 4.5,
+    "rows_per_page_median": 26
+  },
+  {
+    "file": "common_bits_p16k.parquet",
+    "test": "window 1Mb",
+    "rows": 7624,
+    "requests": 4,
+    "KB": 1986,
+    "ms": 68
+  },
+  {
+    "file": "common_bits_p16k.parquet",
+    "test": "window 10Mb",
+    "rows": 59372,
+    "requests": 22,
+    "KB": 12275,
+    "ms": 261
+  },
+  {
+    "file": "common_bits_p16k.parquet",
+    "test": "points x30 across chr22",
+    "found": 30,
+    "ranges": 29,
+    "requests": 172,
+    "KB": 1437,
+    "KB_per_point": 47.9,
+    "ms": 53
+  },
+  {
+    "file": "common_bits_p16k.parquet",
+    "test": "points x300 across chr22",
+    "found": 305,
+    "ranges": 278,
+    "requests": 582,
+    "KB": 3887,
+    "KB_per_point": 13,
+    "ms": 268
+  },
+  {
+    "file": "common_bits_p16k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 307,
+    "ranges": 255,
+    "requests": 348,
+    "KB": 2055,
+    "KB_per_point": 6.9,
+    "ms": 192
+  },
+  {
+    "file": "common_bits_p256k.parquet",
+    "test": "pages",
+    "haps_pages": 534,
+    "haps_page_KB_median": 49.1,
+    "rows_per_page_median": 418
+  },
+  {
+    "file": "common_bits_p256k.parquet",
+    "test": "window 1Mb",
+    "rows": 7624,
+    "requests": 4,
+    "KB": 1415,
+    "ms": 31
+  },
+  {
+    "file": "common_bits_p256k.parquet",
+    "test": "window 10Mb",
+    "rows": 59372,
+    "requests": 22,
+    "KB": 8001,
+    "ms": 166
+  },
+  {
+    "file": "common_bits_p256k.parquet",
+    "test": "points x30 across chr22",
+    "found": 32,
+    "ranges": 27,
+    "requests": 102,
+    "KB": 2371,
+    "KB_per_point": 79,
+    "ms": 75
+  },
+  {
+    "file": "common_bits_p256k.parquet",
+    "test": "points x300 across chr22",
+    "found": 306,
+    "ranges": 143,
+    "requests": 258,
+    "KB": 12697,
+    "KB_per_point": 42.3,
+    "ms": 410
+  },
+  {
+    "file": "common_bits_p256k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 305,
+    "ranges": 18,
+    "requests": 56,
+    "KB": 6372,
+    "KB_per_point": 21.2,
+    "ms": 144
+  },
+  {
+    "file": "common_bits_p64k.parquet",
+    "test": "pages",
+    "haps_pages": 2109,
+    "haps_page_KB_median": 13.4,
+    "rows_per_page_median": 104
+  },
+  {
+    "file": "common_bits_p64k.parquet",
+    "test": "window 1Mb",
+    "rows": 7624,
+    "requests": 4,
+    "KB": 1545,
+    "ms": 27
+  },
+  {
+    "file": "common_bits_p64k.parquet",
+    "test": "window 10Mb",
+    "rows": 59372,
+    "requests": 22,
+    "KB": 9094,
+    "ms": 188
+  },
+  {
+    "file": "common_bits_p64k.parquet",
+    "test": "points x30 across chr22",
+    "found": 30,
+    "ranges": 27,
+    "requests": 109,
+    "KB": 1092,
+    "KB_per_point": 36.4,
+    "ms": 75
+  },
+  {
+    "file": "common_bits_p64k.parquet",
+    "test": "points x300 across chr22",
+    "found": 307,
+    "ranges": 254,
+    "requests": 403,
+    "KB": 5164,
+    "KB_per_point": 17.2,
+    "ms": 356
+  },
+  {
+    "file": "common_bits_p64k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 307,
+    "ranges": 134,
+    "requests": 183,
+    "KB": 3651,
+    "KB_per_point": 12.2,
+    "ms": 198
+  },
+  {
+    "file": "low_bits_p256k.parquet",
+    "test": "pages",
+    "haps_pages": 670,
+    "haps_page_KB_median": 7.7,
+    "rows_per_page_median": 418
+  },
+  {
+    "file": "low_bits_p256k.parquet",
+    "test": "window 1Mb",
+    "rows": 8951,
+    "requests": 4,
+    "KB": 373,
+    "ms": 23
+  },
+  {
+    "file": "low_bits_p256k.parquet",
+    "test": "window 10Mb",
+    "rows": 74271,
+    "requests": 22,
+    "KB": 2061,
+    "ms": 129
+  },
+  {
+    "file": "low_bits_p256k.parquet",
+    "test": "points x30 across chr22",
+    "found": 30,
+    "ranges": 28,
+    "requests": 114,
+    "KB": 1638,
+    "KB_per_point": 54.6,
+    "ms": 89
+  },
+  {
+    "file": "low_bits_p256k.parquet",
+    "test": "points x300 across chr22",
+    "found": 300,
+    "ranges": 142,
+    "requests": 261,
+    "KB": 3586,
+    "KB_per_point": 12,
+    "ms": 391
+  },
+  {
+    "file": "low_bits_p256k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 302,
+    "ranges": 39,
+    "requests": 77,
+    "KB": 1682,
+    "KB_per_point": 5.6,
+    "ms": 143
+  },
+  {
+    "file": "low_bits_p64k.parquet",
+    "test": "pages",
+    "haps_pages": 2655,
+    "haps_page_KB_median": 2.1,
+    "rows_per_page_median": 104
+  },
+  {
+    "file": "low_bits_p64k.parquet",
+    "test": "window 1Mb",
+    "rows": 8951,
+    "requests": 4,
+    "KB": 393,
+    "ms": 21
+  },
+  {
+    "file": "low_bits_p64k.parquet",
+    "test": "window 10Mb",
+    "rows": 74271,
+    "requests": 22,
+    "KB": 2209,
+    "ms": 156
+  },
+  {
+    "file": "low_bits_p64k.parquet",
+    "test": "points x30 across chr22",
+    "found": 30,
+    "ranges": 30,
+    "requests": 135,
+    "KB": 959,
+    "KB_per_point": 32,
+    "ms": 66
+  },
+  {
+    "file": "low_bits_p64k.parquet",
+    "test": "points x300 across chr22",
+    "found": 301,
+    "ranges": 254,
+    "requests": 413,
+    "KB": 2181,
+    "KB_per_point": 7.3,
+    "ms": 392
+  },
+  {
+    "file": "low_bits_p64k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 302,
+    "ranges": 170,
+    "requests": 220,
+    "KB": 1074,
+    "KB_per_point": 3.6,
+    "ms": 220
+  },
+  {
+    "file": "rare_sparse_p16k.parquet",
+    "test": "pages",
+    "haps_pages": 155,
+    "haps_page_KB_median": 14.5,
+    "rows_per_page_median": 4348
+  },
+  {
+    "file": "rare_sparse_p16k.parquet",
+    "test": "window 1Mb",
+    "rows": 16876,
+    "requests": 3,
+    "KB": 290,
+    "ms": 24
+  },
+  {
+    "file": "rare_sparse_p16k.parquet",
+    "test": "window 10Mb",
+    "rows": 168990,
+    "requests": 16,
+    "KB": 1742,
+    "ms": 140
+  },
+  {
+    "file": "rare_sparse_p16k.parquet",
+    "test": "points x30 across chr22",
+    "found": 30,
+    "ranges": 27,
+    "requests": 216,
+    "KB": 1738,
+    "KB_per_point": 57.9,
+    "ms": 138
+  },
+  {
+    "file": "rare_sparse_p16k.parquet",
+    "test": "points x300 across chr22",
+    "found": 300,
+    "ranges": 21,
+    "requests": 240,
+    "KB": 5606,
+    "KB_per_point": 18.7,
+    "ms": 532
+  },
+  {
+    "file": "rare_sparse_p16k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 300,
+    "ranges": 2,
+    "requests": 45,
+    "KB": 1772,
+    "KB_per_point": 5.9,
+    "ms": 164
+  },
+  {
+    "file": "rare_sparse_p256k.parquet",
+    "test": "pages",
+    "haps_pages": 0,
+    "note": "no offset index on haps"
+  },
+  {
+    "file": "rare_sparse_p256k.parquet",
+    "test": "window 1Mb",
+    "rows": 16876,
+    "requests": 3,
+    "KB": 288,
+    "ms": 24
+  },
+  {
+    "file": "rare_sparse_p256k.parquet",
+    "test": "window 10Mb",
+    "rows": 168990,
+    "requests": 15,
+    "KB": 1719,
+    "ms": 127
+  },
+  {
+    "file": "rare_sparse_p256k.parquet",
+    "test": "points x30 across chr22",
+    "found": 31,
+    "ranges": 5,
+    "requests": 54,
+    "KB": 4524,
+    "KB_per_point": 150.8,
+    "ms": 385
+  },
+  {
+    "file": "rare_sparse_p256k.parquet",
+    "test": "points x300 across chr22",
+    "found": 302,
+    "ranges": 1,
+    "requests": 72,
+    "KB": 5873,
+    "KB_per_point": 19.6,
+    "ms": 470
+  },
+  {
+    "file": "rare_sparse_p256k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 298,
+    "ranges": 1,
+    "requests": 22,
+    "KB": 1910,
+    "KB_per_point": 6.4,
+    "ms": 139
+  },
+  {
+    "file": "rare_sparse_p64k.parquet",
+    "test": "pages",
+    "haps_pages": 44,
+    "haps_page_KB_median": 55.4,
+    "rows_per_page_median": 17076
+  },
+  {
+    "file": "rare_sparse_p64k.parquet",
+    "test": "window 1Mb",
+    "rows": 16876,
+    "requests": 3,
+    "KB": 289,
+    "ms": 17
+  },
+  {
+    "file": "rare_sparse_p64k.parquet",
+    "test": "window 10Mb",
+    "rows": 168990,
+    "requests": 16,
+    "KB": 1729,
+    "ms": 138
+  },
+  {
+    "file": "rare_sparse_p64k.parquet",
+    "test": "points x30 across chr22",
+    "found": 30,
+    "ranges": 13,
+    "requests": 115,
+    "KB": 2981,
+    "KB_per_point": 99.4,
+    "ms": 209
+  },
+  {
+    "file": "rare_sparse_p64k.parquet",
+    "test": "points x300 across chr22",
+    "found": 300,
+    "ranges": 1,
+    "requests": 117,
+    "KB": 5990,
+    "KB_per_point": 20,
+    "ms": 549
+  },
+  {
+    "file": "rare_sparse_p64k.parquet",
+    "test": "points x300 within 10Mb",
+    "found": 301,
+    "ranges": 1,
+    "requests": 41,
+    "KB": 1875,
+    "KB_per_point": 6.2,
+    "ms": 168
+  }
+]

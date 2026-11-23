@@ -1,0 +1,21 @@
+{
+  "name": "test-sqlite",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/app.js",
+  "scripts": {
+    "build": "rollup -c rollup.config.js"
+  },
+  "dependencies": {
+    "sqlite-wasm-http": "^1.1.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@surma/rollup-plugin-off-main-thread": "^2.2.3",
+    "@web/rollup-plugin-import-meta-assets": "^1.0.7",
+    "rollup": "^3.19.1"
+  },
+  "author": "",
+  "license": "ISC"
+}

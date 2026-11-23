@@ -1,0 +1,65 @@
+{
+  "vcf": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz",
+  "records": 1103547,
+  "rows": 1109368,
+  "skipped_sv": 782,
+  "samples": 2504,
+  "seconds": 167.8,
+  "files": {
+    "tier_common_zstd3_p256k": {
+      "bytes": 26339254,
+      "rows": 170030,
+      "bytes_per_row": 154.9
+    },
+    "tier_low_zstd3_p256k": {
+      "bytes": 5578165,
+      "rows": 130583,
+      "bytes_per_row": 42.7
+    },
+    "tier_rare_zstd3_p256k": {
+      "bytes": 9462797,
+      "rows": 808755,
+      "bytes_per_row": 11.7
+    },
+    "tier_rare_sparse_zstd3_p256k": {
+      "bytes": 7485673,
+      "rows": 808755,
+      "bytes_per_row": 9.3
+    },
+    "bits_snappy_p64k": {
+      "bytes": 99920506,
+      "rows": 1109368,
+      "bytes_per_row": 90.1
+    },
+    "bits_gzip_p64k": {
+      "bytes": 62680164,
+      "rows": 1109368,
+      "bytes_per_row": 56.5
+    },
+    "bits_zstd3_p16k": {
+      "bytes": 73986711,
+      "rows": 1109368,
+      "bytes_per_row": 66.7
+    },
+    "bits_zstd3_p64k": {
+      "bytes": 58271113,
+      "rows": 1109368,
+      "bytes_per_row": 52.5
+    },
+    "bits_zstd3_p256k": {
+      "bytes": 48950446,
+      "rows": 1109368,
+      "bytes_per_row": 44.1
+    },
+    "bits_zstd3_p1m": {
+      "bytes": 43959408,
+      "rows": 1109368,
+      "bytes_per_row": 39.6
+    },
+    "sparse_zstd3_p64k": {
+      "bytes": 48747925,
+      "rows": 1109368,
+      "bytes_per_row": 43.9
+    }
+  }
+}

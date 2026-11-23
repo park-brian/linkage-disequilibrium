@@ -1,0 +1,29 @@
+// The data an LDlink module port needs, composed from the core: one planner (variant resolution + its file cache),
+// genotype rows, dbSNP find_one lookups, annotation tracks, population panels and kernel preparation.
+// Browser-ready apart from `open` and `readPanel`, which the caller supplies (node: local files; browser: Range requests).
+import { openPlanner } from "../planner.mjs";
+import { createGenotypes } from "../genotypes.mjs";
+import { createAnnotations } from "../annotations.mjs";
+
+/**
+ * @param {{ root: string, open: (path: string) => Promise<AsyncBuffer>, readPanel: (pop: string) => Promise<string[]>, kernel }} o
+ */
+export async function createContext({ root, open, readPanel, kernel }) {
+  const planner = await openPlanner(root, open), panels = new Map();
+  const genotypes = createGenotypes(planner.file), annotations = createAnnotations(planner.file);
+  /** population sample IDs: the union of the panels in "CEU+YRI" (LDlink: list(set(ids))) */
+  async function popIds(pop) {
+    if (!panels.has(pop)) panels.set(pop, (async () => new Set((await Promise.all(pop.split("+").map(readPanel))).flat()))());
+    return panels.get(pop);
+  }
+  /** prepare rows (possibly from several chromosomes, same sample order) for the kernel over a population */
+  async function prepare(build, rows, pop) {
+    const chroms = [...new Set(rows.map(r => r.chrom))], ss = await Promise.all(chroms.map(c => genotypes.samples(build, c)));
+    if (ss.some(s => s.ids.join() !== ss[0].ids.join())) throw new Error("sample order differs between chromosomes");
+    const ids = await popIds(pop), haploidMales = new Set(ss.flatMap(s => [...s.haploidMales]));
+    const hapIndexes = ss[0].ids.flatMap((s, i) => (ids.has(s) ? [2 * i, 2 * i + 1] : []));
+    return kernel.prepare(rows, { samples: ss[0].ids.length, haploidMales, hapIndexes });
+  }
+  return { planner, kernel, ...genotypes, ...annotations, popIds, prepare,
+    dbsnpAt: planner.resolver.findAt, dbsnpById: planner.resolver.findById, dbsnpAllAt: planner.resolver.findAllAt, duplicatedRsids: planner.resolver.duplicated };
+}
