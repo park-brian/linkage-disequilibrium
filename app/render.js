@@ -58,6 +58,13 @@ export async function showProxy(o, a, ctx) {
     onPoint: pt => { location.hash = moduleLink("LDpair", { var1: p.query.rs, var2: pt.row.rs, pop: join(a.pop), build: a.build }); } });
 }
 
+/** LDherit / LDcorrelation / LDscore: ldsc's log text as LDlink returns it, or the error */
+export function showLog(o, a) {
+  if (typeof o !== "string") return show([notice(o.error, true)]);
+  const pre = Object.assign(document.createElement("pre"), { textContent: o, className: "log" });
+  show([card("Result", toolbar(download("result.txt", o)), pre)]);
+}
+
 /** LDassoc: LDlink's figure (locus.js) above the table */
 export async function showAssoc(o, a, ctx) {
   if (o.error) return showText(o);

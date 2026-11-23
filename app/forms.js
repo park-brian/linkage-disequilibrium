@@ -11,8 +11,11 @@ import { ldtrait } from "../src/ldlink/ldtrait.js";
 import { ldexpress } from "../src/ldlink/ldexpress.js";
 import { ldassoc } from "../src/ldlink/ldassoc.js";
 import { POPS } from "../src/ldlink/common.js";
+import { ldherit } from "../src/ldlink/ldherit.js";
+import { ldcorrelation } from "../src/ldlink/ldcorrelation.js";
+import { ldscore } from "../src/ldlink/ldscore.js";
 import { region } from "./region.js";
-import { $, join, show, notice, showText, showPair, showPyramid, showMatrix, showProxy, showAssoc } from "./render.js";
+import { $, join, show, notice, showText, showPair, showPyramid, showMatrix, showProxy, showAssoc, showLog } from "./render.js";
 
 const EXAMPLE = ["rs13426489", "rs4442975", "rs13387042", "rs13412666", "rs6721996", "rs12465506", "rs12613955", "rs12620095"];
 const lines = s => s.split(/\r?\n/);
@@ -25,8 +28,18 @@ const f = {
   text: (name, label, value) => ({ name, type: "text", label, value }),
   annotate: () => ({ name: "annotate", type: "select", label: "Plot labels", options: [["forge", "FORGEdb score"], ["regulome", "RegulomeDB rank"], ["no", "none"]], value: ["forge"] }),
   transcripts: () => ({ name: "collapse", type: "select", label: "Genes", options: [["yes", "collapse transcripts"], ["no", "all transcripts"]], value: ["yes"] }),
+  ldscPop: () => ({ name: "pop", type: "select", label: "LD score population", options: LDSC_POPS, value: ["EUR"] }),
+  scale: () => ({ name: "scale", type: "select", label: "Scale", options: ["observed", "liability"], value: ["observed"] }),
   tissues: (label = "Tissues") => ({ name: "tissues", type: "select", label, options: [], multiple: true, value: ["Whole_Blood", "Lung"], source: "tissues" }),
 };
+
+// LDlink's LD score populations (client/src/components/select/ldscore-pop-select.tsx)
+const LDSC_POPS = ["EUR", "EAS", "AFR", "AMR", "ASJ", "EST", "FIN", "NFE", "NWE", "SEU"];
+/** a sumstats input: the uploaded file, or LDlink's example from the release → { text, filename, isExample } */
+async function sumstats(ctx, file, example) {
+  if (file) return { text: await file.text(), filename: file.name, isExample: false };
+  return { text: await (await fetch(`${ctx.root}/examples/${example}`)).text(), filename: example, isExample: true };
+}
 
 export const MODULES = {
   Pyramid: {
@@ -75,10 +88,43 @@ export const MODULES = {
         window: a.region === "region" ? undefined : +a.window, pop: join(a.pop), build: a.build }, { plot: true, stat: a.r2_d });
     },
   },
+  LDherit: {
+    fields: [{ name: "file", type: "file", label: "Summary statistics (blank: LDlink's example)" },
+      { name: "example", type: "select", label: "Example", options: ["BBJ_HDLC22.txt", "BBJ_LDLC22.txt"], value: ["BBJ_HDLC22.txt"] },
+      f.ldscPop(), f.scale(), f.text("samp_prev", "Sample prevalence (liability)", ""), f.text("pop_prev", "Population prevalence (liability)", "")],
+    show: showLog,
+    run: async (ctx, a) => ldherit(ctx, { ...(await sumstats(ctx, a.file, a.example)), pop: a.pop, scale: a.scale, samp_prev: a.samp_prev, pop_prev: a.pop_prev }),
+  },
+  LDcorrelation: {
+    fields: [{ name: "file", type: "file", label: "Summary statistics 1 (blank: example)" },
+      { name: "example", type: "select", label: "Example 1", options: ["BBJ_HDLC22.txt", "BBJ_LDLC22.txt"], value: ["BBJ_HDLC22.txt"] },
+      { name: "file2", type: "file", label: "Summary statistics 2 (blank: example)" },
+      { name: "example2", type: "select", label: "Example 2", options: ["BBJ_HDLC22.txt", "BBJ_LDLC22.txt"], value: ["BBJ_LDLC22.txt"] },
+      f.ldscPop(), f.scale(), f.text("samp_prev", "Sample prevalences (two, comma-separated)", ""), f.text("pop_prev", "Population prevalences (two)", "")],
+    show: showLog,
+    run: async (ctx, a) => {
+      const s1 = await sumstats(ctx, a.file, a.example), s2 = await sumstats(ctx, a.file2, a.example2);
+      return ldcorrelation(ctx, { text: s1.text, filename: s1.filename, text2: s2.text, filename2: s2.filename, isExample: s1.isExample && s2.isExample,
+        pop: a.pop, scale: a.scale, samp_prev: a.samp_prev, pop_prev: a.pop_prev });
+    },
+  },
+  LDscore: {
+    fields: [{ name: "files", type: "file", multiple: true, label: "PLINK .bed, .bim, .fam (blank: LDlink's chromosome 22 example)" },
+      f.num("ldwindow", "Window", 1), { name: "windUnit", type: "select", label: "Window unit", options: [["cm", "cM"], ["kb", "kb"]], value: ["cm"] }],
+    show: showLog,
+    run: async (ctx, a) => {
+      const picked = a.files?.length ? a.files : null, names = picked ? picked.map(f => f.name) : ["22.bed", "22.bim", "22.fam"], files = {};
+      for (const [k, n] of names.entries()) {
+        const blob = picked ? picked[k] : await (await fetch(`${ctx.root}/examples/${n}`)).blob();
+        files[n] = n.endsWith(".bed") ? new Uint8Array(await blob.arrayBuffer()) : await blob.text();
+      }
+      return ldscore({ filename: names.join(","), ldwindow: a.ldwindow, windUnit: a.windUnit, isExample: !picked, files });
+    },
+  },
 };
 
 /** a field; `given` (from the hash query) replaces its default: text as is, selections split on "+" */
-function field(fd, context, given) {
+function field(fd, context, given, loading) {
   if (given != null) fd = { ...fd, value: fd.type === "select" ? given.split("+") : given };
   let el;
   if (fd.type === "textarea") { el = document.createElement("textarea"); el.value = fd.value; }
@@ -87,12 +133,12 @@ function field(fd, context, given) {
     // value "all" selects every option (SNPchip: LDlink's form starts with all platforms, client/src/app/snpchip/form.tsx)
     const fill = opts => el.replaceChildren(...opts.map(o => { const [v, t] = Array.isArray(o) ? o : [o, o]; const op = new Option(t, v); op.selected = fd.value === "all" || fd.value.includes(v); return op; }));
     fill(fd.options);
-    if (fd.source) context().then(async ctx => fill(fd.source === "platforms" ? (await ctx.platforms()).map(p => [p.code, p.platform]) : await ctx.gtexTissueIds()));
-  } else { el = document.createElement("input"); el.type = fd.type; if (fd.value !== undefined) el.value = fd.value; if (fd.type === "number") el.step = "any"; }
+    if (fd.source) loading.push(context().then(async ctx => fill(fd.source === "platforms" ? (await ctx.platforms()).map(p => [p.code, p.platform]) : await ctx.gtexTissueIds())));
+  } else { el = document.createElement("input"); el.type = fd.type; if (fd.value !== undefined) el.value = fd.value; if (fd.type === "number") el.step = "any"; if (fd.multiple) el.multiple = true; }
   el.name = fd.name;
   return el;
 }
-const value = (fd, el) => (fd.type === "select" ? (fd.multiple ? [...el.selectedOptions].map(o => o.value) : el.value) : fd.type === "file" ? el.files[0] : el.value);
+const value = (fd, el) => (fd.type === "select" ? (fd.multiple ? [...el.selectedOptions].map(o => o.value) : el.value) : fd.type === "file" ? (fd.multiple ? [...el.files] : el.files[0]) : el.value);
 
 /** a module's inputs as the hash query: every field but files, selections joined with "+" */
 export const toQuery = (name, a) => new URLSearchParams(Object.entries(a).filter(([k]) => MODULES[name].fields.some(fd => fd.name === k && fd.type !== "file"))
@@ -105,7 +151,8 @@ export const toQuery = (name, a) => new URLSearchParams(Object.entries(a).filter
 export function buildForm(name, { context, status, query = new URLSearchParams() }) {
   const form = $("#form"), m = MODULES[name];
   form.replaceChildren();
-  for (const fd of m.fields) { const label = document.createElement("label"); label.textContent = fd.label; label.append(field(fd, context, query.get(fd.name))); form.append(label); }
+  const loading = []; // option lists read from the release (SNPchip arrays, GTEx tissues)
+  for (const fd of m.fields) { const label = document.createElement("label"); label.textContent = fd.label; label.append(field(fd, context, query.get(fd.name), loading)); form.append(label); }
   const go = document.createElement("button"); go.type = "submit"; go.textContent = `Run ${name}`; form.append(go);
   form.onsubmit = async e => {
     e.preventDefault(); go.disabled = true;
@@ -119,5 +166,5 @@ export function buildForm(name, { context, status, query = new URLSearchParams()
     } catch (err) { console.error(err); show([notice(String(err?.stack ?? err), true)]); status("error"); }
     finally { go.disabled = false; }
   };
-  if (query.get("run") === "1") form.requestSubmit(go);
+  if (query.get("run") === "1") Promise.all(loading).then(() => form.requestSubmit(go)); // run once the options are there
 }

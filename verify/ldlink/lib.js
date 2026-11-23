@@ -38,7 +38,7 @@ export function drive(name, cases) {
   const tmp = CONFIG.LDLINK_TMP, inFile = `${name}_cases.json`, outFile = `${name}_cases.out.jsonl`;
   writeFileSync(`${tmp}/${inFile}`, JSON.stringify(cases));
   execFileSync("docker", ["compose", "exec", "-T", "backend", "python3.13", "-", `/data/tmp/${inFile}`, `/data/tmp/${outFile}`],
-    { cwd: CONFIG.LDLINK_HOME, input: readFileSync(CONFIG.repo("tools/ldlink-local/drive.py")), env: { ...process.env, MSYS_NO_PATHCONV: "1" }, maxBuffer: 1 << 28, stdio: ["pipe", "ignore", "ignore"] });
+    { cwd: CONFIG.LDLINK_HOME, input: readFileSync(CONFIG.repo("tools/ldlink-local/drive.py")), env: { ...process.env, MSYS_NO_PATHCONV: "1", LD_DATA: CONFIG.DATA } /* the kit's compose file mounts ${LD_DATA}/ldscore_src */, maxBuffer: 1 << 28, stdio: ["pipe", "ignore", "ignore"] });
   return readFileSync(`${tmp}/${outFile}`, "utf8").trim().split("\n").map(l => JSON.parse(l));
 }
 /** LDproxy's JSON side file for a request reference (its warning is not in the API text) */
