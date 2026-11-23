@@ -58,5 +58,6 @@ for (const [rel, runsOf] of [...scripts].sort()) {
   const tail = missedToo && spans.length ? `  missed: ${spans.join(" ")}` : "";
   console.log(`${(100 * covered / counted).toFixed(1).padStart(5)}%  ${rel} (${covered}/${counted})${tail}`);
 }
-console.log(`${(100 * hit / all).toFixed(1).padStart(5)}%  total (${hit}/${all} lines with code)`);
+if (all) console.log(`${(100 * hit / all).toFixed(1).padStart(5)}%  total (${hit}/${all} lines with code)`);
+else { console.log(`no coverage for files under ${include}`); process.exitCode ||= 1; }
 if (run) rmSync(dir, { recursive: true, force: true });
