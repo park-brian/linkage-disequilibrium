@@ -12,7 +12,11 @@ import { decodeHaps } from "../haps.js";
 import { TITLE } from "../genome.js";
 import { POPS, POP_ERROR, chrYMessage, vcfAlleles, vcfId, addCoordWarning, rsAnnotations, table2x2, chunkedWindow, countsAgainst } from "./common.js";
 
-export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window = 500000, build = "grch37", chunks = 4 }) {
+/**
+ * → { text, warning? } or { error }. With { plot: true }, also `plot`: LDlink's figure rows (LDcommon.ldproxy_figure) — every
+ * sorted row with R² > 0.01, including the ones the text leaves out (RS equal to the query), each with both MAFs.
+ */
+export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window = 500000, build = "grch37", chunks = 4 }, { plot = false } = {}) {
   const snp0 = input.toLowerCase().trim(), o = {};
   // the REST layer's checks (LDlink.py _validate_common_parameters) come first
   if (!["r2", "d"].includes(r2_d)) return { error: "Invalid r2_d parameter." };
@@ -47,7 +51,7 @@ export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window =
     const [A, B, C, D] = cnt.get(x), N = A + B + C + D, t = table2x2(A, B, C, D); if (!t) continue;
     const { dprime, r2 } = t, [pa0, pa1] = vcfAlleles(x.ref, x.alt);
     const match = r2 > 0.1 ? ((A * D) / Math.max(B * C, 0.01) > 1 ? `${qa0}=${pa0},${qa1}=${pa1}` : `${qa0}=${pa1},${qa1}=${pa0}`) : "NA";
-    out.push({ x, dist: x.pos - q.pos, dprime, r2, match, maf: Math.min((A + C) / N, (B + D) / N), id: vcfId(x) });
+    out.push({ x, dist: x.pos - q.pos, dprime, r2, match, maf: Math.min((A + C) / N, (B + D) / N), mafq: Math.min((A + B) / N, (C + D) / N), id: vcfId(x) });
   }
   const byStat = r2_d === "d" ? "dprime" : "r2";
   out.sort((a, b) => Math.abs(a.dist) - Math.abs(b.dist)).sort((a, b) => b[byStat] - a[byStat]);
@@ -66,5 +70,10 @@ export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window =
     forgeOf(e)?.toString() ?? "NA", rg.get(e.x.pos) ?? ".", e.func ?? "NA"].join("\t");
   const text = ["RS_Number\tCoord\tAlleles\tMAF\tDistance\tDprime\tR2\tCorrelated_Alleles\tFORGEdb\tRegulomeDB\tFunction", line(out[0], true),
     ...out.slice(1).filter(e => e.r2 > 0.01 && e.rs !== snp).map(e => line(e, false))].join("\n") + "\n";
-  return { text, ...(o.warning !== undefined ? { warning: o.warning } : {}) };
+  const res = { text, ...(o.warning !== undefined ? { warning: o.warning } : {}) };
+  if (plot) res.plot = { chrom: v.chrom, query: { rs: snp, pos: q.pos, alleles: vcfAlleles(q.ref, q.alt).join("/") }, lo: Math.max(0, v.pos - window), hi: v.pos + window, stat: r2_d,
+    rows: out.filter(e => e.r2 > 0.01).map(e => ({ rs: e.rs === "." ? `chr${v.chrom}:${e.x.pos}` : e.rs, pos: e.x.pos, alleles: vcfAlleles(e.x.ref, e.x.alt).join("/"),
+      dist: e.dist, r2: e.r2, dprime: e.dprime, match: e.match, mafq: e.mafq, maf: e.maf, forge: forgeOf(e) ?? null, regulome: rg.get(e.x.pos) ?? null,
+      func: e.func === "." ? "" : e.func == null || e.func === "NA" ? "none" : e.func })) }; // func as printed, with LDlink's fix-ups
+  return res;
 }

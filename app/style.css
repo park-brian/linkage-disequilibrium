@@ -28,3 +28,6 @@ canvas { display: block; max-width: 100%; }
 .tip { position: fixed; pointer-events: none; background: #1d2330; color: #fff; padding: .3rem .5rem; border-radius: 5px; font-size: .8rem; white-space: pre; z-index: 10; }
 @media (max-width: 800px) { main { grid-template-columns: 1fr; } form { position: static; } }
 .note { margin: .5rem 0 0; color: var(--muted); }
+.linkmenu { position: fixed; z-index: 20; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.12); padding: 4px 0; font-size: 13px; }
+.linkmenu a { padding: 5px 12px; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.linkmenu a:hover { background: rgba(0,0,0,.05); }

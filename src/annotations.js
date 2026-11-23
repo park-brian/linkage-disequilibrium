@@ -101,10 +101,24 @@ export function createAnnotations(file) {
       columns: ["key", "txStart", "txEnd", "name", "name2", "strand", "cdsStart", "cdsEnd", "exonStarts", "exonEnds"] });
     return rows.filter(r => r.txEnd >= lo);
   }
+  /** FORGEdb scores of the rsIDs whose first dbSNP doc lies in [lo, hi] (forge.parquet, file order) → [{ pos, rsid, score }] */
+  async function forgeRange(build, chrom, lo, hi) {
+    const { file: f, metadata } = await file(`annotations/${BUILDS[build].positions}/forge.parquet`);
+    return (await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "rsid", "score"], compressors }))
+      .map(r => ({ pos: keyPos(r.key), rsid: r.rsid, score: r.score }));
+  }
+  /** RegulomeDB ranks in [lo, hi]: the first row per position, as find_one({chromosome, position}) → [{ pos, score }] */
+  async function regulomeRange(build, chrom, lo, hi) {
+    const { file: f, metadata } = await file(`annotations/${BUILDS[build].positions}/regulome.parquet`), seen = new Set(), out = [];
+    for (const r of await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "score"], compressors })) {
+      const pos = keyPos(r.key); if (!seen.has(pos)) { seen.add(pos); out.push({ pos, score: r.score }); }
+    }
+    return out;
+  }
   /** recombination rate points (cM/Mb) at positions in [lo, hi] */
   async function recomb(build, chrom, lo, hi) {
     const { file: f, metadata } = await file(`annotations/${BUILDS[build].positions}/recomb.parquet`);
     return (await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "rate"], compressors })).map(r => ({ pos: keyPos(r.key), rate: r.rate }));
   }
-  return { genes, recomb, forge, forgeAt, regulome, platforms, panels, arrays, gwas, eqtl, eqtlRange, gene, gtexTissueIds: async () => [...(await gtexRefs()).tissues.keys()] };
+  return { genes, recomb, forge, forgeAt, forgeRange, regulome, regulomeRange, platforms, panels, arrays, gwas, eqtl, eqtlRange, gene, gtexTissueIds: async () => [...(await gtexRefs()).tissues.keys()] };
 }

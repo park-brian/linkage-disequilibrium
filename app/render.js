@@ -2,6 +2,7 @@
 // pyramid views).
 import { renderMatrix } from "./views/matrix.js";
 import { renderPyramid } from "./views/pyramid.js";
+import { renderLocus, proxySpec, assocSpec } from "./views/locus.js";
 
 export const $ = (sel, el = document) => el.querySelector(sel);
 export const join = v => (Array.isArray(v) ? v.join("+") : v);
@@ -33,6 +34,41 @@ export function showText(o) {
   show(out);
 }
 
+/** a link into another module: #<Module>?<inputs>&run=1 (main.js routes it, the form runs) */
+export const moduleLink = (name, inputs) => `#${name}?${new URLSearchParams({ ...inputs, run: "1" })}`;
+/** a small menu of links at the pointer (closes on the next click elsewhere or Escape) */
+function linkMenu(e, links) {
+  document.querySelector(".linkmenu")?.remove();
+  const m = Object.assign(document.createElement("div"), { className: "linkmenu" });
+  for (const [text, href] of links) m.append(Object.assign(document.createElement("a"), { textContent: text, href, onclick: () => m.remove() }));
+  m.style.left = `${e.clientX + 8}px`; m.style.top = `${e.clientY + 8}px`;
+  document.body.append(m);
+  const close = ev => { if (ev.type === "keydown" ? ev.key === "Escape" : !m.contains(ev.target)) { m.remove(); removeEventListener("click", close, true); removeEventListener("keydown", close); } };
+  setTimeout(() => { addEventListener("click", close, true); addEventListener("keydown", close); });
+}
+
+/** LDproxy: LDlink's figure (locus.js) above the table */
+export async function showProxy(o, a, ctx) {
+  if (o.error) return showText(o);
+  const p = o.plot, [genes, recomb] = await Promise.all([ctx.genes(a.build, p.chrom, p.lo, p.hi), ctx.recomb(a.build, p.chrom, p.lo, p.hi)]);
+  const holder = document.createElement("div");
+  showText(o);
+  $("#output").prepend(card(`LDproxy — ${p.rows.length.toLocaleString()} variants with R² > 0.01 (${join(a.pop)}, ${a.build})`, holder));
+  renderLocus(holder, { ...proxySpec(p, { pop: join(a.pop), annotate: a.annotate, genes, recomb, collapsed: a.collapse !== "no" }),
+    onPoint: pt => { location.hash = moduleLink("LDpair", { var1: p.query.rs, var2: pt.row.rs, pop: join(a.pop), build: a.build }); } });
+}
+
+/** LDassoc: LDlink's figure (locus.js) above the table */
+export async function showAssoc(o, a, ctx) {
+  if (o.error) return showText(o);
+  const p = o.plot, [genes, recomb] = await Promise.all([ctx.genes(a.build, p.chrom, p.lo, p.hi), ctx.recomb(a.build, p.chrom, p.lo, p.hi)]);
+  const holder = document.createElement("div");
+  showText(o);
+  $("#output").prepend(card(`LDassoc — ${p.rows.length.toLocaleString()} variants in 1000G, ${p.missing.length.toLocaleString()} not (${join(a.pop)}, ${a.build})`, holder));
+  renderLocus(holder, { ...assocSpec(p, { pop: join(a.pop), annotate: a.annotate, genes, recomb, collapsed: a.collapse !== "no" }),
+    onPoint: pt => { if (pt.row) location.hash = moduleLink("LDpair", { var1: p.index.rs, var2: pt.row.rs, pop: join(a.pop), build: a.build }); } });
+}
+
 export function showPair(o) {
   if (!Array.isArray(o)) return show([notice(o.error, true)]);
   const p = o[0], s1 = p.snp1, s2 = p.snp2, c = p.two_by_two.cells;
@@ -52,7 +88,9 @@ export function showPyramid(o, a) {
   const bar = toolbar(`chr${o.chrom}:${o.lo.toLocaleString()}–${o.hi.toLocaleString()} · ${o.rows.length.toLocaleString()} variants · ${o.evaluated.toLocaleString()} pairs evaluated, ${o.pairs.toLocaleString()} ≥ ${a.threshold} · data ${o.tData} ms, LD + pixels ${o.ms.wall} ms on ${o.workers} worker${o.workers > 1 ? "s" : ""} (${o.backend}; slowest share ${o.ms.kernel} + ${o.ms.aggregate} ms), merge ${o.ms.merge} ms`);
   const holder = document.createElement("div");
   show([card(`LD pyramid — ${a.r2_d === "r2" ? "r²" : "D′"}, ${join(a.pop)}, ${a.build} (each pixel: the strongest pair there)`, bar, holder)]);
-  renderPyramid(holder, { ...o, stat: a.r2_d });
+  const ctx = { pop: join(a.pop), build: a.build };
+  renderPyramid(holder, { ...o, stat: a.r2_d, onPair: (v1, v2, e) => linkMenu(e, [[`LDpair: ${v1} × ${v2}`, moduleLink("LDpair", { var1: v1, var2: v2, ...ctx })],
+    [`LDproxy: ${v1}`, moduleLink("LDproxy", { var: v1, ...ctx })], [`LDproxy: ${v2}`, moduleLink("LDproxy", { var: v2, ...ctx })]]) });
 }
 
 export async function showMatrix(o, a, ctx) {

@@ -25,9 +25,11 @@ const PYINT = /^\s*[+-]?\d(_?\d)*\s*$/;
 
 /**
  * @param {{ text: string, columns: [chr, bp, pval], region: "variant"|"gene"|"region", origin?, window?, name?, start?, end?, pop, build }} a
+ * @param {{ plot?: boolean, stat?: "r2" | "d" }} [opts] plot: also return LDlink's figure rows (server/LDassoc.py): every sorted row,
+ *   and the association positions not in 1000G with their p-values; stat colours the points (LDassoc's --dprime)
  * @returns {{ text?, error?, warning? }}
  */
-export async function ldassoc(ctx, a) {
+export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
   const { build, pop } = a, o = {}, W = m => { o.warning = o.warning === undefined ? m : `${o.warning}. ${m}`; };
   const fail = error => ({ error, ...(o.warning !== undefined ? { warning: o.warning } : {}) });
   if (a.region === "variant" && a.origin == null) return fail("--origin required when --variant is specified.");
@@ -164,5 +166,14 @@ export async function ldassoc(ctx, a) {
   if (o.error !== undefined) return fail(o.error);
   const text = ["RS_Number\tCoord\tAlleles\tMAF\tDistance\tDprime\tR2\tCorrelated_Alleles\tP-value\tFORGEdb\tRegulomeDB\tFunction", line(out[0], true),
     ...out.slice(1).filter(e => e.rs !== snp).map(e => line(e, false))].join("\n") + "\n";
-  return { text, ...(o.warning !== undefined ? { warning: o.warning } : {}) };
+  const res = { text, ...(o.warning !== undefined ? { warning: o.warning } : {}) };
+  if (plot) {
+    const plotted = new Set(out.map(e => e.x.pos));
+    res.plot = { chrom: chromosome, index: { rs: snp, pos: q.pos }, lo: c1, hi: c2, stat,
+      rows: out.map(e => ({ rs: e.rs === "." ? `chr${chromosome}:${e.x.pos}` : e.rs, pos: e.x.pos, alleles: vcfAlleles(e.x.ref, e.x.alt).join("/"), dist: e.dist,
+        r2: e.r2, dprime: e.dprime, match: e.match, maf: e.mafp, p: e.p, forge: forgeOf(e) ?? null, regulome: rg.get(e.x.pos) ?? null,
+        func: e.func === "." ? "" : e.func == null || e.func === "NA" ? "none" : e.func })), // func with LDlink's fix-ups
+      missing: [...new Set(assoc.map(([pos]) => pos))].filter(pos => !plotted.has(pos)).map(pos => ({ pos, p: pyFloat(pval.get(pos)) })) };
+  }
+  return res;
 }

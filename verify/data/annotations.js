@@ -99,4 +99,23 @@ for (const b of ["37", "38"]) {
   for (const c of cases) { const got = first.get(c.snp_id.replace(/^rs/, "")); const exp = c.expected == null ? undefined : Number(c.expected); if (got !== exp) bad.push({ ...c, got }); }
   tally("forge_rsid", cases.length, bad);
 }
+{ // the region view's range readers (src/annotations.js forgeRange / regulomeRange) against hyparquet's own filtered read
+  const { createAnnotations } = await import("../../src/annotations.js");
+  const ann = createAnnotations(open), bad = [];
+  const WINDOWS = [["grch37", "22", 30_000_000, 31_000_000], ["grch37", "X", 2_600_000, 3_200_000], ["grch38", "8", 127_700_000, 128_200_000], ["grch38", "1", 0, 600_000]];
+  let cases = 0;
+  for (const [b, c, lo, hi] of WINDOWS) {
+    const base = `annotations/${b}`, klo = key(c, lo), khi = key(c, hi), pos = k => Number(BigInt(k) % 1_000_000_000n);
+    const fExp = (await range(`${base}/forge.parquet`, klo, khi, ["key", "rsid", "score"])).map(r => ({ pos: pos(r.key), rsid: r.rsid, score: r.score }));
+    const fGot = await ann.forgeRange(b, c, lo, hi);
+    const seen = new Set(), rExp = [];
+    for (const r of await range(`${base}/regulome.parquet`, klo, khi, ["key", "score"])) if (!seen.has(pos(r.key))) { seen.add(pos(r.key)); rExp.push({ pos: pos(r.key), score: r.score }); }
+    const rGot = await ann.regulomeRange(b, c, lo, hi);
+    cases += fExp.length + rExp.length;
+    if (JSON.stringify(fGot, (k, v) => (typeof v === "bigint" ? String(v) : v)) !== JSON.stringify(fExp, (k, v) => (typeof v === "bigint" ? String(v) : v))) bad.push({ track: "forge", b, c, lo, hi, got: fGot.length, expected: fExp.length });
+    if (JSON.stringify(rGot) !== JSON.stringify(rExp)) bad.push({ track: "regulome", b, c, lo, hi, got: rGot.length, expected: rExp.length });
+    if (!fExp.length || !rExp.length) bad.push({ empty: true, b, c, lo, hi, forge: fExp.length, regulome: rExp.length });
+  }
+  tally("range_tracks", cases, bad);
+}
 writeFileSync(`${root}/annotations/parity_report.json`, JSON.stringify(report, null, 2));

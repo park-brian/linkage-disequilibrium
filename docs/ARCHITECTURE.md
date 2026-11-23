@@ -57,13 +57,18 @@ haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regr
 
 - **`index.html`:** an import map for `hyparquet*` (no bundler).
 - **`site.js`:** where the release is: `?data=<url>`, else the URL `tools/build_site.js` wrote, else `../release`.
-- **`main.js`:** the core in the page (kernel and release) and navigation.
-- **`forms.js`:** the module table: each module's fields, the port it calls, how its result is shown.
-- **`render.js`:** outputs as LDlink prints them (text blocks → tables, LDpair, the matrix and pyramid cards).
+- **`main.js`:** the core in the page (kernel and release) and routing: `#<Module>` or `#<Module>?<inputs>[&run=1]`.
+- **`forms.js`:** the module table: each module's fields, the port it calls, how its result is shown. A form fills
+  from the hash query and writes its inputs back when it runs, so results can be bookmarked and linked.
+- **`render.js`:** outputs as LDlink prints them (text blocks → tables, LDpair, the matrix, pyramid and locus
+  cards), and the links between views (a pyramid pair → LDpair / LDproxy; a locus point → LDpair).
 - **`region.js`:** the region view's data (window rows and tracks), LD + pixels on the worker pool.
 - **`views/`:**
+  - `tracks.js`: annotation tracks on one genomic axis (GWAS, eQTL, FORGEdb / RegulomeDB, recombination, genes
+    collapsed or per transcript, the axis), shared by the region view and the locus plots;
   - `matrix.js`: the LDmatrix plot;
-  - `pyramid.js`: the region tracks + pyramid.
+  - `pyramid.js`: the region view (tracks + pyramid);
+  - `locus.js`: LDlink's LDproxy and LDassoc figures (points, recombination, labels, rug, genes).
 - **`workers/`:**
   - `pyramid.js`: band + pixel aggregation in a worker;
   - `pool.js`: shares of equal pair counts, merged by pixel max, deterministic ties.

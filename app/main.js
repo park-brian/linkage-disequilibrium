@@ -25,13 +25,23 @@ function context() {
   })());
 }
 
+// routes: #<Module> or #<Module>?<field>=<value>&…[&run=1] (forms.js toQuery); a module button opens a fresh form
 const nav = $("#modules");
+function open(name, query) {
+  for (const x of nav.children) if (x.textContent === name) x.setAttribute("aria-current", "page"); else x.removeAttribute("aria-current");
+  buildForm(name, { context, status, query });
+  show([]);
+}
 for (const name of Object.keys(MODULES)) {
   const b = document.createElement("button"); b.type = "button"; b.textContent = name;
-  b.onclick = () => { for (const x of nav.children) x.removeAttribute("aria-current"); b.setAttribute("aria-current", "page"); buildForm(name, { context, status }); history.replaceState(null, "", `#${name}`); show([]); };
+  b.onclick = () => { history.replaceState(null, "", `${location.search}#${name}`); open(name, new URLSearchParams()); };
   nav.append(b);
 }
-const route = () => { const name = MODULES[location.hash.slice(1)] ? location.hash.slice(1) : "LDmatrix"; [...nav.children].find(b => b.textContent === name).click(); };
+const route = () => {
+  const [head, q = ""] = location.hash.slice(1).split("?"), name = MODULES[head] ? head : "LDmatrix";
+  if (!MODULES[head]) history.replaceState(null, "", `${location.search}#${name}`);
+  open(name, new URLSearchParams(q));
+};
 window.addEventListener("hashchange", route);
 route();
 status("loading core…"); context().catch(err => { console.error(err); status("failed to load the release"); show([notice(String(err), true)]); });
