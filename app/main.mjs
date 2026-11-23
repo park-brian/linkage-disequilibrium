@@ -14,9 +14,9 @@ import { ldtrait } from "../src/ldlink/ldtrait.mjs";
 import { ldexpress } from "../src/ldlink/ldexpress.mjs";
 import { ldassoc } from "../src/ldlink/ldassoc.mjs";
 import { POPS } from "../src/ldlink/common.mjs";
-import { renderMatrix } from "./matrix_view.mjs";
-import { renderPyramid } from "./pyramid_view.mjs";
-import { pyramid } from "./pyramid_pool.mjs";
+import { renderMatrix } from "./views/matrix.mjs";
+import { renderPyramid } from "./views/pyramid.mjs";
+import { pyramid } from "./workers/pool.mjs";
 
 const RELEASE = new URL("../release", location.href).href.replace(/\/$/, ""), PANELS = new URL("../panels/", location.href).href;
 const EXAMPLE = ["rs13426489", "rs4442975", "rs13387042", "rs13412666", "rs6721996", "rs12465506", "rs12613955", "rs12620095"];

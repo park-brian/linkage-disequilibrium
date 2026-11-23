@@ -1,8 +1,16 @@
 {
-  "name": "ld-parquet-experiments",
+  "name": "linkage-disequilibrium",
   "private": true,
   "type": "module",
-  "description": "Size/speed experiments for LDlink data as Parquet (hyparquet + hyparquet-writer)",
+  "description": "Browser-only LDlink: 1000 Genomes LD from static Parquet files (hyparquet), WASM + JS kernel, byte-for-byte LDlink parity",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "verify": "bash verify/run.sh data",
+    "verify:ldlink": "bash verify/run.sh ldlink",
+    "bench": "node bench/js_vs_wasm.mjs",
+    "build:kernel": "bash src/ld/build.sh"
+  },
   "dependencies": {
     "hyparquet": "^1.33.1",
     "hyparquet-compressors": "^1.1.3",

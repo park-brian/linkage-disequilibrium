@@ -1,0 +1,27 @@
+# Local LDlink for parity testing (see tools/ldlink-local/README.md in the linkage-disequilibrium repo). Builds LDlink's own backend image from the unmodified
+# checkout; mounts a copy of server/ patched only to read the 1000G VCFs from /data (patch_local_vcf.py).
+services:
+  mongo:
+    image: mongo:7
+    command: ["--wiredTigerCacheSizeGB", "16"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD in .env}
+    volumes:
+      - ./mongo:/data/db
+      - ./dump:/dump:ro
+    ports:
+      - "127.0.0.1:27018:27017"
+  backend:
+    build:
+      context: ${LDLINK_SRC:-../nci-webtools-dceg-linkage}
+      dockerfile: docker/backend.dockerfile
+    platform: linux/amd64
+    env_file: [server.env]
+    depends_on: [mongo]
+    volumes:
+      - ./server:/opt/ldlink
+      - ./data:/data
+      - ./logs:/logs
+    ports:
+      - "127.0.0.1:8090:80"
