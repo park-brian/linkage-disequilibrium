@@ -6,7 +6,7 @@ import { resolve, dirname } from "node:path";
 import { REPO } from "./config.mjs";
 
 const TOP = ["src", "app", "pipeline", "verify", "test", "bench", "tools", "docs"];
-const ACTIVE_PLAN = "RESTRUCTURE.md"; // names files it will create; checked once it moves to history
+const ACTIVE_PLAN = "PLAN.md"; // names files it will create; checked once it moves to history
 const docs = ["README.md", "AGENTS.md", "src/README.md", ...readdirSync(resolve(REPO, "docs")).filter(f => f.endsWith(".md") && f !== ACTIVE_PLAN).map(f => `docs/${f}`)];
 
 /** → [{ doc, path }] for every named repo path that does not exist */

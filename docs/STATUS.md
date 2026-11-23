@@ -55,14 +55,11 @@ Slices 0–6 are done, one commit each, on branch `restructure`; not pushed. Whe
 §12 says so: `genotypes.calls` and `pyFloat` were not extracted, hyparquet's native page pruning was not evaluated,
 and genome keys stay BigInt where they meet INT64 columns.
 
-## After that (Phase C, the app)
+## Next: Phase C and hosting ([PLAN.md](PLAN.md))
 
-- FORGEdb / RegulomeDB tracks;
-- LDproxy and LDassoc locus plots;
-- a link from a pyramid pair to LDproxy;
-- the LDscore views;
-- population panels inside the release;
-- hosting (Phase D: CloudFront + HTTP/2, which needs your decision).
+Self-contained release, a static site for GitHub Pages, locus plots, region scores, links between views, the
+LDscore family, SNPchip defaults, and an evaluation of hyparquet's page pruning. Outward steps wait for your OK
+(PLAN.md §6).
 
 ## Open decisions (yours)
 
