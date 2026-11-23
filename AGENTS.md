@@ -40,7 +40,7 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 | `src/parquet.mjs`, `dbsnp.mjs`, `genotypes.mjs`, `planner.mjs`, `annotations.mjs` | `npm run verify` (planner, parity, annotations, select) |
 | `src/ld/*` | `npm test` (K tests, both backends) + `npm run verify` (kernel chr1 + chrX) |
 | `src/ldsc/*` | `npm run verify` (ldsc steps) |
-| `src/ldlink/*` | `npm run verify:ldlink` (or one comparer: `node verify/ldlink/compare_<module>.mjs …`) |
+| `src/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.mjs <module>`) |
 | `app/*` | `npm run serve`, then `/app/check.html` (18/18) and the views you touched |
 | `pipeline/*` | the stage on one chromosome, then `node pipeline/release/check.mjs <root>` |
 

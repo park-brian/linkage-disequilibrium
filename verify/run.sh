@@ -6,9 +6,9 @@
 set -uo pipefail
 . "$(dirname "$0")/../tools/config.sh"
 WHAT=${1:-data}
-V="$REPO/verify" L="$LD_DATA/verify" C="$REPO/verify/ldlink/cases/ldmatrix_cases.json" R="$LD_DATA/verify/ldlink"
+V="$REPO/verify" L="$LD_DATA/verify"
 G="$LD_VCF/GRCh37" REL=${LD_RELEASE#$LD_DATA/}
-mkdir -p "$L" "$R"; cd "$LD_DATA"; [ "$WHAT" = ldlink ] || : > "$L/summary.txt"
+mkdir -p "$L"; cd "$LD_DATA"; [ "$WHAT" = ldlink ] || : > "$L/summary.txt"
 step() { # name cmd...
   local name=$1; shift; local t0=$(date +%s)
   "$@" > "$L/$name.log" 2>&1; local s=$?
@@ -28,15 +28,6 @@ if [ "$WHAT" != ldlink ]; then
   step ldsc_regress   node "$V/ldsc/regress.mjs" ldsc_runs/h2rg "$REL/ldscore"
 fi
 if [ "$WHAT" != data ]; then
-  step ldmatrix       node "$V/ldlink/compare_ldmatrix.mjs" "$C" "$R/ldmatrix.json"
-  step ldpair         node "$V/ldlink/compare_ldpair.mjs" "$C" "$R/ldpair.json" ldpair
-  step ldpop          node "$V/ldlink/compare_ldpair.mjs" "$C" "$R/ldpop.json" ldpop
-  step ldhap          node "$V/ldlink/compare_ldhap.mjs" "$C" "$R/ldhap.json"
-  step ldproxy        node "$V/ldlink/compare_ldproxy.mjs" "$C" "$R/ldproxy.json"
-  step snpclip        node "$V/ldlink/compare_snpclip.mjs" "$C" "$R/snpclip.json"
-  step snpchip        node "$V/ldlink/compare_snpchip.mjs" "$C" "$R/snpchip.json"
-  step ldtrait        node "$V/ldlink/compare_ldtrait.mjs" "$C" "$R/ldtrait.json"
-  step ldexpress      node "$V/ldlink/compare_ldexpress.mjs" "$C" "$R/ldexpress.json"
-  step ldassoc        node "$V/ldlink/compare_ldassoc.mjs" "$R/ldassoc.json"
+  for m in ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc; do step "$m" node "$V/ldlink/compare.mjs" "$m"; done
 fi
 echo "done: $L/summary.txt"
