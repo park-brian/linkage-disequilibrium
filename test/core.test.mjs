@@ -323,3 +323,32 @@ test("K4: masked band row ranges partition the full masked band (both backends, 
     k.reset();
   }
 });
+
+test("K5: masked rows with identical masks (one popcount) match the general path, JS = WASM, counts() too", async () => {
+  // chrX-like rows: most share the haploid-male mask (same class); every 5th row has its own uncalled haplotypes
+  let seed = 11; const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+  const samples = 40, hb = Math.ceil((2 * samples) / 8), males = new Set([0, 3, 8, 14, 21, 26, 30, 37]);
+  const rows = Array.from({ length: 200 }, (_, k) => {
+    const haps = new Uint8Array(hb), missing = k % 5 === 0 ? new Uint8Array(hb) : null, f = 0.05 + 0.9 * rnd();
+    for (let h = 0; h < 2 * samples; h++) { if (rnd() < f) haps[h >> 3] |= 1 << (h & 7); if (missing && rnd() < 0.08) missing[h >> 3] |= 1 << (h & 7); }
+    return { pos: 5000 + k * 41, haps, missing, male_haploid: k % 17 !== 0 };
+  });
+  const opts = { samples, haploidMales: males, hapIndexes: Array.from({ length: 2 * samples }, (_, i) => i).filter(i => i % 9 !== 4) };
+  const key = b => Array.from({ length: b.count }, (_, k) => `${b.i[k]},${b.j[k]},${b.r2[k]},${b.dprime[k]}`);
+  const I = Array.from({ length: 199 }, (_, i) => i), J = I.map(i => (i * 7 + 3) % 200);
+  const results = [];
+  for (const k of [await loadKernel(readFileSync(KERNEL_WASM)), jsKernel()]) {
+    const p = k.prepare(rows, opts), v = p.views();
+    const classes = new Set(v.cls), shared = [...v.cls].filter((c, i) => v.cls.indexOf(c) !== i).length;
+    assert.ok(classes.size > 1 && shared > 100, `${k.backend}: the fixture must mix shared and distinct masks (${classes.size} classes)`);
+    const fast = k.band(p, { maxDist: 3000, threshold: 0 }), fastCounts = k.counts(p, I, J);
+    v.cls.set(Int32Array.from({ length: p.n }, (_, i) => i)); // every row its own class: the general path everywhere
+    const general = k.band(p, { maxDist: 3000, threshold: 0 }), generalCounts = k.counts(p, I, J);
+    assert.ok(fast.count > 1000);
+    assert.deepEqual(key(fast), key(general), `${k.backend}: band`);
+    assert.deepEqual(fastCounts, generalCounts, `${k.backend}: counts`);
+    results.push(key(fast));
+    k.reset();
+  }
+  assert.deepEqual(results[0], results[1], "wasm = js");
+});

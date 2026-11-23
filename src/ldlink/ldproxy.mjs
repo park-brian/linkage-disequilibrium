@@ -56,7 +56,8 @@ export async function ldproxy(ctx, { var: input = "", pop, r2_d = "r2", window =
   for (const e of out) if (!e.id.startsWith("rs")) { const d = at.get(e.x.pos); e.rs = d ? `rs${d.rsid}` : "."; e.func = d ? d.function : "."; } else e.rs = e.id;
   // where each rsID's doc is: a VCF-labelled row's label at POS + rsid_pos_delta; a position-lookup rsID at the VCF POS
   const docPos = e => (!e.id.startsWith("rs") ? e.x.pos : e.x.rsid_source === 1 && e.id === `rs${e.x.rsid}` && e.x.rsid_pos_delta != null ? e.x.pos + e.x.rsid_pos_delta : null);
-  const items = out.filter(e => /^rs\d+$/.test(e.rs)).map(e => ({ id: String(BigInt(e.rs.slice(2))), pos: docPos(e) }));
+  // unknown doc position: try the VCF POS (a single-doc rsID found there is exact; a miss falls back to find_one)
+  const items = out.filter(e => /^rs\d+$/.test(e.rs)).map(e => ({ id: String(BigInt(e.rs.slice(2))), pos: docPos(e) ?? e.x.pos }));
   const ann = await rsAnnotations(ctx, build, v.chrom, items), rg = await ctx.regulome(build, v.chrom, [...new Set(out.map(e => e.x.pos))]);
   for (const e of out) if (e.id.startsWith("rs")) { const a = /^rs\d+$/.test(e.id) ? ann.get(String(BigInt(e.id.slice(2)))) : null; e.func = a && a.func !== undefined ? a.func : "."; }
   const forgeOf = e => (/^rs\d+$/.test(e.rs) ? ann.get(String(BigInt(e.rs.slice(2))))?.forge : undefined);

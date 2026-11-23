@@ -152,8 +152,9 @@ export async function ldassoc(ctx, a) {
   }
   // function (find_one by the int-normalized ID) and FORGEdb (find_one by RS), positionally where exact (common.rsAnnotations)
   const docPos = e => (!e.id.startsWith("rs") ? e.x.pos : e.x.rsid_source === 1 && e.id === `rs${e.x.rsid}` && e.x.rsid_pos_delta != null ? e.x.pos + e.x.rsid_pos_delta : null);
-  const items = [...out.filter(e => e.id.startsWith("rs") && digits(e)).map(e => ({ id: digits(e), pos: docPos(e) })),
-    ...out.filter(e => /^rs\d+$/.test(e.rs)).map(e => ({ id: String(BigInt(e.rs.slice(2))), pos: e.rs === e.id ? docPos(e) : e.x.pos }))];
+  // unknown doc position: try the VCF POS (a single-doc rsID found there is exact; a miss falls back to find_one)
+  const items = [...out.filter(e => e.id.startsWith("rs") && digits(e)).map(e => ({ id: digits(e), pos: docPos(e) ?? e.x.pos })),
+    ...out.filter(e => /^rs\d+$/.test(e.rs)).map(e => ({ id: String(BigInt(e.rs.slice(2))), pos: (e.rs === e.id ? docPos(e) : null) ?? e.x.pos }))];
   const ann = await rsAnnotations(ctx, build, chromosome, items), rg = await ctx.regulome(build, chromosome, [...new Set(out.map(e => e.x.pos))]);
   for (const e of out) if (e.id.startsWith("rs")) { const a = digits(e) && ann.get(digits(e)); e.func = a && a.func !== undefined ? a.func : "."; }
   const forgeOf = e => (/^rs\d+$/.test(e.rs) ? ann.get(String(BigInt(e.rs.slice(2))))?.forge : undefined);

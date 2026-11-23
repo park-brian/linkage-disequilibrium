@@ -6,7 +6,8 @@
 // Data layout (prepared by kernel.mjs):
 //   alt   : n variants × W u64 words (W = ceil(hn / 64)), alt-allele bit per population haplotype (valid haplotypes only)
 //   valid : same shape, 1 bit per called haplotype (masked entry point only: chrX males, '.' calls)
-//   pa    : alt count per variant over all hn haplotypes (fast path)
+//   pa    : alt count per variant (over its valid haplotypes: alt bits are only set where valid)
+//   nv,cls: masked only: valid count per variant, and a mask class (equal class <=> identical valid rows; kernel.mjs)
 //   pos   : position per variant (ascending)
 // Counts are exact integers; stats() is bit-identical to Python (integer products < 2^53, one rounding per op).
 #include <stdint.h>
@@ -111,16 +112,19 @@ EXPORT(band_blocked) u32 band_blocked(const u64* alt, const u32* pa, const i32* 
 }
 
 // General path: counts over the per-pair valid intersection (chrX across the PAR boundary, '.' calls). Order (i, j).
-EXPORT(band_masked) u32 band_masked(const u64* alt, const u64* valid, const i32* pos, i32 n, i32 W, i32 maxDist,
-                                    double thr, i32 stat, u32* outI, u32* outJ, float* outR2, float* outD, u32 maxOut,
-                                    i32 iStart, i32 iEnd) { // pairs i in [iStart, iEnd), j > i anywhere
+// Rows with identical masks (same cls) need one popcount: n = nv[i], and the alt counts are pa (alt is within valid).
+EXPORT(band_masked) u32 band_masked(const u64* alt, const u64* valid, const u32* pa, const u32* nv, const i32* cls,
+                                    const i32* pos, i32 n, i32 W, i32 maxDist, double thr, i32 stat, u32* outI, u32* outJ,
+                                    float* outR2, float* outD, u32 maxOut, i32 iStart, i32 iEnd) { // i in [iStart, iEnd), j > i
   g_evaluated = g_pruned = g_written = 0;
   for (i32 i = iStart; i < iEnd; i++) {
     const u64 *ai = alt + (u64)i * W, *vi = valid + (u64)i * W;
     for (i32 j = i + 1; j < n && pos[j] - pos[i] <= maxDist; j++) {
       const u64 *aj = alt + (u64)j * W, *vj = valid + (u64)j * W;
       g_evaluated++;
-      put(i, j, popcount_and(vi, vj, W), popcount_and(ai, vj, W), popcount_and(aj, vi, W), popcount_and(ai, aj, W), thr, stat, outI, outJ, outR2, outD, maxOut);
+      if (cls[i] == cls[j]) put(i, j, nv[i], pa[i], pa[j], popcount_and(ai, aj, W), thr, stat, outI, outJ, outR2, outD, maxOut);
+      else put(i, j, popcount_and(vi, vj, W), popcount_and(ai, vj, W), popcount_and(aj, vi, W), popcount_and(ai, aj, W),
+               thr, stat, outI, outJ, outR2, outD, maxOut);
     }
   }
   return g_written < maxOut ? g_written : maxOut;

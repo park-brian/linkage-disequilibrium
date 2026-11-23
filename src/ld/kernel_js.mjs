@@ -77,15 +77,16 @@ export function bandBlocked(alt, pa, pos, n, w32, hn, maxDist, thr, stat, prune,
   return done(o);
 }
 
-/** kernel.c band_masked: per-pair valid intersection, (i, j) order; rows i in [iStart, iEnd) */
-export function bandMasked(alt, valid, pos, n, w32, maxDist, thr, stat, maxOut, iStart = 0, iEnd = n) {
+/** kernel.c band_masked: per-pair valid intersection (one popcount when cls[i] == cls[j]), (i, j) order; i in [iStart, iEnd) */
+export function bandMasked(alt, valid, pa, nv, cls, pos, n, w32, maxDist, thr, stat, maxOut, iStart = 0, iEnd = n) {
   const o = output(maxOut);
   for (let i = iStart; i < iEnd; i++) {
     const ai = i * w32;
     for (let j = i + 1; j < n && pos[j] - pos[i] <= maxDist; j++) {
       const aj = j * w32;
       o.evaluated++;
-      put(o, i, j, popAnd(valid, ai, valid, aj, w32), popAnd(alt, ai, valid, aj, w32), popAnd(alt, aj, valid, ai, w32), popAnd(alt, ai, alt, aj, w32), thr, stat);
+      if (cls[i] === cls[j]) put(o, i, j, nv[i], pa[i], pa[j], popAnd(alt, ai, alt, aj, w32), thr, stat);
+      else put(o, i, j, popAnd(valid, ai, valid, aj, w32), popAnd(alt, ai, valid, aj, w32), popAnd(alt, aj, valid, ai, w32), popAnd(alt, ai, alt, aj, w32), thr, stat);
     }
   }
   return done(o);
@@ -104,8 +105,9 @@ export function tile(alt, pa, w32, hn, r0, nr, c0, nc) {
 }
 
 /** masked-path counts for one pair (kernel.c band_masked): [n valid in both, alt_i among valid_j, alt_j among valid_i, both alt] */
-export function maskedCounts(alt, valid, i, j, w32) {
+export function maskedCounts(alt, valid, pa, nv, cls, i, j, w32) {
   const ai = i * w32, aj = j * w32;
+  if (cls[i] === cls[j]) return [nv[i], pa[i], pa[j], popAnd(alt, ai, alt, aj, w32)];
   return [popAnd(valid, ai, valid, aj, w32), popAnd(alt, ai, valid, aj, w32), popAnd(alt, aj, valid, ai, w32), popAnd(alt, ai, alt, aj, w32)];
 }
 
