@@ -16,16 +16,33 @@ export const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpc
 export const BASE = CONFIG.LDLINK_URL;
 
 /**
+ * fetch for reads over HTTP from Node: at most 64 in flight (a browser queues requests itself; Node's fetch opens more
+ * HTTP/2 streams than CloudFront accepts, which refuses them), each body read before its slot frees; counts requests
+ * and bytes in httpStats
+ */
+export const httpStats = { requests: 0, bytes: 0 };
+let inFlight = 0; const queued = [];
+export async function httpFetch(...args) {
+  if (inFlight >= 64) await new Promise(ok => queued.push(ok));
+  inFlight++;
+  try {
+    const r = await fetch(...args), body = await r.arrayBuffer();
+    httpStats.requests++; httpStats.bytes += body.byteLength;
+    return new Response(body, { status: r.status, statusText: r.statusText, headers: r.headers });
+  } finally { inFlight--; queued.shift()?.(); }
+}
+
+/**
  * the module context the ports run on, with the WASM kernel: local release files (panels included), or with
  * http = a release URL, the app's read path (Range requests with sizes from the manifest, coalesced, cached)
  */
 export async function nodeContext(root = process.env.ROOT || CONFIG.RELEASE, { http = process.env.LD_HTTP } = {}) {
   const kernel = await loadKernel(readFileSync(KERNEL_WASM));
   if (!http) return createContext({ root, open: async p => cachedAsyncBuffer(await asyncBufferFromFile(p)), kernel });
-  const url = http.replace(/\/$/, ""), res = await fetch(`${url}/manifest.json`);
+  const url = http.replace(/\/$/, ""), res = await httpFetch(`${url}/manifest.json`);
   if (!res.ok) throw new Error(`no release at ${url}: manifest.json returned HTTP ${res.status}`);
   return createContext({ root: url, manifest: await res.json(), kernel,
-    open: async (u, byteLength) => cached(coalesce(await asyncBufferFromUrl({ url: u, byteLength }))) });
+    open: async (u, byteLength) => cached(coalesce(await asyncBufferFromUrl({ url: u, byteLength, fetch: httpFetch }))) });
 }
 
 /** an example input from the release's examples/ (local file or over HTTP): text, or bytes when binary; null if absent */
@@ -34,7 +51,7 @@ export function example(ctx, name, { binary = false } = {}) {
   const key = `${ctx.root}|${name}|${binary}`;
   if (!examples.has(key)) examples.set(key, (async () => {
     const at = `${ctx.root}/examples/${name}`;
-    if (/^https?:/.test(ctx.root)) { const r = await fetch(at);
+    if (/^https?:/.test(ctx.root)) { const r = await httpFetch(at);
       return r.ok ? (binary ? new Uint8Array(await r.arrayBuffer()) : r.text()) : null; }
     return existsSync(at) ? (binary ? new Uint8Array(readFileSync(at)) : readFileSync(at, "utf8")) : null;
   })());

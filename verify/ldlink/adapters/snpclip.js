@@ -1,26 +1,27 @@
 // SNPclip: the API's details text (POST /snpclip): every LDmatrix list at three threshold settings, a dense list, edges.
-import { parquetMetadataAsync, parquetRead, asyncBufferFromFile } from "hyparquet";
+import { parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 import { snpclip } from "../../../src/parity/ldlink/snpclip.js";
-import { matrixCases, post, asText, CONFIG } from "../lib.js";
+import { matrixCases, post, asText } from "../lib.js";
 
-/** labelled rsIDs of GRCh37 chr22 rows in [lo, hi], in file order (tiers in turn) */
-export async function denseIds(tiers, lo, hi) {
+/** labelled rsIDs of GRCh37 chr22 rows in [lo, hi], in file order (tiers in turn), read through the context's files
+ *  (local or over HTTP) */
+export async function denseIds(ctx, tiers, lo, hi) {
   const ids = [];
   for (const t of tiers) {
-    const f = await asyncBufferFromFile(`${process.env.ROOT || CONFIG.RELEASE}/genotypes/grch37/chr22.${t}.parquet`);
-    await parquetRead({ file: f, metadata: await parquetMetadataAsync(f), compressors, columns: ["pos", "rsid"], rowFormat: "object",
+    const { file, metadata } = await ctx.planner.file(`genotypes/grch37/chr22.${t}.parquet`);
+    await parquetRead({ file, metadata, compressors, columns: ["pos", "rsid"], rowFormat: "object",
       filter: { pos: { $gte: lo, $lte: hi } },
       onComplete: r => { for (const x of r) if (x.rsid != null) ids.push(`rs${x.rsid}`); } });
   }
   return ids;
 }
-export async function cases() {
+export async function cases(ctx) {
   const cs = [];
   for (const c of matrixCases()) for (const [r2, maf] of [[0.1, 0.01], [0.5, 0.05], [0.8, 0]])
     cs.push({ name: `${c.name} r2≥${r2} maf≥${maf}`, build: c.build, pop: c.pop, snps: c.inputs.join("\n"), r2_threshold: r2,
       maf_threshold: maf });
-  cs.push({ name: "chr22 1 Mb dense (1500 rsIDs) EUR", build: "grch37", pop: "EUR", snps: (await denseIds(["common", "low"], 30e6,
+  cs.push({ name: "chr22 1 Mb dense (1500 rsIDs) EUR", build: "grch37", pop: "EUR", snps: (await denseIds(ctx, ["common", "low"], 30e6,
     31e6)).slice(0, 1500).join("\n"), r2_threshold: 0.2, maf_threshold: 0.01 });
   const edge = (name, snps, extra = {}) => cs.push({ name, build: "grch37", pop: "CEU", snps: snps.join("\n"), r2_threshold: 0.1,
     maf_threshold: 0.01, ...extra });

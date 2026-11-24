@@ -10,7 +10,7 @@ export async function cases(ctx) {
   const cs = [];
   for (const c of matrixCases()) for (const [k, q] of Object.entries(P)) cs.push({ name: `${c.name} [${k}]`, build: c.build,
     snps: c.inputs.join("\n"), platforms: q });
-  const ids = (await denseIds(["common"], 30e6, 33e6)).slice(0, 2000).join("\n");
+  const ids = (await denseIds(ctx, ["common"], 30e6, 33e6)).slice(0, 2000).join("\n");
   for (const b of ["grch37", "grch38"]) cs.push({ name: `chr22 dense 2000 [all] ${b}`, build: b, snps: ids, platforms: P.all });
   const edge = (name, snps, platforms = P.all, build = "grch37") => cs.push({ name, build, snps: snps.join("\n"), platforms });
   edge("several chromosomes, unsorted", ["rs12465506", "rs3", "rs4", "rs4892901", "chr13:32446842", "foo", "rs9999999999"]);

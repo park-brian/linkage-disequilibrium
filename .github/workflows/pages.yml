@@ -1,4 +1,5 @@
-# Deploy the app to GitHub Pages: tools/build_site.js writes dist/ (app + src + vendored browser deps, ~0.7 MB).
+# Deploy the app to GitHub Pages, after checks.yml passes (unit tests, the parity snapshot and the app against the
+# hosted release): tools/build_site.js writes dist/ (app + src + vendored browser deps, ~0.7 MB).
 # The release is not part of the site (34.8 GB; Pages allows 1 GB): it is read from the repository variable
 # LD_DATA_URL, a host that serves the release with HTTP Range and CORS (docs/history/PLAN.md §6). Takes effect only once
 # the repository's Pages source is set to "GitHub Actions".
@@ -15,7 +16,10 @@ concurrency:
   group: pages
   cancel-in-progress: true
 jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
   build:
+    needs: checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -24,9 +28,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test # the release-backed tests skip; the docs check and unit tests still run
-        env:
-          LD_SKIP_DATA: "1"
       - run: test -n "$LD_DATA_URL" || { echo "set the repository variable LD_DATA_URL (the release's URL)"; exit 1; }
         env:
           LD_DATA_URL: ${{ vars.LD_DATA_URL }}

@@ -1,0 +1,59 @@
+# The checks that need no local data, on every pull request and push (pages.yml runs them before every deploy):
+#   unit    npm test without the release (LD_SKIP_DATA=1): unit tests, docs and usage lines, line length, layers
+#   parity  the parity snapshot over HTTP from the hosted release (LD_DATA_URL): every LDlink comparison case through
+#           the ports, against verify/ldlink/snapshot.json (the hashes of code that passed the full LDlink comparison)
+#   app     every view in headless Chromium against the hosted release (verify/app/run.js --data)
+# The full LDlink comparison (npm run verify:ldlink) and the data verifiers need the local oracle and release; they
+# stay local (AGENTS.md).
+name: checks
+on:
+  pull_request:
+  push:
+    branches-ignore: [main] # main runs them through pages.yml
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+env:
+  LD_DATA_URL: ${{ vars.LD_DATA_URL }}
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+        env:
+          LD_SKIP_DATA: "1"
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: test -n "$LD_DATA_URL" || { echo "set the repository variable LD_DATA_URL (the release's URL)"; exit 1; }
+      - run: node verify/ldlink/snapshot.js --http "$LD_DATA_URL"
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: test -n "$LD_DATA_URL" || { echo "set the repository variable LD_DATA_URL (the release's URL)"; exit 1; }
+      - run: node verify/app/run.js --data "$LD_DATA_URL"

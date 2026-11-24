@@ -4,7 +4,8 @@
 // and src/ as the page ran them (tools/coverage.js; module workers such as app/workers/pyramid.js are not measured).
 // Each figure's pixels are hashed (before the pointer moves); --save writes them to $LD_DATA/verify/app_figures.json,
 // and later runs fail on a changed figure (a refactor of app/views must not change a pixel).
-// usage: node verify/app/run.js [--port 8099] [--headed] [--save] [view...]      (npm run verify:app)
+// --data <url> reads the release from that URL (the app's ?data=; e.g. CloudFront in CI) instead of the dev server's.
+// usage: node verify/app/run.js [--port 8099] [--data <url>] [--headed] [--save] [view...]      (npm run verify:app)
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -15,13 +16,15 @@ import { chromium } from "playwright";
 import { REPO, DATA } from "../../tools/config.js";
 
 const args = process.argv.slice(2), port = args.includes("--port") ? +args[args.indexOf("--port") + 1] : 8099;
-const pick = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--port");
+const data = args.includes("--data") ? args[args.indexOf("--data") + 1] : null;
+const pick = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--port" && args[i - 1] !== "--data");
 // each view's default form, run once; extra hash inputs where the default is not a run (LDassoc's example is opt-in)
 const VIEWS = { Pyramid: "", LDmatrix: "", LDpair: "", LDpop: "", LDhap: "", LDproxy: "", SNPclip: "", SNPchip: "", LDtrait: "",
   LDexpress: "", LDassoc: "example=yes", LDherit: "", LDcorrelation: "", LDscore: "" };
 const FIGURE = new Set(["Pyramid", "LDmatrix", "LDproxy", "LDassoc"]); // views that draw a canvas
 
-const server = spawn(process.execPath, [join(REPO, "tools/serve.js"), String(port)], { stdio: ["ignore", "pipe", "inherit"] });
+const server = spawn(process.execPath, [join(REPO, "tools/serve.js"), String(port), ...(data ? ["--no-release"] : [])],
+  { stdio: ["ignore", "pipe", "inherit"] });
 await new Promise((ok, bad) => { server.stdout.once("data", ok); server.once("exit", c => bad(new Error(`serve.js exited (${c})`))); });
 const base = `http://127.0.0.1:${port}`, problems = [], results = [];
 const browser = await chromium.launch({ headless: !args.includes("--headed") });
@@ -30,7 +33,7 @@ try {
   page.on("pageerror", e => problems.push(`page error: ${e.message}`));
   page.on("console", m => { if (m.type() === "error") problems.push(`console error: ${m.text().slice(0, 200)}`); });
   await page.coverage.startJSCoverage({ resetOnNavigation: false });
-  await page.goto(`${base}/app/`);
+  await page.goto(`${base}/app/${data ? `?data=${encodeURIComponent(data)}` : ""}`);
   await page.waitForFunction(() => /^ready/.test(document.querySelector("#status").textContent), null, { timeout: 120_000 });
 
   const run = async (name, extra) => {
