@@ -37,10 +37,10 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 | you changed | run |
 |---|---|
 | anything | `npm test` |
-| `src/core/parquet.js`, `dbsnp.js`, `genotypes.js`, `planner.js`, `annotations.js` | `npm run verify` (planner, parity, annotations, select) |
+| `src/core/*` (reads), `src/parity/{planner,resolve,select,annotations}.js` | `npm run verify` (planner, parity, annotations, select) |
 | `src/core/ld/*` | `npm test` (K tests, both backends) + `npm run verify` (kernel chr1 + chrX) |
-| `src/ldsc/*` | `npm run verify` (ldsc steps) |
-| `src/parity/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.js <module>`) |
+| `src/parity/ldsc/*` | `npm run verify` (ldsc steps) |
+| `src/parity/ldlink/*` (and anything above) | `npm run verify:snapshot` first; then `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.js <module>`) |
 | `app/*` | `npm run verify:app` (every view in Chromium), and a look at the views you touched |
 | `pipeline/*` | the stage on one chromosome, then `node pipeline/release/check.js <root>` |
 

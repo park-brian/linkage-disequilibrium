@@ -1,7 +1,7 @@
 // LDpair on the core, with LDlink's exact JSON (server/LDpair.py calculate_pair, one GET pair; "request" omitted).
 // Returns { error } for a request-level or single-pair error (as LDlink's API does), else [pairResult].
 import { pyRoundRepr as r } from "../pyfmt.js";
-import { TITLE } from "../../genome.js";
+import { TITLE } from "../../core/genome.js";
 import { chrYMessage, vcfAlleles, ldStats, queryVariant, check, failFirst, resolveOne, labelOf } from "./common.js";
 
 const VALID = /^(rs\d+|chr\d+:\d+|chr[X|Y]:\d+)/i; // LDpair.py: re.match (a prefix match)

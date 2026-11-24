@@ -10,7 +10,8 @@ import { createGunzip } from "node:zlib";
 import { createInterface } from "node:readline";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { candidateRows, pickParity, pickAllele } from "../../src/genotypes.js";
+import { candidateRows, pickAllele } from "../../src/core/genotypes.js";
+import { pickParity } from "../../src/parity/select.js";
 import { useDataCwd } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 

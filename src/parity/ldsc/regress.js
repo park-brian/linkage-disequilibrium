@@ -8,7 +8,7 @@
 // Vectors are plain Float64Arrays; the design has p <= 2 columns, so the linear algebra is solved directly.
 
 // ---------- numerics ----------
-import { erfc, chi2sf1, normPdf, normIsf, median, VALID_SNPS as VALID, MATCH_ALLELES as MATCH, FLIP } from "../core/stats.js";
+import { erfc, chi2sf1, normPdf, normIsf, median, VALID_SNPS as VALID, MATCH_ALLELES as MATCH, FLIP } from "../../core/stats.js";
 const mean = a => { let s = 0; for (const v of a) s += v; return s / a.length; };
 export function h2ObsToLiab(h2, P, K) {
   if (Number.isNaN(P) && Number.isNaN(K)) return h2;

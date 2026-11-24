@@ -4,7 +4,7 @@
 //            right-justified to the widest entry; columns joined with single spaces
 //   index:   left-justified labels, a blank header (str(); to_string(index=False) has none)
 import { pyRoundStr } from "../pyfmt.js";
-import { npSum } from "../../ldsc/munge.js";
+import { npSum } from "./munge.js";
 
 const cell = v => (typeof v !== "number" ? String(v) : Number.isNaN(v) ? "NaN" : Number.isFinite(v) ? pyRoundStr(v, 4) : v > 0 ? "inf" : "-inf");
 

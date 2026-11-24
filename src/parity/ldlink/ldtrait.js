@@ -8,9 +8,9 @@
 //    frequency of 1); columns: RAF ("Risk Allele"), float(OR or BETA) ("Effect Size"), the CI with brackets, letters and
 //    spaces removed ("Beta or OR"), P-VALUE verbatim
 import { pyRound, pyStr } from "../pyfmt.js";
-import { TITLE } from "../../genome.js";
+import { TITLE } from "../../core/genome.js";
 import { dedupeLists, vcfAlleles, addWarning, check, failFirst, routeLines, screen, WARNED, table2x2 } from "./common.js";
-import { overlapping } from "../../genotypes.js";
+import { overlapping } from "../../core/genotypes.js";
 
 const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
 /** castFloat: str(float(v)) when Python's float() accepts v, else v */

@@ -2,10 +2,10 @@
 // genotype rows, dbSNP find_one lookups, annotation tracks, population panels and kernel preparation.
 // Browser-ready apart from `open`, which the caller supplies (node: local files; browser: Range requests). Population
 // panels come from the release (annotations/panels.parquet) unless the caller passes `readPanel`.
-import { openPlanner } from "../../planner.js";
-import { createGenotypes } from "../../genotypes.js";
-import { createAnnotations } from "../../annotations.js";
-import { ldscPanel, ldscCounts, mergeAlleles } from "../../ldsc/panels.js";
+import { openPlanner } from "../planner.js";
+import { createGenotypes } from "../../core/genotypes.js";
+import { createAnnotations } from "../annotations.js";
+import { ldscPanel, ldscCounts, mergeAlleles } from "../ldsc/panels.js";
 import { memo } from "../../core/source.js";
 
 /**
@@ -38,7 +38,7 @@ export async function createContext({ root, open, readPanel, kernel, manifest })
     const opts = await kernelOptions(build, rows, pop), p = kernel.prepare(rows, opts);
     try { return use(p, opts); } finally { kernel.reset(); }
   }
-  // LD score panels and the HapMap3 list for the LDscore family, read once each (src/ldsc/panels.js)
+  // LD score panels and the HapMap3 list for the LDscore family, read once each (src/parity/ldsc/panels.js)
   const ldsc = new Map();
   return { root, planner, kernel, ldscPanel: (pop, need) => ldscPanel(planner.file, pop, need), ldscCounts: () => memo(ldsc, "counts", () => ldscCounts(planner.file)),
     mergeAlleles: () => memo(ldsc, "w_hm3", () => mergeAlleles(planner.file)), ...genotypes, ...annotations, popIds, withPrepared,

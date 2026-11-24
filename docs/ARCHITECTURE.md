@@ -21,31 +21,41 @@ page.
 
 ## src/: the runtime (browser-safe, no build step)
 
-Two layers (REVIEW.md §4): `core/` reads and computes without LDlink's choices; `parity/` holds everything
-LDlink-shaped (the ports, their messages and Python's number formatting). The files still at the top of `src/` are
-core reads with LDlink's choices inside them (first or last match, coordinate parsing); they split in the next step.
-Dependencies flow one way, core never importing parity:
+Two layers (REVIEW.md §4):
+- **`core/`** reads the release and computes, with no LDlink choices: a read returns *every* matching row in file
+  order (the release keeps the dump's order: docs/DATA.md "Order"), and the LD kernel and numerics are generic.
+- **`parity/`** is everything LDlink-shaped: which of those rows LDlink would use (first, last, the ref-rsID rule),
+  input parsing as Python's `strip` / `int()` do, LDlink's messages, Python's number formatting, ldsc's log and pandas
+  layouts, and the 13 module ports.
+
+Dependencies flow one way; core never imports parity:
 
 ```
-core/source ─► core/parquet ─► dbsnp, genotypes, annotations ─► planner ─► parity/ldlink/* (context, common, modules)
-genome ─────────────────────────┘           core/haps ─► core/ld/kernel (no other imports: workers load it by path)
-core/stats ─► ldsc/regress, ldsc/munge; ldsc/l2 ◄─ parity/pyfmt, parity/ldsc/{log,pandas}
+core:    source ─► parquet ─► dbsnp, genotypes ◄─ genome, collect          haps ─► ld/kernel (workers load it by path)
+           │                                                                stats
+parity:  input, pyfmt ─► resolve (dbsnp), select (genotypes) ─► planner ─► annotations ─► ldlink/* (context, common, ports)
+                                                                    ldsc/* (regress, munge, l2, panels, log, pandas)
 ```
 
 | module | one line |
 |---|---|
-| `genome.js` | chromosome codes and names, genome keys, the `BUILDS` table, LDlink's `firstToken` / `parseCoord` |
+| `core/genome.js` | chromosome codes and names, genome keys, the `BUILDS` table, tier paths |
 | `core/source.js` | the one cached `{ file, metadata }` per path (sizes and footer lengths from the manifest: no size probe, one exact footer read); `isNotFound`, `kv` |
 | `core/parquet.js` | page-index reads: `sortedLookup` (point keys), `rangeScan` (key range), `pool`; `coalesce` (reads issued together share Range requests) |
-| `core/collect.js` | `groupBy`, `firstRows` (the first row per key: the row a Mongo `find_one` returns) |
-| `dbsnp.js` | LDlink-parity resolution: `resolveRsids`, `resolveCoords`, `resolveInputs`; the `find_one` forms `findAt`, `findAllAt`, `findById`; `duplicated` |
+| `core/collect.js` | `groupBy`, `firstRows` (the first row per key: what a Mongo `find_one` returns) |
+| `core/dbsnp.js` | the dbSNP index reads: `byRsid`, `atKeys` (every doc, dump order), `duplicated` |
+| `core/genotypes.js` | tier-row reads (`row`, `windowRows`, `samples`, `candidateRows`); the overlap helpers (`overlaps`, `posRange`, `overlapping`, `lastOverlapping`); allele-aware selection (`pickAllele`) |
 | `core/haps.js` | `decodeHaps`: bitset or sparse → bitset (no dependencies, so the kernel stays worker-safe) |
-| `genotypes.js` | parity / allele-aware row selection (`pickParity`, `pickAllele`, `candidateRows`); tier-row reads (`row`, `windowRows`, `samples`) |
-| `annotations.js` | genes, recombination, RegulomeDB, FORGEdb (by rsID and by position), arrays, GWAS, GTEx eQTL, gene coordinates |
-| `planner.js` | the query planner: resolve inputs (hybrid rsID strategy), price scan vs point reads from the manifest, fetch rows; owns the shared file cache (`planner.file`) |
-| `parity/pyfmt.js` | Python-exact formatting: `round`, `'%.nf'`, `str(float)`, `nextafter`; C `%g` |
 | `core/ld/kernel.js` | one LD API: `prepare`, `band` (row ranges, masked or unmasked), `tile`, `counts`, `exact`. Backends: `kernel.wasm` (C, scalar popcount) and `kernel_js.js`, with identical results. Masked rows carry a mask class: pairs with identical masks take one popcount |
-| `ldsc/` | LD score regression (`regress`), sumstats munging (`munge`), LD score estimation (`l2`), the release's panels (`panels`); the shared numerics are `core/stats.js`, ldsc's log text and pandas' layouts `parity/ldsc/log.js` and `pandas.js` |
+| `core/ld.js` | the core's own LD API: `variant`, `pair`, `matrix`, `proxy`; numbers and typed `LDError`s (`bad_input`, `not_found`, `ambiguous`, `not_in_1000g`, `multiallelic`, `unknown_population`, `chromosomes_differ`), allele-aware rows, no LDlink conventions (`test/ld.test.js` checks it against the ports) |
+| `core/stats.js` | the shared numerics (`median`, `erfc`, `chi2sf1`, `normPdf`, `normIsf`) and the allele tables ldsc matches with |
+| `parity/input.js` | LDlink's `firstToken` and `parseCoord` (Python's `strip("chr")`, `split(":")`, `int()`) |
+| `parity/resolve.js` | LDlink's resolution on the core reads: `resolveRsids`, `resolveCoords`, `resolveInputs`; the `find_one` / `find` forms `findAt`, `findAllAt`, `findById` |
+| `parity/select.js` | `pickParity`: LDlink's last overlapping row, and its "not biallelic" / "not in 1000G" statuses |
+| `parity/planner.js` | the query planner: resolve inputs (hybrid rsID strategy), price scan vs point reads from the manifest, fetch rows; owns the shared file cache (`planner.file`) |
+| `parity/annotations.js` | LDlink's annotation queries (find_one / find / `$lookup` forms): genes, recombination, RegulomeDB, FORGEdb (by rsID and by position), arrays, GWAS, GTEx eQTL, gene coordinates |
+| `parity/pyfmt.js` | Python-exact formatting: `round`, `'%.nf'`, `str(float)`; C `%g` |
+| `parity/ldsc/` | ldsc, reproduced: regression (`regress`), sumstats munging (`munge`), LD scores (`l2`), the release's panels (`panels`), the log text (`log`), pandas' layouts and numbers (`pandas`) |
 | `parity/ldlink/context.js` | composes planner, genotypes, annotations, dbSNP, panels (from the release unless the caller passes `readPanel`) and kernel for the module ports |
 | `parity/ldlink/common.js` | LDlink's shared pieces: populations, the input `gate`, `validsnp`'s `dedupeLists`, the chrY message, `set_alleles`, kernel counts → 2×2 (`cells`, `table2x2`, `ldStats`), the chunked window (`chunkWindow`, `chunkedWindow`, `countsAgainst`), `get_query_variant_c`, positional annotation lookups |
 | `parity/ldlink/<module>.js` | LDmatrix, LDpair, LDpop, LDhap, LDproxy, SNPclip, SNPchip, LDtrait, LDexpress, LDassoc, LDherit, LDcorrelation, LDscore: each returns LDlink's own output (text / JSON / error), byte for byte, including LDlink's bugs ([PARITY.md](PARITY.md)) |

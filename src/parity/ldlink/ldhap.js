@@ -3,7 +3,7 @@
 // (chrX males lose their second haplotype). Order: count descending, ties by haplotype string — deterministic.
 import { pyRound, pyStr } from "../pyfmt.js";
 import { decodeHaps } from "../../core/haps.js";
-import { TITLE, BUILDS } from "../../genome.js";
+import { TITLE, BUILDS } from "../../core/genome.js";
 import { chrYMessage, dedupeLists, vcfAlleles, check, failFirst, screen, WARNED, sameChromError } from "./common.js";
 
 const pad = (i, n) => String(i).padStart(String(n).length, "0");

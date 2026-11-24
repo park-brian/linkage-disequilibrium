@@ -14,7 +14,7 @@ A release is a directory of Parquet files plus `manifest.json`, served as static
 - **Compression and indexes:** ZSTD; page indexes on the sort column.
 - **Metadata:** `source`, `order` and other provenance keys in the key-value metadata.
 - **Builds:** `grch37`, `grch38` and `grch38_high_coverage`. High Coverage uses GRCh38 positions, so its dbSNP and
-  annotation files are the `grch38` ones (`src/genome.js` `BUILDS`).
+  annotation files are the `grch38` ones (`src/core/genome.js` `BUILDS`).
 
 ## Hosted copy
 
@@ -32,8 +32,8 @@ kv, rowGroups } } }`. `rowGroups` is stored column-wise, one array entry per row
 keyIndex?: [], payloadOffsetIndex?: [], colBytes?: { <column>: [] } }`.
 - `min` / `max`: the key column's statistics (`null`: none). `keyIndex`: `[columnIndexOffset, length, offsetIndexOffset,
   length]` of the key column. `payloadOffsetIndex`: `[offset, length]` of the `haps` offset index.
-- `colBytes`: genotype files only, for the columns the planner prices (`PRICED_COLUMNS` in `src/planner.js`).
-- `src/planner.js` `expandManifest` turns it back into one object per row group, and also reads version 1 (one object
+- `colBytes`: genotype files only, for the columns the planner prices (`PRICED_COLUMNS` in `src/parity/planner.js`).
+- `src/parity/planner.js` `expandManifest` turns it back into one object per row group, and also reads version 1 (one object
   per row group, `colBytes` for every column), which is what the bucket's `v4/` still holds.
 - The planner prices reads from it. Each file opens with its `byteLength` (no size probe) and its footer in one exact
   Range request.
@@ -102,13 +102,13 @@ Built by `pipeline/annotations/` (`fetch.sh` → `annotations.sql` → `build.js
 ## ldscore/: LD score reference panels
 
 One file per population (`afr`, `eur`, …): `CHR`, `SNP`, `BP`, `L2`, plus `M` / `M_5_50` in the key-value
-metadata. `w_hm3.snplist.parquet` holds HapMap3 SNPs and alleles. Used by `src/ldsc/` (heritability, genetic
+metadata. `w_hm3.snplist.parquet` holds HapMap3 SNPs and alleles. Used by `src/parity/ldsc/` (heritability, genetic
 correlation).
 
 `ldsc_counts.parquet` (`pop`, `rows`) holds, per panel, the SNP count ldsc logs ("Read reference panel LD Scores for
 N SNPs"): distinct SNP IDs after ldsc's `sep=r'\s+'` read, in which a row with an empty SNP field shifts left and its
 BP becomes the SNP (eas: 2,079 such rows; 8,854,920 counted against 8,852,842 distinct IDs). Written by
-`pipeline/release/extras.js`, so a browser never holds a set of up to 17 million IDs (`src/ldsc/panels.js` keeps
+`pipeline/release/extras.js`, so a browser never holds a set of up to 17 million IDs (`src/parity/ldsc/panels.js` keeps
 only the SNPs an analysis needs).
 
 ## examples/: LDlink's example inputs

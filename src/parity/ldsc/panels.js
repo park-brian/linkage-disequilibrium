@@ -7,7 +7,7 @@
 // becomes the SNP; those rows count but never merge (an rsID never equals a bare number), so they are skipped here.
 import { parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { required } from "../core/source.js";
+import { required } from "../../core/source.js";
 
 const kvOf = metadata => Object.fromEntries((metadata.key_value_metadata ?? []).map(x => [x.key, x.value]));
 const readAll = async (f, columns) => { let r = []; await parquetRead({ file: f.file, metadata: f.metadata, compressors, columns, onComplete: x => { r = x; } }); return r; };

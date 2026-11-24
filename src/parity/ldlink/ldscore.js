@@ -3,7 +3,7 @@
 // by src/ldsc/l2.js. The route returns the log from "Summary of LD Scores" onward: pandas' describe() of MAF and L2
 // (count dropped), the MAF/L2 correlation matrix, and ldsc's two closing time lines (written now; the comparer masks
 // them). Errors come back as { error }.
-import { readBim, readFamCount, ldscoreL2 } from "../../ldsc/l2.js";
+import { readBim, readFamCount, ldscoreL2 } from "../ldsc/l2.js";
 import { pdFrame, describe, corr } from "../ldsc/pandas.js";
 import { ctime, secToStr } from "../ldsc/log.js";
 

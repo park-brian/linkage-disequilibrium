@@ -5,8 +5,8 @@
 // ldsc's two closing time lines (written now; the comparer masks them). Errors come back as { error, details? }.
 import { npStr4 } from "../pyfmt.js";
 import { pdRow } from "../ldsc/pandas.js";
-import { mungeSumstats } from "../../ldsc/munge.js";
-import { estimateRg, h2ObsToLiab, parseSumstats } from "../../ldsc/regress.js";
+import { mungeSumstats } from "../ldsc/munge.js";
+import { estimateRg, h2ObsToLiab, parseSumstats } from "../ldsc/regress.js";
 import { ctime, secToStr } from "../ldsc/log.js";
 import { probability, hsqSummary } from "./ldherit.js";
 

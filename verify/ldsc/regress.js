@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { estimateH2, estimateRg, dedupPanel, h2ObsToLiab } from "../../src/ldsc/regress.js";
+import { estimateH2, estimateRg, dedupPanel, h2ObsToLiab } from "../../src/parity/ldsc/regress.js";
 import { useDataCwd } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 

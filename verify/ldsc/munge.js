@@ -4,8 +4,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { mungeSumstats } from "../../src/ldsc/munge.js";
-import { estimateH2, estimateRg, dedupPanel } from "../../src/ldsc/regress.js";
+import { mungeSumstats } from "../../src/parity/ldsc/munge.js";
+import { estimateH2, estimateRg, dedupPanel } from "../../src/parity/ldsc/regress.js";
 import { useDataCwd } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 

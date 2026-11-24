@@ -2,7 +2,7 @@
 // (parity_expected.sql), plus the reference test-vector SNPs. usage: node verify/data/parity.js <releaseRoot>
 import { readFileSync, writeFileSync } from "node:fs";
 import { asyncBufferFromFile, cachedAsyncBuffer } from "hyparquet";
-import { createResolver } from "../../src/dbsnp.js";
+import { createResolver } from "../../src/parity/resolve.js";
 import { useDataCwd, repo } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
@@ -49,7 +49,7 @@ for (const [build, f] of Object.entries(TEST_VECTORS)) {
 //    dump), compared with resolver.resolveInputs and the planner (auto and forced-direct rsID resolution)
 {
   const { execFileSync } = await import("node:child_process");
-  const { openPlanner } = await import("../../src/planner.js");
+  const { openPlanner } = await import("../../src/parity/planner.js");
   const rs = exp.slice(0, 120).map(e => String(e.rsid)), merged = exp.filter(e => e.ref_rsid != null && e.ref_rsid !== e.rsid).slice(0, 30).map(e => String(e.rsid));
   const multi = load("parity_pos37.json").filter(c => c.ids?.length > 1).slice(0, 60), single = load("parity_pos37.json").filter(c => c.ids?.length === 1).slice(0, 60);
   const coord = c => { const k = BigInt(c.key), ch = chromName(Number(k / 1_000_000_000n)); return [ch, k % 1_000_000_000n]; };

@@ -13,11 +13,11 @@ NCI's [LDlink](https://ldlink.nih.gov), rebuilt as a **browser-only** app.
 
 ```
 src/        the runtime: browser + Node, no build step   → docs/ARCHITECTURE.md
-  core/       format-agnostic reads (source, parquet, collect), haps, the LD kernel (ld/: kernel.c → kernel.wasm,
-              kernel_js.js, one API in kernel.js), numerics (stats)
-  parity/     everything LDlink-shaped: the thirteen module ports + context (ldlink/), Python number formatting
-              (pyfmt), ldsc's log and pandas emulation (ldsc/)   → docs/PARITY.md
-  (top)       genome, dbsnp, genotypes, annotations, planner, ldsc/: core reads with LDlink's choices still inside
+  core/       reads that return every match in file order (source, parquet, dbsnp, genotypes, genome, collect), haps,
+              the LD kernel (ld/: kernel.c → kernel.wasm, kernel_js.js, one API in kernel.js), numerics (stats)
+  parity/     everything LDlink-shaped: resolution and row choice (resolve, select, input), the planner, annotation
+              queries, ldsc (ldsc/), Python number formatting (pyfmt), the thirteen ports + context (ldlink/)
+              → docs/PARITY.md
 app/        the browser UI (forms, render, region view, LDmatrix plot, pyramid + tracks, worker pool)
 pipeline/   offline release build: dbsnp, ncbi, genotypes, annotations, ldscore, release
 verify/     data verifiers (data/), ldsc checks (ldsc/), LDlink comparisons (ldlink/), run.sh

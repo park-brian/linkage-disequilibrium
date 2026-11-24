@@ -7,8 +7,9 @@ import { openSync, readSync, fstatSync, writeFileSync, existsSync } from "node:f
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 import { createHash } from "node:crypto";
-import { openPlanner } from "../../src/planner.js";
-import { pickParity, pickAllele } from "../../src/genotypes.js";
+import { openPlanner } from "../../src/parity/planner.js";
+import { pickAllele } from "../../src/core/genotypes.js";
+import { pickParity } from "../../src/parity/select.js";
 import { useDataCwd } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
@@ -130,7 +131,7 @@ for (const forceRsid of [undefined, "direct"]) {
   const a = await run(`non-canonical inputs [${forceRsid ?? "auto"}]`, { build: "grch37", inputs: odd, forceRsid });
   const c = counter(), pl = await openPlanner(root, c.openFile);
   // the resolver alone (no planner): LDlink's whole chain, resolve.js resolveInputs
-  const { createResolver } = await import("../../src/dbsnp.js");
+  const { createResolver } = await import("../../src/parity/resolve.js");
   const want = await createResolver(root, c.openFile).resolveInputs(odd, "grch37");
   const bad = odd.map((x, i) => [x, key(a.r.variants[i]), key(want[i])]).filter(([, g, w]) => g !== w).map(([input, got, want]) => ({ input, got, want }));
   results.push({ check: "non-canonical inputs == resolver", label: forceRsid ?? "auto", inputs: odd.length, differences: bad.length, examples: bad.slice(0, 8) });

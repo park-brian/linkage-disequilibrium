@@ -50,7 +50,7 @@ Stored as `vcf_id` (GRCh37).
 --------
 `, ldsc's stdout (including a pandas `RuntimeWarning` line). ldsc reads LD score files with `sep=r'\s+'`, so a row with an empty SNP field shifts left and counts as its BP; the logged panel size includes those rows (`ldsc_counts.parquet`) |
 | **LDcorrelation** | API text (from the first "Total … scale") | ldsc `--rg`: both h2 summaries, gencov, rg (with ldsc's out-of-bounds branches), and the pandas `to_string` table (numeric headers take a leading space, `'{:.4f}'` cells). ldsc never logs its two-step line for rg. An unreadable panel returns the failure text itself, not an error. **Numerically degenerate:** the same file twice gives rg = 1 with se ≈ 1e-7, so z = rg / se differs past ~7 digits; the comparison reports it as `degenerate_z` |
-| **LDscore** | API text (from "Summary of LD Scores") | ldsc `--l2` (`src/ldsc/l2.js`); pandas `describe()` (pairwise sums, linear quantiles) and `corr()` (Welford); window = Python `int()` of `ldwindow` or 1, at least 1; a mixed base-name file list is only logged, so the first missing example or file is the error |
+| **LDscore** | API text (from "Summary of LD Scores") | ldsc `--l2` (`src/parity/ldsc/l2.js`); pandas `describe()` (pairwise sums, linear quantiles) and `corr()` (Welford); window = Python `int()` of `ldwindow` or 1, at least 1; a mixed base-name file list is only logged, so the first missing example or file is the error |
 
 The LDscore family's time lines ("Conversion finished at", "Beginning analysis at", "Analysis finished at",
 "Total time elapsed") are written as ldsc would write them; the comparisons mask those four and nothing else.

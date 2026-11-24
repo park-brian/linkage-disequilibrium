@@ -4,7 +4,7 @@
 // the warnings start ". The following …" (an empty warning is joined with ". "); a platform matches by its name or by
 // name.rstrip(' Array') — Python strips the *characters* " Aray" — and is printed with the " Array" suffix removed;
 // an empty platform request crashes LDlink (append(...).removesuffix on None).
-import { TITLE } from "../../genome.js";
+import { TITLE } from "../../core/genome.js";
 import { dedupeLists, check, failFirst, screen, WARNED } from "./common.js";
 
 const CHR = c => (c === "X" ? 23 : c === "Y" ? 24 : +c);

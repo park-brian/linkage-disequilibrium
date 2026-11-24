@@ -9,7 +9,7 @@
 //  - a multi-allelic record is listed with its raw REF and ALT list ("A=NA, G,T=NA")
 import { pyRound, pyStr } from "../pyfmt.js";
 import { decodeHaps } from "../../core/haps.js";
-import { TITLE } from "../../genome.js";
+import { TITLE } from "../../core/genome.js";
 import { dedupeLists, vcfAlleles, addWarning, check, failFirst, routeLines, screen, WARNED, sameChromError } from "./common.js";
 import { stats } from "../../core/ld/kernel_js.js";
 

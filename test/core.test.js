@@ -7,13 +7,13 @@ import { readFileSync, existsSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { loadKernel, jsKernel, KERNEL_WASM } from "../src/core/ld/kernel.js";
 import { makeLabeler, minimalForm, variantClass, TYPES } from "../pipeline/genotypes/rsid_label.js";
-import { mungeSumstats } from "../src/ldsc/munge.js";
-import { getSeparators } from "../src/ldsc/regress.js";
-import { pyFixed3 } from "../src/ldsc/l2.js";
-import { parseCoord } from "../src/genome.js";
+import { mungeSumstats } from "../src/parity/ldsc/munge.js";
+import { getSeparators } from "../src/parity/ldsc/regress.js";
+import { pyFixed3 } from "../src/parity/ldsc/l2.js";
+import { parseCoord } from "../src/parity/input.js";
 import { isNotFound, memo, once, required } from "../src/core/source.js";
 import { cached } from "../src/core/parquet.js";
-import { overlapping, overlaps, posRange } from "../src/genotypes.js";
+import { overlapping, overlaps, posRange } from "../src/core/genotypes.js";
 import { RELEASE, PANELS } from "../tools/config.js";
 
 const here = new URL(".", import.meta.url);
@@ -118,7 +118,7 @@ test("P1: parseCoord follows LDlink's int() parsing", () => {
 });
 test("P1: planner.query survives malformed coordinate inputs", needData, async () => {
   haveRelease();
-  const { openPlanner } = await import("../src/planner.js");
+  const { openPlanner } = await import("../src/parity/planner.js");
   const { asyncBufferFromFile, cachedAsyncBuffer } = await import("hyparquet");
   const root = RELEASE;
   const pl = await openPlanner(root, async p => cachedAsyncBuffer(await asyncBufferFromFile(p)));
@@ -172,7 +172,7 @@ test("K1: exact() is bit-identical to Python; band thresholds compare doubles (>
 // ---------- P5: only a missing file is "not found"; other I/O errors surface ----------
 test("P5: resolver reports missing files as not found but rethrows other I/O errors", needData, async () => {
   haveRelease();
-  const { createResolver } = await import("../src/dbsnp.js");
+  const { createResolver } = await import("../src/parity/resolve.js");
   const { asyncBufferFromFile, cachedAsyncBuffer } = await import("hyparquet");
   const root = RELEASE;
   const ok = async p => cachedAsyncBuffer(await asyncBufferFromFile(p));
@@ -231,7 +231,7 @@ test("P6: sortedLookup matches keys even when columns omit the key column", need
 });
 test("P4: overlapping regions return each row once; chromosome names are normalized", needData, async () => {
   haveRelease();
-  const { openPlanner } = await import("../src/planner.js");
+  const { openPlanner } = await import("../src/parity/planner.js");
   const { asyncBufferFromFile, cachedAsyncBuffer } = await import("hyparquet");
   const root = RELEASE;
   const pl = await openPlanner(root, async p => cachedAsyncBuffer(await asyncBufferFromFile(p)));
@@ -250,7 +250,7 @@ test("P4: overlapping regions return each row once; chromosome names are normali
 
 // ---------- L5–L8: LDscore edge cases vs the reference ldsc ----------
 test("L5: --ld-wind of 0 is rejected like ldsc (np.array(..., dtype=bool)); the set window wins", async () => {
-  const { ldscoreL2 } = await import("../src/ldsc/l2.js");
+  const { ldscoreL2 } = await import("../src/parity/ldsc/l2.js");
   // 3 SNPs 1 Mb apart, 4 individuals (1 byte per SNP): a 500 kb / 0.5 cM window is not whole-chromosome
   const bim = [0, 1, 2].map(i => ({ CHR: 22, SNP: `rs${i + 1}`, CM: i, BP: 1 + i * 1_000_000, A1: "A", A2: "G" })), bed = new Uint8Array([0x6c, 0x1b, 0x01, 0b11100100, 0b11011000, 0b01101100]);
   for (const o of [{ windCm: 0 }, { windKb: 0 }, {}, { windCm: 1, windKb: 500 }]) assert.throws(() => ldscoreL2(bed, bim, 4, o), /exactly one --ld-wind/, JSON.stringify(o));
@@ -258,7 +258,7 @@ test("L5: --ld-wind of 0 is rejected like ldsc (np.array(..., dtype=bool)); the 
   assert.doesNotThrow(() => ldscoreL2(bed, bim, 4, { windCm: 0.5 }));
 });
 test("L6: more jackknife blocks than data points is an error (jackknife.py:104)", async () => {
-  const { hsq } = await import("../src/ldsc/regress.js");
+  const { hsq } = await import("../src/parity/ldsc/regress.js");
   const n = 151, r = rng(5), ld = Float64Array.from({ length: n }, () => 1 + 50 * r()), N = new Float64Array(n).fill(1000);
   const chisq = Float64Array.from({ length: n }, (_, i) => (i < 5 ? 40 : 0.5 + r()));
   assert.throws(() => hsq(chisq, ld, ld, N, 1e6, { nBlocks: n, twostep: 30 }), /More blocks than data points/); // step 1 has 146 SNPs
@@ -266,7 +266,7 @@ test("L6: more jackknife blocks than data points is an error (jackknife.py:104)"
 });
 test("L7: erfc(±inf), and chi2.isf(P, 1) matches scipy down to the smallest normal P", async () => {
   const { erfc } = await import("../src/core/stats.js");
-  const { chi2Isf1 } = await import("../src/ldsc/munge.js");
+  const { chi2Isf1 } = await import("../src/parity/ldsc/munge.js");
   assert.equal(erfc(Infinity), 0); assert.equal(erfc(-Infinity), 2); assert.ok(Number.isNaN(erfc(NaN)));
   const cases = JSON.parse(readFileSync(fixture("chi2isf.json"), "utf8"));
   let n = 0;

@@ -99,8 +99,8 @@ for (const b of ["37", "38"]) {
   for (const c of cases) { const got = first.get(c.snp_id.replace(/^rs/, "")); const exp = c.expected == null ? undefined : Number(c.expected); if (got !== exp) bad.push({ ...c, got }); }
   tally("forge_rsid", cases.length, bad);
 }
-{ // the region view's range readers (src/annotations.js forgeRange / regulomeRange) against hyparquet's own filtered read
-  const { createAnnotations } = await import("../../src/annotations.js");
+{ // the region view's range readers (src/parity/annotations.js forgeRange / regulomeRange) against hyparquet's own filtered read
+  const { createAnnotations } = await import("../../src/parity/annotations.js");
   const ann = createAnnotations(open), bad = [];
   const WINDOWS = [["grch37", "22", 30_000_000, 31_000_000], ["grch37", "X", 2_600_000, 3_200_000], ["grch38", "8", 127_700_000, 128_200_000], ["grch38", "1", 0, 600_000]];
   let cases = 0;
