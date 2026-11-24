@@ -21,7 +21,7 @@ page.
 
 ## src/: the runtime (browser-safe, no build step)
 
-Two layers (REVIEW.md §4):
+Two layers ([history/CLEANUP_REVIEW.md](history/CLEANUP_REVIEW.md) §4):
 - **`core/`** reads the release and computes, with no LDlink choices: a read returns *every* matching row in file
   order (the release keeps the dump's order: docs/DATA.md "Order"), and the LD kernel and numerics are generic.
 - **`parity/`** is everything LDlink-shaped: which of those rows LDlink would use (first, last, the ref-rsID rule),

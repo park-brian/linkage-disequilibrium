@@ -1,4 +1,4 @@
-// The core's own LD API (REVIEW.md §4): numbers and typed errors, without LDlink's conventions. The parity ports
+// The core's own LD API (docs/history/CLEANUP_REVIEW.md §4): numbers and typed errors, without LDlink's conventions. The parity ports
 // (src/parity/ldlink) reproduce LDlink's outputs byte for byte; this is for callers who want the statistics.
 //   const ld = createLD({ root, open, kernel, manifest? })          open(path, byteLength?) → AsyncBuffer
 //   await ld.variant("rs3", "grch37")                   → { input, rsid, chrom, pos, ref, alt } (the row it uses)

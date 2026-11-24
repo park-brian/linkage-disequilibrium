@@ -1,6 +1,6 @@
-# Plan: the cleanup (from REVIEW.md)
+# Plan: the cleanup (from CLEANUP_REVIEW.md)
 
-**Written:** 2026-11-23, on `restructure` (= `main` plus local commits). Input: [REVIEW.md](REVIEW.md). Each slice ends
+**Written:** 2026-11-23, on `restructure` (= `main` plus local commits). Input: [CLEANUP_REVIEW.md](CLEANUP_REVIEW.md). Each slice ends
 green on its gates and is one commit. When done, this file and REVIEW.md move to `docs/history/` with an outcome.
 
 ## Gates
@@ -105,3 +105,25 @@ An independent read of this plan against the code. Changes:
   `genotypes.js`, `annotations.js`, `ldsc/`) split in step 2.
 - **Added:** document "the release's file order = LDlink's dump order" in DATA.md, and make LDassoc's 17 MB default
   example an explicit choice in the form rather than the default fetch.
+
+## Outcome (2026-11-23)
+
+All eleven slices are committed on `restructure` (local, not pushed), one commit per slice except where noted. Final gates:
+G1 37/37 tests; G3s 1,440/1,440; G4 `verify:app` 14/14 with every figure hash unchanged, and the built site ran
+LDproxy against the local release; G2 and G3 in full (STATUS.md has the counts).
+
+| slice | commit | what landed | differences from the plan |
+|---|---|---|---|
+| 1 | `1d1e2b2` | every verifier fails on a difference; reports in `$LD_DATA/verify/` | `run.sh` crashed instead of reporting a failed step (`set -u` on an unset `FAILED`); found and fixed in slice 6 |
+| 2–3 | `9577131`, `162024f` | G3s (`verify:snapshot`, also over HTTP); `check.html` gone; ~6,000 lines deleted; dead exports | slices 2 and 3 share one commit (they edited the same docs); `pipeline/dbsnp/bson2tsv.js` stays (it is the live dump step) |
+| 4 | `b399bee` | the bug fixes of REVIEW §3 | — |
+| 5 | `648ce4d` | `check`, `screen`, `resolveOne` … in `parity/ldlink/common.js` | net +28 lines, not −180: the helpers' doc comments cost what the copies saved |
+| 6 | `526cd36` | one read path (`matchRows`), per-column pages, planner split, `collect.js` | ranges keep one all-column read (per-column reads cost 3 → 11 reads); single-column reads use decoded arrays (the first version ran the parity check out of memory) |
+| 7 | `35edef0` | shared canvas / tooltip / locus helpers; figure hashes in `verify:app` | net −1 line, not −80; LDmatrix keeps its own gene track (the shared one would change the figure) |
+| 8 | `7681ebc` | `pipeline/build.sh`, the three missing producers, `@for` blocks, usage-line check | the gate rebuilt chr22: GRCh37 byte-identical; GRCh38 identical rows plus an all-null `vcf_id` column (release_v4's GRCh38 predates it) |
+| 10 | `9cac7ef`, `25c749b`, `ef66a83` | `src/core` and `src/parity`; core returns every match, parity chooses; `core/ld.js` | steps 2 and 3 share a commit; `ef66a83` adds pipeline import paths missed from `25c749b`; annotations moved to parity whole (their reads are LDlink's queries) rather than split |
+| 9 | `73d8708` | 700 → 63 over-long lines | the 63 left are LDlink's message strings and data lists, kept verbatim |
+| also | `3301a7c`, `07fe70b` | `tools/coverage.js`; `verify/app/run.js` (Playwright) | added on request during the cleanup |
+
+Not done: the published verifier reports under `ldlink-parquet/v5/` are still in the bucket (deleting public objects
+waits for an OK).

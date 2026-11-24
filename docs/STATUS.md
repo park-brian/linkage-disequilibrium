@@ -1,6 +1,6 @@
 # Status
 
-**Updated:** 2026-11-23 · **branch:** `restructure` = `main` · **release:** `release_v4` · **live:** https://park-brian.github.io/linkage-disequilibrium/ (data: https://d2x2yo644ey89o.cloudfront.net)
+**Updated:** 2026-11-23 · **branch:** `restructure` (the live site's `origin/main` plus the cleanup's commits, not pushed) · **release:** `release_v4` · **live:** https://park-brian.github.io/linkage-disequilibrium/ (data: https://d2x2yo644ey89o.cloudfront.net)
 
 ## What works
 
@@ -23,11 +23,11 @@
 
 | gate | command | result | last run |
 |---|---|---|---|
-| G1 | `npm test` | 29 / 29 (docs check, K5, D1 panels, F1 numpy formatting) | 2026-11-23 |
-| G2 | `npm run verify` | planner, parity (12 checks), annotations (incl. 34,805 range-track rows): 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 (cleanup slice 6: the new read path) |
-| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 417/429 + 12 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 · LDherit 29/29 · LDcorrelation 19/20 + 1 degenerate_z (rg = 1, se ≈ 1e-7) · LDscore 19/19 | 2026-11-23 (cleanup slice 6) |
-| G3s | `npm run verify:snapshot` | 1,440 / 1,440 hashes, taken from the code that passed G3 above and reproduced; over HTTP (`--http`, dev server): LDmatrix, LDassoc, LDscore, LDherit 99 / 99 | 2026-11-23 |
-| G4 | `npm run verify:app` | 14 / 14 views in headless Chromium, no page or console errors, every figure drawn, a run abandoned by a module switch shows nothing, back returns to the inputs; coverage `app/` 94.9%, `src/` 87.2% (snapshot: `src/` 92.1%) | 2026-11-23 |
+| G1 | `npm test` | 37 / 37 (docs and usage lines, line length, layers, K5, D1 panels, F1 numpy formatting, the core LD API against the ports) | 2026-11-23 |
+| G2 | `npm run verify` | planner, parity (12 checks), annotations (incl. 34,805 range-track rows): 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 (final code) |
+| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 419/429 + 10 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 · LDherit 29/29 · LDcorrelation 19/20 + 1 degenerate_z (rg = 1, se ≈ 1e-7) · LDscore 19/19 | 2026-11-23 (cleanup slice 10, `25c749b`; slice 9 after it only inserts line breaks) |
+| G3s | `npm run verify:snapshot` | 1,440 / 1,440 hashes after every slice of the cleanup; over HTTP (`--http`, dev server): LDmatrix, LDassoc, LDscore, LDherit 99 / 99 | 2026-11-23 (final code) |
+| G4 | `npm run verify:app` | 14 / 14 views in headless Chromium, no page or console errors, every figure's pixels unchanged through the cleanup, a run abandoned by a module switch shows nothing, back returns to the inputs; coverage `app/` 94.9%, `src/` 87% (snapshot: 92%); the built site ran LDproxy on the local release | 2026-11-23 (final code) |
 
 ## Speed (cold, browser, local dev server)
 
@@ -60,25 +60,38 @@ The cuts: no HEAD per file (sizes from the manifest), one exact footer read per 
 read), reads issued together share Range requests (`coalesce`, 16 KB gap: −24% requests for +9% bytes on LDproxy),
 and rsIDs with an unknown doc position try the VCF POS before the rsID index (LDproxy: 88 → 74 index lookups).
 
-## Done: the restructure ([history/RESTRUCTURE.md](history/RESTRUCTURE.md); outcome in §12)
+## Done: the cleanup ([history/CLEANUP_PLAN.md](history/CLEANUP_PLAN.md), outcome at its end; the review it came from: [history/CLEANUP_REVIEW.md](history/CLEANUP_REVIEW.md))
 
-Slices 0–6 are done, one commit each, on branch `restructure`; not pushed. Where the work differed from the plan,
-§12 says so: `genotypes.calls` and `pyFloat` were not extracted, hyparquet's native page pruning was not evaluated,
-and genome keys stay BigInt where they meet INT64 columns.
+Eleven slices, committed on `restructure`, not pushed. What changed for a reader of the code:
+- **Two layers:** `src/core` (reads return every match in file order; the LD kernel; `core/ld.js`, an LD API with
+  numbers and typed errors) and `src/parity` (LDlink's choices, messages and formatting, the 13 ports). A test keeps
+  core from importing parity.
+- **Gates that fail**, a 13-minute parity snapshot (`verify:snapshot`) for most changes, the app driven in Chromium
+  (`verify:app`), coverage (`npm run coverage`, `coverage:snapshot`).
+- **One read path** for lookups and ranges (each column on its own pages): 512 rsIDs 13.8 → 8.4 MB.
+- **The bugs of the review fixed:** kernel arena reuse, poisoned caches, missing files, stale results, pointer
+  offsets, quadratic overlap scans, the server and the Pages workflow.
+- **A pipeline runbook** (`pipeline/build.sh`) with every producer scripted; chr22 rebuilt byte-identical (GRCh37).
+- **About 6,000 lines deleted**; code lines within 140 characters except 63 verbatim LDlink strings.
 
-## Done: Phase C and hosting prep ([history/PLAN.md](history/PLAN.md); outcome in §9)
+## Earlier: the restructure and Phase C
 
-All slices are committed on `restructure`, not pushed. The static site builds (`dist/`, 0.7 MB) and runs against a
-release on another origin; `.github/workflows/pages.yml` deploys it once Pages uses Actions.
+[history/RESTRUCTURE.md](history/RESTRUCTURE.md) (outcome in §12) and [history/PLAN.md](history/PLAN.md) (outcome in §9).
 
 ## Follow-ups
 
-- `sortedLookup` reads every requested column over whole key-page spans; mapping each column to its own pages (as
-  the payload path does) cut 512 rsID lookups from 38 MB to 8.6 MB in hyparquet's version (`decisions.md`).
-- LDscore family uploads beyond the examples are untested against LDlink (its upload route); `sumstats_normalizer` and
-  the upload compatibility checks are not ported.
+- **LDproxy over CloudFront** took 14 s (505 requests) before the cleanup's read path; not re-measured over the CDN.
+- **Annotations** moved to the parity layer whole: the core has no annotation reads of its own yet (`core/ld.js`
+  has no `annotate`).
+- **LDscore family uploads** beyond the examples are untested against LDlink (its upload route); `sumstats_normalizer`
+  and the upload compatibility checks are not ported.
 
 ## Open decisions (yours)
+
+- **Push `restructure` to `main`** (it redeploys the site): the cleanup is local.
+- **The published verifier reports** under the bucket's `ldlink-parquet/v5/` (slice 1 moved them out of the
+  release locally): delete them from the bucket, or keep.
+- **Scratch output of the slice 8 gate** in `$LD_DATA`: `scratch_gate_release/`, `phaseB/geno_gate/` (about 200 MB).
 
 - **The test bucket's older prefixes** (`ldlink-parquet/v2/`–`v4/`, 94 GB: 24.5 + 34.8 + 34.8): keep or delete. `v4/` still has
   manifest version 1.

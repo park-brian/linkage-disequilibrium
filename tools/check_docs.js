@@ -8,7 +8,7 @@ import { resolve, dirname, relative, extname } from "node:path";
 import { REPO } from "./config.js";
 
 const TOP = ["src", "app", "pipeline", "verify", "test", "bench", "tools", "docs"];
-const ACTIVE = ["PLAN.md", "REVIEW.md"];
+const ACTIVE = [];
   // a plan in progress (and its review) names files it will create or delete; checked once in history
 const docs = ["README.md", "AGENTS.md", "src/README.md", ...readdirSync(resolve(REPO,
   "docs")).filter(f => f.endsWith(".md") && !ACTIVE.includes(f)).map(f => `docs/${f}`)];
