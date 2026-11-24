@@ -8,7 +8,7 @@
 import { cFormatG, pyRound, pyStr, npStr4 } from "../pyfmt.js";
 import { mungeSumstats } from "../ldsc/munge.js";
 import { estimateH2, h2ObsToLiab, parseSumstats } from "../ldsc/regress.js";
-import { MASTHEAD, callHeader, ctime, secToStr, pyDictRepr } from "../ldsc/log.js";
+import { callHeader, ctime, secToStr, pyDictRepr } from "../ldsc/log.js";
 
 const LDSC_POP = /^[A-Za-z0-9_+-]{1,64}$/;
 const EXAMPLE_DIR = "/data/ldscore";

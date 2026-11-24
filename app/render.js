@@ -75,7 +75,7 @@ export const showAssoc = (o, a, ctx) => showLocus(o, a, ctx, { spec: assocSpec, 
   title: p => `LDassoc — ${p.rows.length.toLocaleString()} variants in 1000G, ${p.missing.length.toLocaleString()} not` });
 
 /** LDherit / LDcorrelation / LDscore: ldsc's log text as LDlink returns it, or the error */
-export function showLog(o, a) {
+export function showLog(o) {
   if (typeof o !== "string") return show([notice(o.error, true)]);
   const pre = Object.assign(document.createElement("pre"), { textContent: o, className: "log" });
   show([card("Result", toolbar(download("result.txt", o)), pre)]);

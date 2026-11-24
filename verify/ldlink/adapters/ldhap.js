@@ -29,5 +29,5 @@ export async function ours(ctx, c) {
   const o = await ldhap(ctx, c);
   return { json: canon(o), text: o.error !== undefined ? null : ldhapText(o, c.build) };
 }
-export const verdict = (l, o) => (l.exception ? { verdict: "ldlink_exception", detail: { exception: l.exception } } : null);
+export const verdict = l => (l.exception ? { verdict: "ldlink_exception", detail: { exception: l.exception } } : null);
   // null: default comparison

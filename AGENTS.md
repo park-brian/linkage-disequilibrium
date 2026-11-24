@@ -30,7 +30,8 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
    - Pipeline and verify scripts call `useDataCwd()` (or `cd "$LD_DATA"`) and use data-relative paths.
    - Repo files resolve from `import.meta.url`.
 6. **Dense, commented code.** Each file opens with a paragraph saying what it does and which LDlink behaviour it
-   reproduces. Keep lines ≤ 140 characters.
+   reproduces. Keep lines ≤ 140 characters. The lint (`eslint.config.js`, in `npm test`) checks correctness only
+   (undefined names, unused values, unreachable code); add no style rules.
 
 ## Which check covers what
 

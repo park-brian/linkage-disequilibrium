@@ -4,7 +4,7 @@
 // script by its repo path (badUsage). Run by `npm test` (test/docs.test.js).
 // usage: node tools/check_docs.js → exits 1 and lists any missing path or bad usage line.
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { resolve, dirname, relative, extname } from "node:path";
+import { resolve, dirname, extname } from "node:path";
 import { REPO } from "./config.js";
 
 const TOP = ["src", "app", "pipeline", "verify", "test", "bench", "tools", "docs"];

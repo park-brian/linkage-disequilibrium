@@ -125,7 +125,7 @@ const odd = [
 ];
 for (const forceRsid of [undefined, "direct"]) {
   const a = await run(`non-canonical inputs [${forceRsid ?? "auto"}]`, { build: "grch37", inputs: odd, forceRsid });
-  const c = counter(), pl = await openPlanner(root, c.openFile);
+  const c = counter();
   // the resolver alone (no planner): LDlink's whole chain, resolve.js resolveInputs
   const { createResolver } = await import("../../src/parity/resolve.js");
   const want = await createResolver(root, c.openFile).resolveInputs(odd, "grch37");

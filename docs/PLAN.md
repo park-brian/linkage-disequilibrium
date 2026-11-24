@@ -64,6 +64,12 @@ leaves fewer concepts, not just fewer lines; a check that can't run on every pus
    `no-constant-condition`), no style rules (the code's density is deliberate), in `npm test`. The cleanup found
    two bugs of exactly this kind by hand (an undefined `labels`, an unused leftover `join`). Gate: G1 clean, every
    finding fixed or justified in the config.
+   - **Done:** `eslint` 10 with 29 correctness rules (`eslint.config.js`), run by `test/lint.test.js`. First run: 58
+     findings, none a live bug. 11 unused imports and values were removed (`TITLE` in LDexpress, `MASTHEAD` in LDherit,
+     `normPdf` / `erfc` / `VALID` in the ldsc ports, bench, tools and verifier leftovers). 12 were `verify/app/run.js`'s
+     `page.evaluate` callbacks (browser globals now). 35 were `src/core/stats.js`'s erfc coefficients, kept as
+     published (rewriting them to the shortest form gave the same 118 doubles; the rule is off for that file, with
+     the reason). Gates: G1 37 / 37 (a probe with an undefined name fails it), G3s, `verify:app` 14 / 14.
 5. **The one parity gap left:** LDherit, LDcorrelation and LDscore on uploaded files (only LDlink's examples are
    compared). Add G3 cases that upload through LDlink's upload route (a modified copy of an example, plus files
    that trip `sumstats_normalizer` and the compatibility checks), port what differs, refresh the snapshot after a

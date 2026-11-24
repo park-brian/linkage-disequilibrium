@@ -1,9 +1,9 @@
 // Window cost of each annotation track (cold, local file byte counting). usage: node bench/annotations.js <releaseRoot>
 import { openSync, readSync, fstatSync, writeFileSync, mkdirSync } from "node:fs";
-import { parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
+import { parquetMetadataAsync, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 import { rangeScan } from "../src/core/parquet.js";
-import { useDataCwd, repo } from "../tools/config.js";
+import { useDataCwd } from "../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
 const [root] = process.argv.slice(2);

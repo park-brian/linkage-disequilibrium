@@ -37,7 +37,7 @@ See `tools/config.js` for every path and its environment variable.
 |---|---|
 | `npm run serve` | dev server with Range support → `http://localhost:8095/app/` (the repo and the release, from config) |
 | `npm run build:site -- --data <url>` | the static site for GitHub Pages in `dist/` (the release is read from `<url>`; `.github/workflows/pages.yml` runs it) |
-| `npm test` | unit tests (seconds; needs the release unless `LD_SKIP_DATA=1`) |
+| `npm test` | unit tests, plus the docs, usage-line, line-length, layer and lint checks (seconds; needs the release unless `LD_SKIP_DATA=1`) |
 | `npm run verify` | data verifiers: planner, parity, annotations, kernel (chr1, chrX), selection, ldsc (about 20 min) |
 | `npm run verify:snapshot` | the parity snapshot: every LDlink comparison case through our ports, hashed against `verify/ldlink/snapshot.json` (about 13 min, no Docker; `-- --http <url>` reads the release over HTTP; CI runs it against CloudFront) |
 | `npm run verify:app` | every view in headless Chromium against the dev server (about 1 min): fails on page or console errors, error results, missing figures, a stale run shown after a switch; prints `app/` and `src/` coverage (Playwright; once: `npx playwright install chromium`) |
