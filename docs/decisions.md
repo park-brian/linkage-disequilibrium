@@ -109,3 +109,35 @@ Single-column reads take hyparquet's decoded arrays (`onChunk`), not row objects
 spans was 3x slower than before and ran the parity check out of memory. With arrays, CPU falls too (local, 200
 position keys: 1.18 → 0.62 s; 512 rsIDs: 1.49 → 1.17 s). The `payloadColumn` option is gone (every column now gets
 that treatment).
+
+## The planner fetches no genotype rows for the ports (2026-11-23, plan slice 1)
+
+**What was measured:** `bench/planner_modes.js` runs each list module cold over HTTP with the app's read path, in
+four planner modes, counting requests and bytes; every mode gave identical outputs. Over CloudFront (warm edge), as
+the planner is → without its row fetch (`rows: false`):
+
+| case | as is: requests / MB / s | without the row fetch |
+|---|---|---|
+| LDmatrix 8 SNPs | 62 / 2.66 / 0.63 | 54 / 2.55 / 0.59 |
+| LDmatrix 300 | 248 / 6.1 / 7.1 | 230 / 5.4 / 7.3 |
+| LDproxy rs3 | 435 / 11.5 / 2.0 | 426 / 11.5 / 1.6 |
+| SNPclip 1,000 | 499 / 30.0 / 29.4 | 435 / 21.3 / 29.0 |
+| SNPclip 200 spread over chr22 | 745 / 34.3 / 9.4 | 469 / 30.7 / 8.9 |
+| SNPchip 1,000 on four chromosomes | 4,419 / 102 / 16.6 | 3,380 / 83 / 16.0 |
+| LDassoc example | 53 / 3.28 / 1.08 | 45 / 3.22 / 0.78 |
+
+Locally, SNPclip 5,000: 720 / 56.1 → 545 / 38.3.
+
+**Why:** `planner.query` fetched genotype rows for every resolved variant, priced as region scans or point reads, and
+no port used them: the ports take their rows from `select` (its own candidate reads) and `ctx.row`. The other modes
+answer the plan's question about the pricing: resolving big lists directly ("simple") costs 3–7× the requests, so
+the hybrid rsID strategy stays; always scanning is about 20% cheaper on dense lists but reads up to 1.8× the bytes on
+sparse or genome-wide ones, so neither fixed rule replaces the pricing where a fetch is wanted.
+
+**Consequence:** the fetch goes from `query` (plan slice 2): with it the scan-or-points pricing for genotype rows,
+`plan.fetch` and the region option (the region view reads with `windowRows`). The hybrid rsID strategy and its label
+scan pricing stay.
+
+**Also found:** Node's `fetch` opens more HTTP/2 streams than CloudFront accepts (REFUSED_STREAM) when the read path
+issues hundreds of reads at once; browsers queue them. Anything running the read path from Node against CloudFront
+(the bench; CI in plan slice 3) caps reads in flight (64).

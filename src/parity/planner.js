@@ -307,10 +307,11 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     };
     plan.predictedBytes = plan.predicted.genotypes + plan.predicted.rsids + plan.predicted.coords;
   }
-  async function query({ build, inputs = [], regions = [], tiers = ["common", "low", "rare"], force, forceRsid, select }) {
+  async function query({ build, inputs = [], regions = [], tiers = ["common", "low", "rare"], force, forceRsid, select,
+    rows: wantRows = true }) {
     const plan = { build, tiers, fetch: [] };
     const variants = await resolveInputs(build, inputs, tiers, plan, forceRsid);
-    const rows = await fetchRows(build, variants, normalizeRegions(regions, plan), tiers, force, plan);
+    const rows = wantRows ? await fetchRows(build, variants, normalizeRegions(regions, plan), tiers, force, plan) : [];
     if (select) await selectRows(build, variants, tiers, select, plan);
     predict(plan);
     return { rows, variants, plan };
