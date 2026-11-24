@@ -37,6 +37,13 @@ leaves fewer concepts, not just fewer lines; a check that can't run on every pus
      the rsID modes.
    - Gates: G1, G3s, then full G2 + G3; `verify:app`; the slice 1 bench (no regression). Publishing the smaller
      manifest is an upload to the bucket (your OK); until then the current one still works.
+   - **Done** (`c62a8f3`): `planner.js` 320 → 214 lines; manifest v3 0.91 MB (0.36 MB gzipped), down from 1.92 MB
+     (0.61 MB), carrying only each file's size and footer and the row groups the hybrid strategy prices (the rest had
+     no reader). Gates: G1 36/36, G3s 1,440/1,440 (and 459/459 over CloudFront on its v2 manifest), G2 all pass, G3
+     13 modules 0 differ, `verify:app` 14/14 with figures unchanged, the bench reproduces slice 1's numbers. The v3
+     manifest is local only: uploading it must come after this code is live (the deployed code reads v1–v2).
+     Differences from the plan: `PRICED_COLUMNS` stays in the planner, its one reader (the manifest builder imports
+     it); the manifest also lost what nothing read, beyond the priced columns.
 3. **The parity checks in CI.** A workflow on every push and pull request:
    - `npm test` with the release (not `LD_SKIP_DATA`) is impossible in CI (34.8 GB), but the snapshot runs over HTTP:
      `npm run verify:snapshot -- --http <CloudFront URL>`, and `npm run verify:app` with the app pointed at
