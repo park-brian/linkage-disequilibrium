@@ -39,10 +39,10 @@ client reads.
     bytes of the label columns (`PRICED_COLUMNS` in `src/parity/planner.js`).
   - rsID index files: `keyIndex`, `[columnIndexOffset, length, offsetIndexOffset, length]` of the key column.
 - `src/parity/planner.js` `expandManifest` turns it back into one object per row group. It also reads version 2 (row
-  groups for every file, row counts, columns, key-value metadata: what the bucket's `v5/` holds) and version 1 (one
-  object per row group: the bucket's `v4/`).
+  groups for every file, row counts, columns, key-value metadata: what `v5/` held until 2026-11-24) and version 1
+  (one object per row group: the bucket's `v4/`).
 - release_v4: 0.91 MB (0.36 MB gzipped), the app's whole startup download; version 2 was 1.92 MB (0.61 MB), version 1
-  7.15 MB (1.49 MB). The v2 file is kept at `$LD_DATA/manifest_backup/manifest_v4_before_slice2.json`, the v1 file at
+  7.15 MB (1.49 MB). The v2 file is kept at `$LD_DATA/manifest_backup/` (`v5_manifest_published_v2.json`, as it was published), the v1 file at
   `$LD_DATA/release_v4_manifest.v1.json`.
 
 Built by `pipeline/release/manifest.js`.

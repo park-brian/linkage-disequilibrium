@@ -52,7 +52,7 @@ Over CloudFront (cold edge, from a home connection): LDmatrix 2.7 s, LDpair 1.1 
 
 | | before the restructure | now |
 |---|---|---|
-| startup (manifest) | 2 requests, 7.15 MB | 1 request, 1.92 MB (0.61 MB gzipped); 0.91 MB (0.36 MB) with manifest v3, local until uploaded |
+| startup (manifest) | 2 requests, 7.15 MB | 1 request, 1.92 MB (0.61 MB gzipped); now 0.91 MB (0.36 MB gzipped): manifest v3, published 2026-11-24 |
 | LDmatrix (8 SNPs) | 97 requests, 2.70 MB | 62 requests, 2.75 MB |
 | LDproxy rs3 ±500 kb | 886 requests, 12.6 MB | 505 requests, 13.4 MB |
 
