@@ -32,7 +32,8 @@ const COLUMNS = ["pos", "vcf_order", "rsid", "ref", "alt", "multiallelic_source"
   "haps", "missing", "male_haploid"];
 
 export function createLD({ root, open, kernel, manifest }) {
-  const source = createSource(root, open, manifest ? { exists: rel => !!manifest.files[rel], size: rel => manifest.files[rel] } : {});
+  const size = rel => { const f = manifest.files[rel]; return f && { byteLength: f.byteLength, footer: f.footer.length }; };
+  const source = createSource(root, open, manifest ? { exists: rel => !!manifest.files[rel], size } : {});
   const need = required(source.file), db = createDbsnp(source), geno = createGenotypes(source.file);
   const panels = once(async () => {
     const { file, metadata } = await need("annotations/panels.parquet"); let rows = [];

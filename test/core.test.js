@@ -224,7 +224,7 @@ test("K2/K3: band sizes output exactly, flags truncation, and handles row ranges
   }
 });
 
-// ---------- P4/P6: planner regions and lookup columns ----------
+// ---------- P6: lookup columns ----------
 test("P6: sortedLookup matches keys even when columns omit the key column", needData, async () => {
   haveRelease();
   const { asyncBufferFromFile, parquetMetadataAsync } = await import("hyparquet");
@@ -236,28 +236,6 @@ test("P6: sortedLookup matches keys even when columns omit the key column", need
   const got = await sortedLookup({ file, metadata, column: "pos", keys: some, columns: ["ref"], compressors });
   assert.deepEqual(got.rows.map(r => r.pos).sort((a, b) => a - b), [...new Set(some)].sort((a, b) => a - b));
 });
-test("P4: overlapping regions return each row once; chromosome names are normalized", needData, async () => {
-  haveRelease();
-  const { openPlanner } = await import("../src/parity/planner.js");
-  const { asyncBufferFromFile, cachedAsyncBuffer } = await import("hyparquet");
-  const root = RELEASE;
-  const pl = await openPlanner(root, async p => cachedAsyncBuffer(await asyncBufferFromFile(p)));
-  const { createHash } = await import("node:crypto"); // planner rows carry no ref/alt: split multi-allelic rows share pos
-  const key = r => `${r.tier}|${r.pos}|${createHash("sha1").update(r.haps).digest("hex")}`;
-  const one = await pl.query({ build: "grch37", regions: [{ chrom: "22", start: 30_000_000, end: 30_300_000 }], tiers: ["common"] });
-  const two = await pl.query({ build: "grch37", regions: [{ chrom: "chr22", start: 30_000_000, end: 30_200_000 }, { chrom: 22,
-    start: 30_100_000, end: 30_300_000 }, { chrom: "chr22", start: 30_150_000, end: 30_160_000 }], tiers: ["common"] });
-  assert.ok(one.rows.length > 0);
-  assert.equal(new Set(two.rows.map(key)).size, two.rows.length, "no duplicate rows");
-  assert.deepEqual(two.rows.map(key), one.rows.map(key));
-  const x = await pl.query({ build: "grch37", regions: [{ chrom: "x", start: 100_000_000, end: 100_050_000 }, { chrom: 23,
-    start: 100_000_000, end: 100_050_000 }], tiers: ["common"] });
-  assert.ok(x.rows.length > 0); assert.equal(new Set(x.rows.map(key)).size, x.rows.length);
-  const bad = await pl.query({ build: "grch37", regions: [{ chrom: "chr99", start: 1, end: 2 }, { chrom: "22", start: 5, end: 1 }] });
-  assert.equal(bad.plan.invalidRegions.length, 2);
-});
-
-// ---------- L5–L8: LDscore edge cases vs the reference ldsc ----------
 test("L5: --ld-wind of 0 is rejected like ldsc (np.array(..., dtype=bool)); the set window wins", async () => {
   const { ldscoreL2 } = await import("../src/parity/ldsc/l2.js");
   // 3 SNPs 1 Mb apart, 4 individuals (1 byte per SNP): a 500 kb / 0.5 cM window is not whole-chromosome

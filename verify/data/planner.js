@@ -1,12 +1,10 @@
-// Validate the planner: (1) hybrid rsID resolution gives exactly the direct (LDlink-parity) answer,
-// (2) predicted bytes track measured bytes, (3) the chosen strategy is the cheaper one when measured.
-// (4) select (parity / allele) picks the same rows as select_rows.js on a full-chromosome read, (5) non-canonical
-// inputs resolve like the direct resolver. Every scenario runs cold (new planner, empty caches).
+// Validate the planner: (1) hybrid rsID resolution gives exactly the direct (LDlink-parity) answer, with its bytes
+// and its predicted bytes; (2) select (parity / allele) picks the same rows as on a full-chromosome read; (3)
+// non-canonical inputs resolve like the direct resolver. Every scenario runs cold (new planner, empty caches).
 // usage: node verify/data/planner.js <releaseRoot>
 import { openSync, readSync, fstatSync, writeFileSync, existsSync } from "node:fs";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { createHash } from "node:crypto";
 import { openPlanner } from "../../src/parity/planner.js";
 import { pickAllele } from "../../src/core/genotypes.js";
 import { pickParity } from "../../src/parity/select.js";
@@ -30,15 +28,12 @@ async function run(label, q) {
     // manifest read counted separately
   const t0 = performance.now(), r = await pl.query(q), ms = performance.now() - t0;
   const measured = c.stats.bytes - base.bytes;
-  const o = { label, rows: r.rows.length, inputs: q.inputs?.length ?? 0, found: r.variants.filter(v => v?.found).length, rsid: r.plan.rsid,
-    fetch: summarize(r.plan.fetch), predicted_MB: +(r.plan.predictedBytes / 1e6).toFixed(2), measured_MB: +(measured / 1e6).toFixed(2),
-    ratio: +(measured / Math.max(1, r.plan.predictedBytes)).toFixed(2), requests: c.stats.requests - base.requests, ms: Math.round(ms),
-    by: Object.fromEntries(["genotypes", "rsids", "coords"].map(k => [k, { predicted_MB: +((r.plan.predicted?.[k] ?? 0) / 1e6).toFixed(2),
-      measured_MB: +((c.stats.by[k] - (base.by?.[k] ?? 0)) / 1e6).toFixed(2) }])) };
+  const o = { label, inputs: q.inputs?.length ?? 0, found: r.variants.filter(v => v?.found).length, rsid: r.plan.rsid,
+    measured_MB: +(measured / 1e6).toFixed(2), requests: c.stats.requests - base.requests, ms: Math.round(ms),
+    by: Object.fromEntries(["genotypes", "rsids", "coords"].map(k => [k, +((c.stats.by[k] - (base.by?.[k] ?? 0)) / 1e6).toFixed(2)])) };
   console.log(JSON.stringify(o));
   return { o, r };
 }
-const summarize = f => { const s = {}; for (const x of f) { const k = x.kind; s[k] = (s[k] || 0) + 1; } return s; };
 
 // ---- inputs drawn from the data ----
 async function labels(path, lo, hi) {
@@ -63,8 +58,6 @@ const results = [];
 // every field a caller sees (not `via`, which says how it was resolved)
 const key = v => JSON.stringify(v == null ? null : { found: !!v.found, rsid: v.rsid ?? null, ref_rsid: v.ref_rsid ?? null,
   chrom: v.chrom ?? null, pos: v.pos ?? null, warning: v.warning ?? null });
-// row contents, not counts: pos, tier and a digest of the genotype bytes
-const rowSet = rows => rows.map(r => `${r.pos}|${r.tier}|${createHash("sha1").update(r.haps).update(r.missing ?? new Uint8Array()).digest("hex")}`).sort().join(";");
 // 1) hybrid vs direct must agree exactly (found, chrom, pos) for every input
 for (const [label, inputs] of [
   ["clustered 300 rsIDs in 2 Mb (+extras)", [...pick(clustered, 300).map(r => `rs${r.rsid}`), ...extras]],
@@ -80,25 +73,7 @@ for (const [label, inputs] of [
     auto_MB: auto.o.measured_MB, direct_MB: dir.o.measured_MB });
   console.log(JSON.stringify(results.at(-1)));
 }
-// 2) windows and point clusters: predicted vs measured, and the alternative strategy measured
-for (const [label, q] of [
-  ["window 1 Mb, all tiers", { build: "grch37", regions: [{ chrom: "22", start: 25e6, end: 26e6 }] }],
-  ["window 10 Mb, common", { build: "grch37", regions: [{ chrom: "22", start: 25e6, end: 35e6 }], tiers: ["common"] }],
-  ["window 10 Mb, all tiers", { build: "grch37", regions: [{ chrom: "22", start: 25e6, end: 35e6 }] }],
-  ["30 coords scattered on chr22", { build: "grch37", inputs: pick(chr22all, 30).map(r => `chr22:${r.pos}`) }],
-  ["300 coords in 2 Mb", { build: "grch37", inputs: pick(clustered, 300).map(r => `chr22:${r.pos}`) }],
-  ["3000 coords in 2 Mb", { build: "grch37", inputs: pick(clustered, 3000).map(r => `chr22:${r.pos}`) }],
-]) {
-  const a = await run(`${label} [auto]`, q);
-  const alt = q.inputs ? await run(`${label} [force ${Object.keys(a.o.fetch)[0] === "scan" ? "points" : "scan"}]`, { ...q,
-    force: Object.keys(a.o.fetch)[0] === "scan" ? "points" : "scan" }) : null;
-  results.push({ check: "cost model", label, chosen: a.o.fetch, predicted_MB: a.o.predicted_MB, measured_MB: a.o.measured_MB,
-    ratio: a.o.ratio, by: a.o.by, rows: a.o.rows, ms: a.o.ms,
-    alternative_measured_MB: alt?.o.measured_MB ?? null, chose_cheaper: alt ? a.o.measured_MB <= alt.o.measured_MB : null,
-      same_rows: alt ? rowSet(alt.r.rows) === rowSet(a.r.rows) : null });
-  console.log(JSON.stringify(results.at(-1)));
-}
-// 3) select: the planner's per-variant choice == select_rows on the WHOLE chromosome (all tiers), independent of
+// 2) select: the planner's per-variant choice == select_rows on the WHOLE chromosome (all tiers), independent of
 //    the planner's overlap windows, tier files and merged-ID handling
 const SELCOLS = ["pos", "rsid", "ref", "alt", "vcf_order", "multiallelic_source", "allele_is_label", "allele_rsids"];
 // the reference reads each variant's OWN chromosome in full (inputs include e.g. rs52815562 on chr11), lazily, once
@@ -140,7 +115,7 @@ for (const mode of ["parity", "allele"]) {
     console.log(JSON.stringify(results.at(-1)));
   }
 }
-// 4) non-canonical inputs: planner (auto) == direct resolver for each, on every field
+// 3) non-canonical inputs: planner (auto) == direct resolver for each, on every field
 const someRs = pick(clustered, 3).map(r => String(r.rsid)), somePos = pick(clustered, 3).map(r => r.pos);
 const odd = [
   ...someRs.flatMap(id => [`RS${id}`, ` rs${id} `, `rs${id}rs`, `rsrs${id}`, `${id}`]),

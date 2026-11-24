@@ -1,9 +1,10 @@
-// Does the planner's byte-cost model still pay? Each case runs a module port cold (a fresh context: empty caches)
-// over HTTP with the app's read path (verify/ldlink/lib.js nodeContext: manifest sizes, coalesced Range requests,
-// cached), once per planner mode, counting every request and byte (Content-Length) and the wall time:
-//   auto    the planner as is (scan vs points priced from the manifest; rsID lists > 32 resolved "hybrid")
-//   simple  force: "points", forceRsid: "direct" (no pricing: point reads for positions, every rsID looked up)
-//   scan    force: "scan" (range reads for every position cluster)
+// Does the planner's rsID strategy still pay? Each case runs a module port cold (a fresh context: empty caches) over
+// HTTP with the app's read path (verify/ldlink/lib.js nodeContext: manifest sizes, coalesced Range requests, cached),
+// once per planner mode, counting every request and byte and the wall time:
+//   auto    the planner as is (rsID lists > 32 resolve "hybrid" when the manifest prices the label scan lower)
+//   direct  forceRsid: "direct" (every rsID looked up in the rsID index)
+// Slice 1 of docs/history/PLAN_2026-11-24.md also measured the genotype-row fetch the planner no longer does
+// (decisions.md: "The planner fetches no genotype rows for the ports").
 // The outputs of the modes must be identical (checked by hash). The manifest fetch is counted apart.
 // usage: node bench/planner_modes.js <release URL> [repeat=1] [case...]   → $LD_DATA/bench/results/planner_modes_<host>.json
 import { createHash } from "node:crypto";
@@ -20,7 +21,7 @@ import { useDataCwd } from "../tools/config.js";
 
 const [url, rep = "1", ...pick] = process.argv.slice(2);
 if (!url) throw new Error("usage: node bench/planner_modes.js <release URL> [repeat] [case...]");
-const MODES = { auto: {}, simple: { force: "points", forceRsid: "direct" }, scan: { force: "scan" }, norows: { rows: false } };
+const MODES = { auto: {}, direct: { forceRsid: "direct" } };
 
 // every fetch counted: requests and bytes (Range responses carry Content-Length)
 const stats = { requests: 0, bytes: 0 }, realFetch = globalThis.fetch;
@@ -71,8 +72,6 @@ const CASES = {
   "SNPchip 1000 genome-wide": c => snpchip(c, { snps: wide.join("\n"), platforms: "all", build: "grch37" }),
   "LDassoc example": c => ldassoc(c, { text: assoc, columns: ["chr", "pos", "p"], region: "variant", origin: "rs7837688", window: 100000,
     pop: "EUR", build: "grch37" }),
-  "region 1 Mb": c => c.planner.query({ build: "grch37", regions: [{ chrom: "22", start: 30_000_000,
-    end: 31_000_000 }] }).then(r => ({ rows: r.rows.length, first: r.rows[0]?.pos, last: r.rows.at(-1)?.pos })),
 };
 const hash = o => createHash("sha256").update(JSON.stringify(canon(o), (k,
   v) => (typeof v === "bigint" ? `${v}n` : v instanceof Uint8Array ? `bytes:${v.length}` : v))).digest("hex").slice(0, 12);

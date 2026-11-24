@@ -52,7 +52,7 @@ parity:  input, pyfmt ─► resolve (dbsnp), select (genotypes) ─► planner 
 | `parity/input.js` | LDlink's `firstToken` and `parseCoord` (Python's `strip("chr")`, `split(":")`, `int()`) |
 | `parity/resolve.js` | LDlink's resolution on the core reads: `resolveRsids`, `resolveCoords`, `resolveInputs`; the `find_one` / `find` forms `findAt`, `findAllAt`, `findById` |
 | `parity/select.js` | `pickParity`: LDlink's last overlapping row, and its "not biallelic" / "not in 1000G" statuses |
-| `parity/planner.js` | the query planner: resolve inputs (hybrid rsID strategy), price scan vs point reads from the manifest, fetch rows; owns the shared file cache (`planner.file`) |
+| `parity/planner.js` | the query planner: resolve inputs (big rsID lists hybrid: a label scan where the manifest prices it lower than direct lookups), select each variant's row; owns the shared file cache (`planner.file`). It fetches no genotype rows |
 | `parity/annotations.js` | LDlink's annotation queries (find_one / find / `$lookup` forms): genes, recombination, RegulomeDB, FORGEdb (by rsID and by position), arrays, GWAS, GTEx eQTL, gene coordinates |
 | `parity/pyfmt.js` | Python-exact formatting: `round`, `'%.nf'`, `str(float)`; C `%g` |
 | `parity/ldsc/` | ldsc, reproduced: regression (`regress`), sumstats munging (`munge`), LD scores (`l2`), the release's panels (`panels`), the log text (`log`), pandas' layouts and numbers (`pandas`) |
