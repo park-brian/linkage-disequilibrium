@@ -3,12 +3,12 @@
 //  - pick files / row groups by key range without opening them,
 //  - plan point reads vs scans from page-index locations (PLAN_REVIEW.md findings 2 and 7).
 // Version 2: row groups stored column-wise, and per-column sizes only for the genotype columns the planner prices
-// (src/planner.js PRICED_COLUMNS): 1.9 MB instead of 7.2 MB for release_v4. src/planner.js expandManifest reads both.
+// (src/parity/planner.js PRICED_COLUMNS): 1.9 MB instead of 7.2 MB for release_v4. src/parity/planner.js expandManifest reads both.
 // usage: node pipeline/release/manifest.js <releaseRoot>     → <releaseRoot>/manifest.json
 import { readdirSync, statSync, writeFileSync } from "node:fs";
 import { parquetMetadataAsync, asyncBufferFromFile } from "hyparquet";
 import { useDataCwd } from "../../tools/config.js";
-import { PRICED_COLUMNS } from "../../src/planner.js";
+import { PRICED_COLUMNS } from "../../src/parity/planner.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
 const [root] = process.argv.slice(2);

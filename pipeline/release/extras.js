@@ -5,7 +5,7 @@
 //    and LDherit / LDcorrelation's BBJ sumstats (copied byte for byte).
 //  - ldscore/ldsc_counts.parquet: per panel, the SNP count ldsc logs ("Read reference panel LD Scores for N SNPs"):
 //    distinct SNP IDs after its sep=r'\s+' read, where a row with an empty SNP field shifts left and its BP becomes the
-//    SNP (src/ldsc/panels.js). Counted here once, so a browser never needs a set of up to 17 million IDs.
+//    SNP (src/parity/ldsc/panels.js). Counted here once, so a browser never needs a set of up to 17 million IDs.
 // Then rebuild the manifest (node pipeline/release/manifest.js <release>).
 // usage: node pipeline/release/extras.js <release>
 import { readdirSync, readFileSync, copyFileSync, mkdirSync, statSync } from "node:fs";

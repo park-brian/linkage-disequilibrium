@@ -1,7 +1,7 @@
-// CLI for src/ldsc/l2.js (ldsc.py --l2): node ldsc/ldscore_l2.js <bfilePrefix> <cm|kb> <window> <outPrefix>
+// CLI for src/parity/ldsc/l2.js (ldsc.py --l2): node ldsc/ldscore_l2.js <bfilePrefix> <cm|kb> <window> <outPrefix>
 import { readFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
-import { readBim, readFamCount, ldscoreL2, formatOutputs } from "../../src/ldsc/l2.js";
+import { readBim, readFamCount, ldscoreL2, formatOutputs } from "../../src/parity/ldsc/l2.js";
 import { useDataCwd } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
