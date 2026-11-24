@@ -11,6 +11,7 @@
     "verify:ldlink": "bash verify/run.sh ldlink",
     "verify:snapshot": "node verify/ldlink/snapshot.js",
     "verify:app": "node verify/app/run.js",
+    "verify:set": "node verify/app/set.js",
     "coverage": "node tools/coverage.js -- --test \"test/*.test.js\"",
     "coverage:snapshot": "node tools/coverage.js -- verify/ldlink/snapshot.js",
     "bench": "node bench/js_vs_wasm.js",
