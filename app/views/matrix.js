@@ -13,7 +13,8 @@ export function renderMatrix(holder, { ids, pos, r2, d, genes, lo, hi }) {
     if (r < 0) { r = rows.length; rows.push(0); }
     rows[r] = Math.max(rows[r], g.txEnd); placed.push({ g, r });
   }
-  const H_MATRIX = W, H_CONN = 46, H_RUG = 26, ROW = 22, H_GENES = Math.max(1, rows.length) * ROW + 10, H = H_MATRIX + H_CONN + H_RUG + H_GENES;
+  const H_MATRIX = W, H_CONN = 46, H_RUG = 26, ROW = 22, H_GENES = Math.max(1, rows.length) * ROW + 10,
+    H = H_MATRIX + H_CONN + H_RUG + H_GENES;
   const { cv, g } = canvas(W, H);
   const fill = ([r, gg, b], a) => `rgba(${r},${gg},${b},${a})`;
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
@@ -21,7 +22,8 @@ export function renderMatrix(holder, { ids, pos, r2, d, genes, lo, hi }) {
     g.fillStyle = i === j ? fill(COLORS.diag, 1) : v === "NA" ? fill(COLORS.na, 1) : fill(i > j ? COLORS.d : COLORS.r2, Math.max(0.04, +v));
     g.fillRect(j * cell, i * cell, Math.ceil(cell), Math.ceil(cell));
   }
-  if (cell >= 6) { g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 0.5; for (let k = 0; k <= n; k++) { g.beginPath(); g.moveTo(0, k * cell); g.lineTo(W, k * cell); g.moveTo(k * cell, 0); g.lineTo(k * cell, W); g.stroke(); } }
+  if (cell >= 6) { g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 0.5; for (let k = 0; k <= n; k++) { g.beginPath(); g.moveTo(0,
+    k * cell); g.lineTo(W, k * cell); g.moveTo(k * cell, 0); g.lineTo(k * cell, W); g.stroke(); } }
   // connector: column centre → genomic position
   const y0 = H_MATRIX + 2, y1 = H_MATRIX + H_CONN;
   g.strokeStyle = "rgba(60,60,60,.45)"; g.lineWidth = 0.8;
@@ -32,7 +34,8 @@ export function renderMatrix(holder, { ids, pos, r2, d, genes, lo, hi }) {
   const step = niceStep(span / 5);
   let lastEnd = -Infinity;
   for (let t = Math.ceil(lo / step) * step; t <= hi; t += step) {
-    const label = `${(t / 1e6).toFixed(step < 1e5 ? 3 : 2)} Mb`, w = g.measureText(label).width, lx = Math.min(W - w, Math.max(0, x(t) - w / 2));
+    const label = `${(t / 1e6).toFixed(step < 1e5 ? 3 : 2)} Mb`, w = g.measureText(label).width, lx = Math.min(W - w, Math.max(0,
+      x(t) - w / 2));
     if (lx < lastEnd + 8) continue; // never overlap labels
     g.fillText(label, lx, y1 + 11); lastEnd = lx + w;
   }
@@ -43,7 +46,8 @@ export function renderMatrix(holder, { ids, pos, r2, d, genes, lo, hi }) {
     g.strokeStyle = "#2b5d34"; g.fillStyle = "#2b5d34"; g.lineWidth = 1;
     g.beginPath(); g.moveTo(xs, yy + 4); g.lineTo(xe, yy + 4); g.stroke();
     const st = (t.exonStarts ?? "").split(",").filter(Boolean).map(Number), en = (t.exonEnds ?? "").split(",").filter(Boolean).map(Number);
-    st.forEach((s, k) => { const a = x(s), b = x(en[k]); if (b >= 0 && a <= W) g.fillRect(Math.max(0, a), yy, Math.max(1, Math.min(W, b) - Math.max(0, a)), 8); });
+    st.forEach((s, k) => { const a = x(s), b = x(en[k]); if (b >= 0 && a <= W) g.fillRect(Math.max(0, a), yy, Math.max(1, Math.min(W,
+      b) - Math.max(0, a)), 8); });
     g.fillStyle = "#1d2330"; g.fillText(`${t.name2}${t.strand === "-" ? " ←" : " →"}`, Math.max(0, Math.min(W - 80, xs)), yy + 9);
   }
   if (!genes.length) { g.fillStyle = "#888"; g.fillText("no RefSeq genes in this region", 4, gy + 4); }

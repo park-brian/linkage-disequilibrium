@@ -16,7 +16,8 @@ export async function measure(names, dataUrl) {
     const t0 = performance.now(); document.querySelector("#form button[type=submit]").click();
     while (!document.querySelector("#status").textContent.startsWith(`${n}:`) && document.querySelector("#status").textContent !== "error") await wait(50);
     const es = entries().slice(before);
-    out[n] = { ms: Math.round(performance.now() - t0), requests: es.length, bytes: es.reduce((s, e) => s + e.transferSize, 0), status: document.querySelector("#status").textContent };
+    out[n] = { ms: Math.round(performance.now() - t0), requests: es.length, bytes: es.reduce((s, e) => s + e.transferSize, 0),
+      status: document.querySelector("#status").textContent };
   }
   return out;
 }

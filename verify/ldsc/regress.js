@@ -14,7 +14,8 @@ async function panel(group) {
   const file = await asyncBufferFromFile(`${panelDir}/${group}.parquet`), metadata = await parquetMetadataAsync(file);
   const kv = Object.fromEntries(metadata.key_value_metadata.map(x => [x.key, x.value]));
   const snps = [], l2 = [];
-  await parquetRead({ file, metadata, compressors, columns: ["SNP", "L2"], onChunk: () => {}, onComplete: rows => { for (const r of rows) { snps.push(r[0]); l2.push(r[1]); } } });
+  await parquetRead({ file, metadata, compressors, columns: ["SNP", "L2"], onChunk: () => {},
+    onComplete: rows => { for (const r of rows) { snps.push(r[0]); l2.push(r[1]); } } });
   const M550 = JSON.parse(kv.M_5_50), M = Object.values(M550).reduce((a, v) => a + v[0], 0); // np.sum over chromosomes
   return { ...dedupPanel(snps, l2), M };
 }
@@ -25,7 +26,8 @@ const results = [];
 function compare(label, got, exp, keys) {
   const diffs = Object.fromEntries(keys.map(k => [k, { js: got[k], ldsc: exp[k], rel: rel(got[k], exp[k]) }]));
   const worst = Math.max(...Object.values(diffs).map(d => d.rel));
-  results.push({ label, worst_rel_diff: worst, diffs }); console.log(JSON.stringify({ label, worst_rel_diff: worst, ...Object.fromEntries(keys.map(k => [k, [got[k], exp[k]]])) }));
+  results.push({ label, worst_rel_diff: worst, diffs }); console.log(JSON.stringify({ label, worst_rel_diff: worst,
+    ...Object.fromEntries(keys.map(k => [k, [got[k], exp[k]]])) }));
 }
 const hk = ["tot", "tot_se", "intercept", "intercept_se", "mean_chisq", "lambda_gc", "ratio", "ratio_se", "twostep_filtered"];
 for (const g of ["eas", "eur"]) {
@@ -35,7 +37,8 @@ for (const g of ["eas", "eur"]) {
   compare(`h2 HDL chr22 ${g}`, h, ref(`ref_h2_${g}.json`).hsq, hk);
   if (g === "eas") {
     const L = ref("ref_h2_eas_liab.json").hsq, f = h2ObsToLiab(1, 0.3, 0.1);
-    compare("h2 liability factor (P=0.3, K=0.1)", { liab_factor: f, liab_tot: f * h.tot }, { liab_factor: L.liab_factor, liab_tot: L.liab_factor * L.tot }, ["liab_factor", "liab_tot"]);
+    compare("h2 liability factor (P=0.3, K=0.1)", { liab_factor: f, liab_tot: f * h.tot }, { liab_factor: L.liab_factor,
+      liab_tot: L.liab_factor * L.tot }, ["liab_factor", "liab_tot"]);
     const t1 = performance.now(), r = estimateRg(read("BBJ_HDLC22.sumstats.gz"), read("BBJ_LDLC22.sumstats.gz"), P, P.M);
     console.log(`  rg ${g}: ${r.n_snp} SNPs, ${Math.round(performance.now() - t1)} ms`);
     const R = ref("ref_rg_eas.json");

@@ -6,7 +6,8 @@
 // SNPs: unique-position, non-multiallelic rows from all three tiers (bitset and sparse decode), SNVs and indels.
 // Indels: LDlink builds its 2×2 table from sorted() allele strings (LDmatrix.py:270-307); where that order differs
 // from allele-index order the reference table is permuted (ROADMAP K4) — such pairs are reported separately.
-// usage: node verify/data/kernel.js <genoPrefix e.g. release_v4/genotypes/grch37/chr22 (data-relative)> <vcf.gz> <tbi> <vcfChrom> <start> <out.json>
+// usage: node verify/data/kernel.js <genoPrefix e.g. release_v4/genotypes/grch37/chr22 (data-relative)> <vcf.gz> <tbi> <vcfChrom> <start>
+// <out.json>
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead } from "hyparquet";
@@ -28,22 +29,26 @@ const tiers = await Promise.all(["common", "low", "rare"].map(async t => {
 const kv = Object.fromEntries(tiers[0].metadata.key_value_metadata.map(x => [x.key, x.value]));
 const samples = kv.samples.split(","), haploidMales = new Set((kv.male_haploid_samples || "").split(",").filter(Boolean).map(Number));
 const all = [];
-for (const { t, file, metadata } of tiers) await parquetRead({ file, metadata, compressors, columns: ["pos", "ref", "alt", "multiallelic_source"], rowFormat: "object",
+for (const { t, file, metadata } of tiers) await parquetRead({ file, metadata, compressors, columns: ["pos", "ref", "alt",
+  "multiallelic_source"], rowFormat: "object",
   onComplete: r => { for (const x of r) all.push({ ...x, tier: t }); } });
 const nAt = new Map(); for (const r of all) nAt.set(r.pos, (nAt.get(r.pos) ?? 0) + 1);
 const ok = r => r.pos >= START && r.pos < START + SPAN && nAt.get(r.pos) === 1 && !r.multiallelic_source;
 const want = { common: 22, low: 12, rare: 8 };
 const picks = [];
 for (const t of Object.keys(want)) {
-  const c = all.filter(r => r.tier === t && ok(r)), snv = c.filter(r => r.ref.length === 1 && r.alt.length === 1), ind = c.filter(r => !(r.ref.length === 1 && r.alt.length === 1));
-  const take = (a, k) => { const s = Math.max(1, Math.floor(a.length / Math.max(1, k))); return a.filter((_, i) => i % s === 0).slice(0, k); };
+  const c = all.filter(r => r.tier === t && ok(r)), snv = c.filter(r => r.ref.length === 1 && r.alt.length === 1),
+    ind = c.filter(r => !(r.ref.length === 1 && r.alt.length === 1));
+  const take = (a, k) => { const s = Math.max(1, Math.floor(a.length / Math.max(1, k))); return a.filter((_, i) => i % s === 0).slice(0, k);
+    };
   const ni = Math.min(ind.length, Math.round(want[t] / 3));
   picks.push(...take(snv, want[t] - ni).map(r => ({ ...r })), ...take(ind, ni).map(r => ({ ...r })));
 }
 const rows = [];
 for (const { t, file, metadata } of tiers) {
   const keys = picks.filter(p => p.tier === t).map(p => p.pos);
-  const r = await sortedLookup({ file, metadata, column: "pos", keys, columns: ["pos", "ref", "alt", "haps", "missing", "male_haploid"], compressors });
+  const r = await sortedLookup({ file, metadata, column: "pos", keys, columns: ["pos", "ref", "alt", "haps", "missing", "male_haploid"],
+    compressors });
   rows.push(...r.rows.map(x => ({ ...x, tier: t })));
 }
 rows.sort((a, b) => a.pos - b.pos);
@@ -75,13 +80,16 @@ function indexConsistent(i, j) {
 }
 
 const report = { genotypes: prefix, vcf: vcf.split(/[\\/]/).pop(), start: START, snps: rows.length,
-  by_tier: Object.fromEntries(Object.keys(want).map(t => [t, rows.filter(r => r.tier === t).length])), indels: rows.filter(r => !(r.ref.length === 1 && r.alt.length === 1)).length,
+  by_tier: Object.fromEntries(Object.keys(want).map(t => [t, rows.filter(r => r.tier === t).length])),
+    indels: rows.filter(r => !(r.ref.length === 1 && r.alt.length === 1)).length,
   masked_rows: rows.filter(r => r.missing || r.male_haploid).length, populations: [] };
 const q = rows.map(r => `${vcfChrom}:${r.pos}:p${r.pos}`);
 for (const pop of pops) {
-  const ref = JSON.parse(execFileSync("node", [repo("verify/reference/ldmatrix_reference.js"), CONFIG.REF_NODE_MODULES, vcf, pop.file, "--", ...q],
+  const ref = JSON.parse(execFileSync("node", [repo("verify/reference/ldmatrix_reference.js"), CONFIG.REF_NODE_MODULES, vcf, pop.file, "--",
+    ...q],
     { env: { ...process.env, TBI: tbi }, maxBuffer: 1 << 28 }).toString());
-  if (ref.snps.length !== rows.length || ref.snps.some((s, i) => s.pos !== rows[i].pos)) throw new Error(`${pop.name}: reference returned ${ref.snps.length} SNPs (${ref.warnings.join("; ")})`);
+  if (ref.snps.length !== rows.length || ref.snps.some((s,
+    i) => s.pos !== rows[i].pos)) throw new Error(`${pop.name}: reference returned ${ref.snps.length} SNPs (${ref.warnings.join("; ")})`);
   const panel = new Set(readFileSync(pop.file, "utf8").split(/\s+/).filter(Boolean));
   const popSamples = samples.map((s, i) => (panel.has(s) ? i : -1)).filter(i => i >= 0);
   const hapIndexes = popSamples.flatMap(s => [2 * s, 2 * s + 1]);
@@ -96,11 +104,13 @@ for (const pop of pops) {
       if (same) { c.match++; continue; }
       if (!indexConsistent(i, j)) { c.k4_divergent++; continue; }
       if (g && (nearBoundary(g.r2) || nearBoundary(g.dprime)) && Math.abs(g.r2 - er) <= 0.0011 && Math.abs(g.dprime - ed) <= 0.0011) { c.float32_boundary++; continue; }
-      c.mismatch++; if (c.examples.length < 5) c.examples.push({ i, j, pos: [rows[i].pos, rows[j].pos], alleles: [`${rows[i].ref}>${rows[i].alt}`, `${rows[j].ref}>${rows[j].alt}`], got: g, ref: [er, ed] });
+      c.mismatch++; if (c.examples.length < 5) c.examples.push({ i, j, pos: [rows[i].pos, rows[j].pos],
+        alleles: [`${rows[i].ref}>${rows[i].alt}`, `${rows[j].ref}>${rows[j].alt}`], got: g, ref: [er, ed] });
     }
     res.paths[name] = c;
   }
-  const asMap = b => { const m = new Map(); for (let k = 0; k < b.count; k++) m.set(`${b.i[k]},${b.j[k]}`, { r2: b.r2[k], dprime: b.dprime[k] }); return m; };
+  const asMap = b => { const m = new Map(); for (let k = 0; k < b.count; k++) m.set(`${b.i[k]},${b.j[k]}`, { r2: b.r2[k],
+    dprime: b.dprime[k] }); return m; };
   for (const [kname, k] of Object.entries(kernels)) {
     const p = k.prepare(rows, { samples: samples.length, haploidMales, hapIndexes });
     res.masked = p.masked;
@@ -115,7 +125,8 @@ for (const pop of pops) {
       // worker split: rows [0, m) and [m, n) must together give the same pairs, each once
       const m = Math.floor(n / 2), a = k.band(p, { ...big, block: 4, rows: [0, m] }), b = k.band(p, { ...big, block: 4, rows: [m, n] });
       const split = new Map(); let dup = 0;
-      for (const x of [a, b]) for (let t = 0; t < x.count; t++) { const key = `${x.i[t]},${x.j[t]}`; if (split.has(key)) dup++; split.set(key, { r2: x.r2[t], dprime: x.dprime[t] }); }
+      for (const x of [a, b]) for (let t = 0; t < x.count; t++) { const key = `${x.i[t]},${x.j[t]}`; if (split.has(key)) dup++;
+        split.set(key, { r2: x.r2[t], dprime: x.dprime[t] }); }
       compare(`${kname}.band_split`, (i, j) => split.get(`${i},${j}`) ?? null);
       res.paths[`${kname}.band_split`].duplicate_pairs = dup;
       const t = k.tile(p, 0, n, 0, n);
@@ -124,23 +135,28 @@ for (const pop of pops) {
         if (!indexConsistent(i, j)) continue;
         tc.pairs++;
         const vr = t.r2[i * n + j], vd = t.dprime[i * n + j], er = expect(i, j, "r2"), ed = expect(i, j, "dprime");
-        if (vr === 255 || er === "NA") { if (vr === 255 && er === "NA") tc.na_agree++; else { tc.bad++; if (tc.examples.length < 5) tc.examples.push({ i, j, vr, er }); } continue; }
-        if (Math.abs(vr / 250 - er) <= 0.0025 && Math.abs(vd / 250 - ed) <= 0.0025) tc.within_quantization++; else { tc.bad++; if (tc.examples.length < 5) tc.examples.push({ i, j, vr, vd, er, ed }); }
+        if (vr === 255 || er === "NA") { if (vr === 255 && er === "NA") tc.na_agree++; else { tc.bad++;
+          if (tc.examples.length < 5) tc.examples.push({ i, j, vr, er }); } continue; }
+        if (Math.abs(vr / 250 - er) <= 0.0025 && Math.abs(vd / 250 - ed) <= 0.0025) tc.within_quantization++; else { tc.bad++;
+          if (tc.examples.length < 5) tc.examples.push({ i, j, vr, vd, er, ed }); }
       }
       res.paths[`${kname}.tile`] = tc;
     }
   }
   { const a = kernels.wasm.band(kernels.wasm.prepare(rows, { samples: samples.length, haploidMales, hapIndexes }), { maxDist: 1e9 });
     const b = kernels.js.band(kernels.js.prepare(rows, { samples: samples.length, haploidMales, hapIndexes }), { maxDist: 1e9 });
-    let same = a.count === b.count; for (let t = 0; same && t < a.count; t++) same = a.i[t] === b.i[t] && a.j[t] === b.j[t] && a.r2[t] === b.r2[t] && a.dprime[t] === b.dprime[t];
+    let same = a.count === b.count; for (let t = 0; same && t < a.count;
+      t++) same = a.i[t] === b.i[t] && a.j[t] === b.j[t] && a.r2[t] === b.r2[t] && a.dprime[t] === b.dprime[t];
     res.backends_identical = same; if (!same) res.paths.backends = { bad: 1 }; kernels.wasm.reset(); }
   const worst = Object.values(res.paths).reduce((a, c) => a + (c.mismatch ?? 0) + (c.bad ?? 0) + (c.duplicate_pairs ?? 0), 0);
   res.failures = worst;
   report.populations.push(res);
   console.log(JSON.stringify({ population: pop.name, nh: res.nh, masked: res.masked, failures: worst,
-    paths: Object.fromEntries(Object.entries(res.paths).map(([k, c]) => [k, c.mismatch ?? c.bad])), k4: res.paths["wasm.band"].k4_divergent, f32: res.paths["wasm.band"].float32_boundary }));
+    paths: Object.fromEntries(Object.entries(res.paths).map(([k, c]) => [k, c.mismatch ?? c.bad])), k4: res.paths["wasm.band"].k4_divergent,
+      f32: res.paths["wasm.band"].float32_boundary }));
 }
 report.failures = report.populations.reduce((a, p) => a + p.failures, 0);
 writeFileSync(outPath, JSON.stringify(report, null, 2));
 if (report.failures > 0) process.exitCode = 1;
-console.log(JSON.stringify({ snps: report.snps, by_tier: report.by_tier, indels: report.indels, masked_rows: report.masked_rows, failures: report.failures }));
+console.log(JSON.stringify({ snps: report.snps, by_tier: report.by_tier, indels: report.indels, masked_rows: report.masked_rows,
+  failures: report.failures }));

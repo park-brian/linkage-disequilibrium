@@ -15,7 +15,8 @@ const LDSC_POP = /^[A-Za-z0-9_+-]{1,64}$/;
 /** _parse_probability_pair: two comma-separated probabilities → "a,b" (each re-printed with ".15g") */
 function probabilityPair(raw, field) {
   const parts = String(raw).split(",").map(s => s.trim());
-  if (parts.length !== 2 || parts.some(p => p === "")) throw new Error(`Invalid ${field}: for liability scale in LDcorrelation, provide two comma-separated values between 0 and 1.`);
+  if (parts.length !== 2 || parts.some(p => p === ""))
+    throw new Error(`Invalid ${field}: for liability scale in LDcorrelation, provide two comma-separated values between 0 and 1.`);
   return parts.map((p, i) => probability(p, `${field}[${i + 1}]`));
 }
 
@@ -29,9 +30,11 @@ function gencovSummary(g, P, K) {
 
 /** regressions.RG.summary(silly=False), no constrained gencov intercept */
 function rgSummary(r) {
-  if (r.negative_hsq) return ["Genetic Correlation: nan (nan) (h2  out of bounds) ", "Z-score: nan (nan) (h2  out of bounds)", "P: nan (nan) (h2  out of bounds)",
+  if (r.negative_hsq) return ["Genetic Correlation: nan (nan) (h2  out of bounds) ", "Z-score: nan (nan) (h2  out of bounds)",
+    "P: nan (nan) (h2  out of bounds)",
     "WARNING: One of the h2's was out of bounds.", "This usually indicates a data-munging error or that h2 or N is low."].join("\n");
-  if (r.rg_ratio > 1.2 || r.rg_ratio < -1.2) return ["Genetic Correlation: nan (nan) (rg out of bounds) ", "Z-score: nan (nan) (rg out of bounds)", "P: nan (nan) (rg out of bounds)",
+  if (r.rg_ratio > 1.2 || r.rg_ratio < -1.2) return ["Genetic Correlation: nan (nan) (rg out of bounds) ",
+    "Z-score: nan (nan) (rg out of bounds)", "P: nan (nan) (rg out of bounds)",
     "WARNING: rg was out of bounds.", "This often means that h2 is not significantly different from zero."].join("\n");
   return [`Genetic Correlation: ${npStr4(r.rg_ratio)} (${npStr4(r.rg_se)})`, `Z-score: ${npStr4(r.z)}`, `P: ${npStr4(r.p)}`].join("\n");
 }
@@ -40,7 +43,8 @@ function rgSummary(r) {
 function rgTable(r, files, P, K) {
   const liab = P && K && P.every(x => x != null) && K.every(x => x != null), c = liab ? h2ObsToLiab(1, P[1], K[1]) : 1, h = r.hsq2;
   return pdRow([["p1", files[0]], ["p2", files[1]], ["rg", r.rg_ratio], ["se", r.rg_se], ["z", r.z], ["p", r.p],
-    [liab ? "h2_liab" : "h2_obs", c * h.tot], [liab ? "h2_liab_se" : "h2_obs_se", c * h.tot_se], ["h2_int", h.intercept], ["h2_int_se", h.intercept_se],
+    [liab ? "h2_liab" : "h2_obs", c * h.tot], [liab ? "h2_liab_se" : "h2_obs_se", c * h.tot_se], ["h2_int", h.intercept], ["h2_int_se",
+      h.intercept_se],
     ["gcov_int", r.gencov.intercept], ["gcov_int_se", r.gencov.intercept_se]]);
 }
 
@@ -49,29 +53,35 @@ function rgTable(r, files, P, K) {
  *   sumstats files' contents; filename / filename2: their names as LDlink sees them
  * → the REST text, or { error, details? }
  */
-export async function ldcorrelation(ctx, { pop, filename, filename2, text, text2, isExample = false, scale = "observed", samp_prev = "", pop_prev = "" }) {
+export async function ldcorrelation(ctx, { pop, filename, filename2, text, text2, isExample = false, scale = "observed", samp_prev = "",
+  pop_prev = "" }) {
   if (scale != null && !["observed", "liability"].includes(String(scale))) return { error: "Invalid scale parameter." };
   if (pop && !LDSC_POP.test(String(pop).trim())) return { error: "Invalid pop parameter." };
   let P = null, K = null;
   if (String(scale).trim().toLowerCase() === "liability") {
     if (!String(samp_prev).trim() || !String(pop_prev).trim())
       return { error: "When scale=liability for LDcorrelation, both samp_prev and pop_prev are required as two comma-separated values between 0 and 1." };
-    try { P = probabilityPair(samp_prev, "samp_prev").map(Number); K = probabilityPair(pop_prev, "pop_prev").map(Number); } catch (e) { return { error: e.message }; }
+    try { P = probabilityPair(samp_prev, "samp_prev").map(Number); K = probabilityPair(pop_prev, "pop_prev").map(Number);
+      } catch (e) { return { error: e.message }; }
   }
-  for (const [f, t] of [[filename, text], [filename2, text2]]) if (isExample && t == null) return { error: `Example file '${f}' was not found.` };
+  for (const [f, t] of [[filename, text], [filename2,
+    text2]]) if (isExample && t == null) return { error: `Example file '${f}' was not found.` };
   const t1 = Date.now(), base = f => String(f).replace(/\.[^.]*$/, ""), lpop = String(pop).trim().toLowerCase();
   const [ma, counts] = await Promise.all([ctx.mergeAlleles(), ctx.ldscCounts()]);
   let m1, m2;
-  try { m1 = mungeSumstats(text, ma); m2 = mungeSumstats(text2, ma); } catch (e) { return { error: `An error occurred while running the command (exit 1): ${e.message}` }; }
+  try { m1 = mungeSumstats(text, ma); m2 = mungeSumstats(text2, ma);
+    } catch (e) { return { error: `An error occurred while running the command (exit 1): ${e.message}` }; }
   // run_correlation_command's failure text has no "Second command failed" marker, so the route returns it as the result
   // (LDlink's details are ldsc.py's Python traceback; ours name the cause)
-  if (!counts.has(lpop)) return `An error occurred while running the second command (exit 1): ldsc.py could not read the LD scores in ${String(pop).trim().toLowerCase()}/`;
+  if (!counts.has(lpop))
+    return `An error occurred while running the second command (exit 1): ldsc.py could not read the LD scores in ${String(pop).trim().toLowerCase()}/`;
   const need = new Set(parseSumstats(m1.text, { alleles: true }).map(r => r.SNP)), panel = await ctx.ldscPanel(lpop, need);
   const r = estimateRg(m1.text, m2.text, panel, panel.M);
   const files = [`${base(filename)}.sumstats.gz`, `${base(filename2)}.sumstats.gz`];
   const l = x => x + "-".repeat(x.replace(/\n/g, "").length); // sumstats._print_gencor's underline
   const out = [hsqSummary(r.hsq1, P?.[0], K?.[0]), l("\nHeritability of phenotype 2/2\n"), hsqSummary(r.hsq2, P?.[1], K?.[1]),
     l("\nGenetic Covariance\n"), gencovSummary(r.gencov, P, K), l("\nGenetic Correlation\n"), `${rgSummary(r)}\n`,
-    `\nSummary of Genetic Correlation Results\n${rgTable(r, files, P, K)}\n`, `Analysis finished at ${ctime()}`, `Total time elapsed: ${secToStr((Date.now() - t1) / 1000)}`];
+    `\nSummary of Genetic Correlation Results\n${rgTable(r, files, P, K)}\n`, `Analysis finished at ${ctime()}`,
+      `Total time elapsed: ${secToStr((Date.now() - t1) / 1000)}`];
   return out.map(x => `${x}\n`).join("");
 }

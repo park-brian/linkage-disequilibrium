@@ -19,7 +19,8 @@ import { RELEASE, PANELS } from "../tools/config.js";
 const here = new URL(".", import.meta.url);
 // release-backed tests: skipped only on request (LD_SKIP_DATA=1); a configured but missing release is a failure
 const needData = { skip: process.env.LD_SKIP_DATA === "1" && "LD_SKIP_DATA=1" };
-const haveRelease = () => assert.ok(existsSync(`${RELEASE}/manifest.json`), `no release at ${RELEASE} (set LD_RELEASE / LD_DATA, or LD_SKIP_DATA=1)`);
+const haveRelease = () => assert.ok(existsSync(`${RELEASE}/manifest.json`),
+  `no release at ${RELEASE} (set LD_RELEASE / LD_DATA, or LD_SKIP_DATA=1)`);
 const fixture = f => new URL(`fixtures/${f}`, here);
 
 // ---------- R1: WASM kernel, identity-copy path keeps bits beyond nh ----------
@@ -86,7 +87,8 @@ const snplist = (() => {
   const [, ...rows] = readFileSync(fixture("mini.snplist"), "utf8").trim().split("\n").map(l => l.split("\t"));
   return { SNP: rows.map(r => r[0]), A1: rows.map(r => r[1]), A2: rows.map(r => r[2]) };
 })();
-for (const [name, what] of [["cc", "L1: N derived from N_CAS/N_CON is written"], ["cc_n", "L2: N_CAS/N_CON override an N column"], ["neff", "L4: %.3f of N rounds the exact value"]]) {
+for (const [name, what] of [["cc", "L1: N derived from N_CAS/N_CON is written"], ["cc_n", "L2: N_CAS/N_CON override an N column"], ["neff",
+  "L4: %.3f of N rounds the exact value"]]) {
   test(`${what} (fixtures/${name}.txt == ref_${name}.sumstats.gz)`, () => {
     const got = mungeSumstats(readFileSync(fixture(`${name}.txt`), "utf8"), snplist).text;
     const want = gunzipSync(readFileSync(fixture(`ref_${name}.sumstats.gz`))).toString("utf8").replace(/\r\n/g, "\n");
@@ -134,7 +136,8 @@ test("readers return binary haps/missing as bytes, not UTF-8 strings (sparse tie
   const { compressors } = await import("hyparquet-compressors");
   const { sortedLookup, rangeScan } = await import("../src/core/parquet.js");
   const p = rare, file = await asyncBufferFromFile(p), metadata = await parquetMetadataAsync(file);
-  const scan = await rangeScan({ file, metadata, column: "pos", lo: 16050000, hi: 16060000, columns: ["pos", "haps", "missing"], compressors });
+  const scan = await rangeScan({ file, metadata, column: "pos", lo: 16050000, hi: 16060000, columns: ["pos", "haps", "missing"],
+    compressors });
   assert.ok(scan.length > 0);
   for (const r of scan) assert.ok(r.haps instanceof Uint8Array, "rangeScan haps");
   const look = await sortedLookup({ file, metadata, column: "pos", keys: [scan[0].pos], columns: ["pos", "haps"], compressors });
@@ -147,7 +150,8 @@ test("K1: exact() is bit-identical to Python; band thresholds compare doubles (>
   const { pyRound } = await import("../src/parity/pyfmt.js");
   for (const k of [await loadKernel(readFileSync(KERNEL_WASM)), jsKernel()]) { // both backends: same results
   const cases = JSON.parse(readFileSync(fixture("ld_counts.json"), "utf8"));
-  const hex = h => { const m = /^(-?)0x([01])\.([0-9a-f]+)p([+-]\d+)$/.exec(h); if (!m) return parseFloat(h); return (m[1] ? -1 : 1) * (parseInt(m[2], 16) + parseInt(m[3], 16) / 16 ** m[3].length) * 2 ** +m[4]; };
+  const hex = h => { const m = /^(-?)0x([01])\.([0-9a-f]+)p([+-]\d+)$/.exec(h); if (!m) return parseFloat(h);
+    return (m[1] ? -1 : 1) * (parseInt(m[2], 16) + parseInt(m[3], 16) / 16 ** m[3].length) * 2 ** +m[4]; };
   let n = 0;
   for (const c of cases) {
     const samples = Math.ceil(c.n / 2), hb = Math.ceil((2 * samples) / 8), a = new Uint8Array(hb), b = new Uint8Array(hb);
@@ -179,7 +183,8 @@ test("P5: resolver reports missing files as not found but rethrows other I/O err
   // missing partition (rsID beyond the last partition): ENOENT → not found
   assert.deepEqual((await createResolver(root, ok).resolveRsids(["rs99999999999999"], "grch37"))[0].found, false);
   // a network-style failure on an existing partition must not look like "not in dbSNP"
-  const flaky = async p => { if (/part-00/.test(p)) throw Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }); return ok(p); };
+  const flaky = async p => { if (/part-00/.test(p)) throw Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }); return ok(p);
+    };
   await assert.rejects(createResolver(root, flaky).resolveRsids(["rs123"], "grch37"), /socket hang up/);
   const http403 = async p => { if (/chr22/.test(p)) throw Object.assign(new Error("HTTP 403 Forbidden"), { status: 403 }); return ok(p); };
   await assert.rejects(createResolver(root, http403).resolveCoords(["chr22:16051453"], "grch37"), /403/);
@@ -209,7 +214,8 @@ test("K2/K3: band sizes output exactly, flags truncation, and handles row ranges
   assert.equal(k.band(p, { maxDist: 50, block: 4, rows: [0, 0] }).count, 0);
   assert.equal(k.band(p, { maxDist: 50, block: 4, rows: [120, 80] }).count, 0);
   const seen = new Map();
-  for (const rows of [[0, 77], [77, 150], [150, 200]]) { const b = k.band(p, { maxDist: 50, block: 4, rows }); for (let t = 0; t < b.count; t++) { const key = `${b.i[t]},${b.j[t]}`; assert.ok(!seen.has(key), `duplicate ${key}`); seen.set(key, b.r2[t]); } }
+  for (const rows of [[0, 77], [77, 150], [150, 200]]) { const b = k.band(p, { maxDist: 50, block: 4, rows }); for (let t = 0; t < b.count;
+    t++) { const key = `${b.i[t]},${b.j[t]}`; assert.ok(!seen.has(key), `duplicate ${key}`); seen.set(key, b.r2[t]); } }
   assert.equal(seen.size, full.count);
   for (let t = 0; t < full.count; t++) assert.equal(seen.get(`${full.i[t]},${full.j[t]}`), full.r2[t]);
   // block <= 1 with a row range no longer loops forever (B is clamped to 1)
@@ -225,7 +231,8 @@ test("P6: sortedLookup matches keys even when columns omit the key column", need
   const { compressors } = await import("hyparquet-compressors");
   const { sortedLookup, rangeScan } = await import("../src/core/parquet.js");
   const p = rare, file = await asyncBufferFromFile(p), metadata = await parquetMetadataAsync(file);
-  const some = (await rangeScan({ file, metadata, column: "pos", lo: 16050000, hi: 16060000, columns: ["pos"], compressors })).slice(0, 5).map(r => r.pos);
+  const some = (await rangeScan({ file, metadata, column: "pos", lo: 16050000, hi: 16060000, columns: ["pos"], compressors })).slice(0,
+    5).map(r => r.pos);
   const got = await sortedLookup({ file, metadata, column: "pos", keys: some, columns: ["ref"], compressors });
   assert.deepEqual(got.rows.map(r => r.pos).sort((a, b) => a - b), [...new Set(some)].sort((a, b) => a - b));
 });
@@ -238,11 +245,13 @@ test("P4: overlapping regions return each row once; chromosome names are normali
   const { createHash } = await import("node:crypto"); // planner rows carry no ref/alt: split multi-allelic rows share pos
   const key = r => `${r.tier}|${r.pos}|${createHash("sha1").update(r.haps).digest("hex")}`;
   const one = await pl.query({ build: "grch37", regions: [{ chrom: "22", start: 30_000_000, end: 30_300_000 }], tiers: ["common"] });
-  const two = await pl.query({ build: "grch37", regions: [{ chrom: "chr22", start: 30_000_000, end: 30_200_000 }, { chrom: 22, start: 30_100_000, end: 30_300_000 }, { chrom: "chr22", start: 30_150_000, end: 30_160_000 }], tiers: ["common"] });
+  const two = await pl.query({ build: "grch37", regions: [{ chrom: "chr22", start: 30_000_000, end: 30_200_000 }, { chrom: 22,
+    start: 30_100_000, end: 30_300_000 }, { chrom: "chr22", start: 30_150_000, end: 30_160_000 }], tiers: ["common"] });
   assert.ok(one.rows.length > 0);
   assert.equal(new Set(two.rows.map(key)).size, two.rows.length, "no duplicate rows");
   assert.deepEqual(two.rows.map(key), one.rows.map(key));
-  const x = await pl.query({ build: "grch37", regions: [{ chrom: "x", start: 100_000_000, end: 100_050_000 }, { chrom: 23, start: 100_000_000, end: 100_050_000 }], tiers: ["common"] });
+  const x = await pl.query({ build: "grch37", regions: [{ chrom: "x", start: 100_000_000, end: 100_050_000 }, { chrom: 23,
+    start: 100_000_000, end: 100_050_000 }], tiers: ["common"] });
   assert.ok(x.rows.length > 0); assert.equal(new Set(x.rows.map(key)).size, x.rows.length);
   const bad = await pl.query({ build: "grch37", regions: [{ chrom: "chr99", start: 1, end: 2 }, { chrom: "22", start: 5, end: 1 }] });
   assert.equal(bad.plan.invalidRegions.length, 2);
@@ -252,8 +261,10 @@ test("P4: overlapping regions return each row once; chromosome names are normali
 test("L5: --ld-wind of 0 is rejected like ldsc (np.array(..., dtype=bool)); the set window wins", async () => {
   const { ldscoreL2 } = await import("../src/parity/ldsc/l2.js");
   // 3 SNPs 1 Mb apart, 4 individuals (1 byte per SNP): a 500 kb / 0.5 cM window is not whole-chromosome
-  const bim = [0, 1, 2].map(i => ({ CHR: 22, SNP: `rs${i + 1}`, CM: i, BP: 1 + i * 1_000_000, A1: "A", A2: "G" })), bed = new Uint8Array([0x6c, 0x1b, 0x01, 0b11100100, 0b11011000, 0b01101100]);
-  for (const o of [{ windCm: 0 }, { windKb: 0 }, {}, { windCm: 1, windKb: 500 }]) assert.throws(() => ldscoreL2(bed, bim, 4, o), /exactly one --ld-wind/, JSON.stringify(o));
+  const bim = [0, 1, 2].map(i => ({ CHR: 22, SNP: `rs${i + 1}`, CM: i, BP: 1 + i * 1_000_000, A1: "A", A2: "G" })),
+    bed = new Uint8Array([0x6c, 0x1b, 0x01, 0b11100100, 0b11011000, 0b01101100]);
+  for (const o of [{ windCm: 0 }, { windKb: 0 }, {}, { windCm: 1, windKb: 500 }]) assert.throws(() => ldscoreL2(bed, bim, 4, o),
+    /exactly one --ld-wind/, JSON.stringify(o));
   assert.doesNotThrow(() => ldscoreL2(bed, bim, 4, { windCm: 0, windKb: 500 })); // cm 0 is "unset", kb is used
   assert.doesNotThrow(() => ldscoreL2(bed, bim, 4, { windCm: 0.5 }));
 });
@@ -309,7 +320,8 @@ test("K4: masked band row ranges partition the full masked band (both backends, 
   const samples = 40, hb = Math.ceil((2 * samples) / 8), males = new Set([1, 4, 9, 15, 22, 27, 33, 38]);
   const rows = Array.from({ length: 300 }, (_, k) => {
     const haps = new Uint8Array(hb), missing = k % 7 === 0 ? new Uint8Array(hb) : null, f = 0.1 + 0.8 * rnd();
-    for (let h = 0; h < 2 * samples; h++) { if (rnd() < f) haps[h >> 3] |= 1 << (h & 7); if (missing && rnd() < 0.05) missing[h >> 3] |= 1 << (h & 7); }
+    for (let h = 0; h < 2 * samples; h++) { if (rnd() < f) haps[h >> 3] |= 1 << (h & 7);
+      if (missing && rnd() < 0.05) missing[h >> 3] |= 1 << (h & 7); }
     return { pos: 1000 + k * 37 + Math.floor(rnd() * 30), haps, missing, male_haploid: k % 3 !== 0 };
   }).sort((a, b) => a.pos - b.pos);
   const opts = { samples, haploidMales: males, hapIndexes: Array.from({ length: 2 * samples }, (_, i) => i) };
@@ -319,7 +331,8 @@ test("K4: masked band row ranges partition the full masked band (both backends, 
     const full = k.band(p, { maxDist: 2000, threshold: 0 });
     for (const cuts of [[0, 300], [0, 1, 300], [0, 150, 300], [0, 37, 120, 121, 299, 300]]) {
       const parts = [];
-      for (let s = 0; s + 1 < cuts.length; s++) parts.push(...key(k.band(p, { maxDist: 2000, threshold: 0, rows: [cuts[s], cuts[s + 1]] })));
+      for (let s = 0; s + 1 < cuts.length; s++) parts.push(...key(k.band(p, { maxDist: 2000, threshold: 0, rows: [cuts[s],
+        cuts[s + 1]] })));
       assert.deepEqual(parts, key(full), `${k.backend}: split ${cuts.join("/")}`);
     }
     k.reset();
@@ -332,7 +345,8 @@ test("K5: masked rows with identical masks (one popcount) match the general path
   const samples = 40, hb = Math.ceil((2 * samples) / 8), males = new Set([0, 3, 8, 14, 21, 26, 30, 37]);
   const rows = Array.from({ length: 200 }, (_, k) => {
     const haps = new Uint8Array(hb), missing = k % 5 === 0 ? new Uint8Array(hb) : null, f = 0.05 + 0.9 * rnd();
-    for (let h = 0; h < 2 * samples; h++) { if (rnd() < f) haps[h >> 3] |= 1 << (h & 7); if (missing && rnd() < 0.08) missing[h >> 3] |= 1 << (h & 7); }
+    for (let h = 0; h < 2 * samples; h++) { if (rnd() < f) haps[h >> 3] |= 1 << (h & 7);
+      if (missing && rnd() < 0.08) missing[h >> 3] |= 1 << (h & 7); }
     return { pos: 5000 + k * 41, haps, missing, male_haploid: k % 17 !== 0 };
   });
   const opts = { samples, haploidMales: males, hapIndexes: Array.from({ length: 2 * samples }, (_, i) => i).filter(i => i % 9 !== 4) };

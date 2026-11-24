@@ -14,7 +14,8 @@ export const keyPos = k => Number(k) % 1e9; // exact: keys stay below 2^53 (Numb
 export const BUILDS = {
   grch37: { genotypes: "grch37", positions: "grch37", dbsnpKey: "key37", title: "GRCh37", hg: "hg19", vcfPrefix: "" },
   grch38: { genotypes: "grch38", positions: "grch38", dbsnpKey: "key38", title: "GRCh38", hg: "hg38", vcfPrefix: "" },
-  grch38_high_coverage: { genotypes: "grch38_high_coverage", positions: "grch38", dbsnpKey: "key38", title: "GRCh38 High Coverage", hg: "hg38_HC", vcfPrefix: "chr" },
+  grch38_high_coverage: { genotypes: "grch38_high_coverage", positions: "grch38", dbsnpKey: "key38", title: "GRCh38 High Coverage",
+    hg: "hg38_HC", vcfPrefix: "chr" },
 };
 export const TITLE = Object.fromEntries(Object.entries(BUILDS).map(([b, v]) => [b, v.title]));
 export const tierPath = (build, chrom, tier) => `genotypes/${BUILDS[build].genotypes}/chr${chrom}.${tier}.parquet`;

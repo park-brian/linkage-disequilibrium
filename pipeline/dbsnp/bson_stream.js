@@ -26,7 +26,8 @@ function parse(b, i, end) {
     switch (t) {
       case 1: rec[k] = b.readDoubleLE(i); i += 8; break;
       case 2: { const l = b.readInt32LE(i); rec[k] = dec.decode(b.subarray(i + 4, i + 3 + l)); i += 4 + l; break; }
-      case 3: case 4: { const l = b.readInt32LE(i); const sub = parse(b, i + 4, i + l - 1); rec[k] = t === 4 ? Object.values(sub) : sub; i += l; break; }
+      case 3: case 4: { const l = b.readInt32LE(i); const sub = parse(b, i + 4, i + l - 1); rec[k] = t === 4 ? Object.values(sub) : sub;
+        i += l; break; }
       case 7: i += 12; break;
       case 8: rec[k] = !!b[i]; i += 1; break;
       case 9: case 18: rec[k] = Number(b.readBigInt64LE(i)); i += 8; break;
@@ -53,7 +54,8 @@ gz.on("data", chunk => {
     const r = parse(b, off + 4, off + len - 1);
     const row = [docs];
     for (const f of FIELDS) {
-      const v = r[f], ty = v === undefined ? "missing" : v === null ? "null" : Array.isArray(v) ? "array" : isNumericString(v) ? "numeric_string" : typeof v;
+      const v = r[f],
+        ty = v === undefined ? "missing" : v === null ? "null" : Array.isArray(v) ? "array" : isNumericString(v) ? "numeric_string" : typeof v;
       types[f][ty] = (types[f][ty] || 0) + 1;
       row.push(ty === "numeric_string" && NUMERIC_QUERY.has(f) ? `s:${clean(v)}` : clean(fmt(v)));
     }

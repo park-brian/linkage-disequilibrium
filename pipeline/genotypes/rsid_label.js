@@ -45,7 +45,8 @@ export function makeLabeler({ dbPos, dbRsid, dbRef, dbType, dbFunc }, alleleInde
     // dump positions to search, in LDlink-rule preference order
     //   snv: minimal POS; mnv: minimal POS (NCBI MNVs carry no anchor); insertion: POS (VC=INS) then POS+1 (inside a
     //   repeat NCBI calls it delins → POS+1); deletion/delins: POS+1 then POS
-    const places = c === 0 ? [mp] : [...new Set(c === 4 ? [mp, pos, mp + 1] : c === 1 ? [pos, pos + 1, mp, mp + 1] : [pos + 1, pos, mp + 1, mp])];
+    const places = c === 0 ? [mp] : [...new Set(c === 4 ? [mp, pos, mp + 1] : c === 1 ? [pos, pos + 1, mp, mp + 1] : [pos + 1, pos, mp + 1,
+      mp])];
     const ranges = places.map(p => [p, ...range(p)]);
     const m = /rs(\d+)/.exec(vcfId || ""), vcfRs = m ? +m[1] : null;
     const alleles = alleleIndex ? alleleIndex.match(pos, ref, alt) : null;
@@ -53,13 +54,15 @@ export function makeLabeler({ dbPos, dbRsid, dbRef, dbType, dbFunc }, alleleInde
     for (const [, lo, hi] of ranges) for (let i = lo; i < hi; i++) if (dbRsid[i] === dbRef[i] && compatible(c, dbType[i])) candidates++;
     const result = (rsid, source, p, lo, hi, posType) => {
       const fi = rsid === null ? -1 : firstDocOf(rsid, lo, hi);
-      return { rsid, source, delta: rsid === null ? null : p - pos, candidates, func: fi >= 0 ? dbFunc[fi] : null, vcfRs, posType, alleles };
+      return { rsid, source, delta: rsid === null ? null : p - pos, candidates, func: fi >= 0 ? dbFunc[fi] : null, vcfRs, posType,
+        alleles };
     };
     // position + type (lowest current rsID at the first place that has one) — also reported as posType
     let pt = null;
     for (const [p, lo, hi] of ranges) {
       let best = -1;
-      for (let i = lo; i < hi; i++) if (dbRsid[i] === dbRef[i] && compatible(c, dbType[i]) && (best < 0 || dbRsid[i] < dbRsid[best])) best = i;
+      for (let i = lo; i < hi; i++) if (dbRsid[i] === dbRef[i] && compatible(c,
+        dbType[i]) && (best < 0 || dbRsid[i] < dbRsid[best])) best = i;
       if (best >= 0) { pt = { rsid: dbRsid[best], p, lo, hi }; break; }
     }
     // 1/2: the VCF's own rsID, wherever LDlink stored it
@@ -70,7 +73,8 @@ export function makeLabeler({ dbPos, dbRsid, dbRef, dbType, dbFunc }, alleleInde
     // 4: an NCBI allele match that the dump has as a current doc at one of the places (lowest rsID, first place)
     if (alleles?.length) for (const [p, lo, hi] of ranges) {
       let best = null;
-      for (let i = lo; i < hi; i++) if (dbRsid[i] === dbRef[i] && alleles.includes(dbRsid[i]) && (best === null || dbRsid[i] < best)) best = dbRsid[i];
+      for (let i = lo; i < hi;
+        i++) if (dbRsid[i] === dbRef[i] && alleles.includes(dbRsid[i]) && (best === null || dbRsid[i] < best)) best = dbRsid[i];
       if (best !== null) return result(best, 4, p, lo, hi, pt?.rsid ?? null);
     }
     // 3: position + type

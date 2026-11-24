@@ -26,7 +26,9 @@ for b in "${BUILDS[@]}"; do
   a=$([ "$b" = grch37 ] && echo 37 || echo 38)
   for c in $chroms; do
     v=$(vcf $b $c); [ -f "$v" ] || { echo "missing VCF $v"; exit 1; }
-    for f in phaseB/dbsnp_src/pos${a}_chr$c.parquet phaseB/ncbi/${a}_chr$c.parquet; do [ -f "$f" ] || { echo "missing slice $f"; exit 1; }; done
+    for f in phaseB/dbsnp_src/pos${a}_chr$c.parquet phaseB/ncbi/${a}_chr$c.parquet; do
+      [ -f "$f" ] || { echo "missing slice $f"; exit 1; }
+    done
     jobs+=("$(stat -c %s "$v") $b $c $a $v")
   done
 done

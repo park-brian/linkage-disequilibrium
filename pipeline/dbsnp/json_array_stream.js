@@ -39,7 +39,8 @@ process.stdin.on("data", chunk => {
     if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
     if (c === '"') { inStr = true; continue; }
     if (c === "{") { if (depth === 0) { buf = []; objStart = i; } depth++; }
-    else if (c === "}") { depth--; if (depth === 0) { buf.push(chunk.slice(objStart, i + 1)); emit(buf.join("")); buf = []; objStart = -1; } }
+    else if (c === "}") { depth--; if (depth === 0) { buf.push(chunk.slice(objStart, i + 1)); emit(buf.join("")); buf = []; objStart = -1;
+      } }
   }
   if (depth > 0) buf.push(chunk.slice(objStart));
 });

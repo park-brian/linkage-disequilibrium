@@ -120,7 +120,8 @@ for (const p of partitions) {
   // the written file must have exactly the intermediate's row count
   const written = Number((await parquetMetadataAsync(await asyncBufferFromFile(outFile))).num_rows);
   if (written !== total) throw new Error(`${outFile}: wrote ${written} rows, expected ${total}`);
-  report[spec.name(p)] = { rows: total, bytes: statSync(outFile).size, bytes_per_row: +(statSync(outFile).size / total).toFixed(2), sorted, seconds: +((performance.now() - t0) / 1000).toFixed(1) };
+  report[spec.name(p)] = { rows: total, bytes: statSync(outFile).size, bytes_per_row: +(statSync(outFile).size / total).toFixed(2), sorted,
+    seconds: +((performance.now() - t0) / 1000).toFixed(1) };
   console.log(JSON.stringify({ file: spec.name(p), ...report[spec.name(p)] }));
 }
 writeFileSync(`${outRoot}/${spec.dir}/build_report.json`, JSON.stringify(report, null, 2));

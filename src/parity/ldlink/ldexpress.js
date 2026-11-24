@@ -13,22 +13,26 @@
 import { pyRound, pyStr, cFormatG } from "../pyfmt.js";
 import { decodeHaps } from "../../core/haps.js";
 import { TITLE } from "../../core/genome.js";
-import { dedupeLists, vcfAlleles, vcfId, addWarning, check, failFirst, screen, WARNED, table2x2, chunkedWindow, countsAgainst } from "./common.js";
+import { dedupeLists, vcfAlleles, vcfId, addWarning, check, failFirst, screen, WARNED, table2x2, chunkedWindow,
+  countsAgainst } from "./common.js";
 
 /**
  * A multi-allelic query record as LDexpress_ld_sub sees it: GT digits per haplotype, counted only when "0" or "1".
  * → a row whose ALT bits are the record's first ALT and whose haplotypes carrying ALT ≥ 2 are uncalled.
  */
 function multiQuery(q, all, nSamples) {
-  const recs = all.filter(x => x.pos === q.pos && x.ref === q.ref && x.multiallelic_source && x.vcf_order <= q.vcf_order).sort((a, b) => a.vcf_order - b.vcf_order);
-  const mine = []; for (let k = recs.length - 1, o = q.vcf_order; k >= 0 && recs[k].vcf_order === o; k--, o--) mine.unshift(recs[k]); // contiguous split rows
+  const recs = all.filter(x => x.pos === q.pos && x.ref === q.ref && x.multiallelic_source && x.vcf_order <= q.vcf_order).sort((a,
+    b) => a.vcf_order - b.vcf_order);
+  const mine = []; for (let k = recs.length - 1, o = q.vcf_order; k >= 0 && recs[k].vcf_order === o; k--, o--) mine.unshift(recs[k]);
+    // contiguous split rows
   const hbytes = Math.ceil((2 * nSamples) / 8), missing = new Uint8Array(hbytes);
   if (q.missing) missing.set(q.missing.subarray(0, hbytes));
   for (const r of mine.slice(1)) { const b = decodeHaps(r.haps, hbytes); for (let i = 0; i < hbytes; i++) missing[i] |= b[i]; }
   return { ...mine[0], chrom: q.chrom, haps: decodeHaps(mine[0].haps, hbytes).slice(), missing, multiallelic_source: false };
 }
 
-export async function ldexpress(ctx, { snps: text, pop, tissues, r2_d = "r2", r2_d_threshold = 0.1, p_threshold = 0.1, window = 500000, build = "grch37", chunks = 4 }) {
+export async function ldexpress(ctx, { snps: text, pop, tissues, r2_d = "r2", r2_d_threshold = 0.1, p_threshold = 0.1, window = 500000,
+  build = "grch37", chunks = 4 }) {
   const bad = failFirst(check.r2d(r2_d), check.window(window), check.build(build));
   if (bad) return bad;
   const raw = text.split(/\r\n|\n|\r/).map(s => s.trim().toLowerCase()).join("+").split("+");
@@ -69,7 +73,8 @@ export async function ldexpress(ctx, { snps: text, pop, tissues, r2_d = "r2", r2
     for (const e of ld) {
       const rs = e.id.startsWith("rs") ? e.id : at.get(e.x.pos) ? `rs${at.get(e.x.pos).rsid}` : ".";
       for (const t of eq.get(e.x.pos) ?? []) if (t.pval_nominal < p_threshold)
-        out.push([label, rs, `chr${v.chrom}:${e.x.pos}`, pyStr(e.r2), pyStr(e.dprime), t.gene_name_v26, t.gene_id, t.tissueSiteDetail, e.al1, e.al2, cFormatG(t.slope), cFormatG(t.pval_nominal)].join("\t"));
+        out.push([label, rs, `chr${v.chrom}:${e.x.pos}`, pyStr(e.r2), pyStr(e.dprime), t.gene_name_v26, t.gene_id, t.tissueSiteDetail,
+          e.al1, e.al2, cFormatG(t.slope), cFormatG(t.pval_nominal)].join("\t"));
     }
   }
   if (!out.length) return { error: "No entries in GTEx are identified using the LDexpress search criteria." };

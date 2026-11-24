@@ -5,7 +5,8 @@ import { matrixCases, clean, get, proxyJson } from "../lib.js";
 
 export function cases() {
   const cs = [];
-  for (const c of matrixCases()) for (const s of c.inputs.slice(0, 3)) cs.push({ name: `${c.name} ${clean(s)}`, build: c.build, pop: c.pop, var: clean(s) });
+  for (const c of matrixCases()) for (const s of c.inputs.slice(0, 3)) cs.push({ name: `${c.name} ${clean(s)}`, build: c.build, pop: c.pop,
+    var: clean(s) });
   const edge = (name, v, pop = "CEU", build = "grch37", extra = {}) => cs.push({ name, build, pop, var: v, ...extra });
   edge("r2_d=d", "rs3", "EUR", "grch37", { r2_d: "d" }); edge("window 100 kb", "rs3", "EUR", "grch37", { window: 100000 });
   edge("bad r2_d", "rs3", "CEU", "grch37", { r2_d: "x" }); edge("window too large", "rs3", "CEU", "grch37", { window: 2000000 });
@@ -16,7 +17,8 @@ export function cases() {
 }
 export const ldlink = cs => Promise.all(cs.map(async c => {
   const ref = randomUUID();
-  const body = await get("ldproxy", `var=${encodeURIComponent(c.var)}&pop=${encodeURIComponent(c.pop)}&r2_d=${c.r2_d}&window=${c.window}&genome_build=${c.build}&reference=${ref}`);
+  const body = await get("ldproxy",
+    `var=${encodeURIComponent(c.var)}&pop=${encodeURIComponent(c.pop)}&r2_d=${c.r2_d}&window=${c.window}&genome_build=${c.build}&reference=${ref}`);
   if (body.trimStart().startsWith("{")) return { error: JSON.parse(body).error };
   const w = proxyJson(ref).warning;
   return { text: body, ...(w !== undefined ? { warning: w } : {}) };

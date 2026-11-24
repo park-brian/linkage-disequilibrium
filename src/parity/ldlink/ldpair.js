@@ -20,14 +20,18 @@ function pairTable(label1, label2, row1, row2, [n, p1, p2, x]) {
   const order = [...s.filter(k => hap[k] > 0), ...fill.filter(k => hap[k] === 0)].sort((u, v) => hap[v] - hap[u]); // stable
   const st = ldStats(A, B, C, D), half = k => s[k].split("_");
   const corr = st && st.r2 > 0.1
-    ? ((A * D) / Math.max(B * C, 0.01) > 1 ? [0, 3] : [1, 2]).map(k => `${label1}(${half(k)[0]}) allele is correlated with ${label2}(${half(k)[1]}) allele`)
+    ? ((A * D) / Math.max(B * C, 0.01) > 1 ? [0, 3] : [1,
+      2]).map(k => `${label1}(${half(k)[0]}) allele is correlated with ${label2}(${half(k)[1]}) allele`)
     : [`${label1} and ${label2} are in linkage equilibrium`];
   return {
     corr_alleles: corr,
     haplotypes: Object.fromEntries(order.map((k, i) => [`hap${i + 1}`, { alleles: k, count: String(hap[k]), frequency: f(hap[k]) }])),
-    snp1: { allele_1: { allele: half(0)[0], count: String(A + B), frequency: f(A + B) }, allele_2: { allele: half(2)[0], count: String(C + D), frequency: f(C + D) }, rsnum: label1 },
-    snp2: { allele_1: { allele: half(0)[1], count: String(A + C), frequency: f(A + C) }, allele_2: { allele: half(1)[1], count: String(B + D), frequency: f(B + D) }, rsnum: label2 },
-    statistics: st ? { chisq: r(st.chisq, 4), d_prime: r(st.dprime, 4), p: st.p >= 0.0001 ? r(st.p, 4) : "<0.0001", r2: r(st.r2, 4) } : { chisq: "NA", d_prime: "NA", p: "NA", r2: "NA" },
+    snp1: { allele_1: { allele: half(0)[0], count: String(A + B), frequency: f(A + B) }, allele_2: { allele: half(2)[0],
+      count: String(C + D), frequency: f(C + D) }, rsnum: label1 },
+    snp2: { allele_1: { allele: half(0)[1], count: String(A + C), frequency: f(A + C) }, allele_2: { allele: half(1)[1],
+      count: String(B + D), frequency: f(B + D) }, rsnum: label2 },
+    statistics: st ? { chisq: r(st.chisq, 4), d_prime: r(st.dprime, 4), p: st.p >= 0.0001 ? r(st.p, 4) : "<0.0001", r2: r(st.r2,
+      4) } : { chisq: "NA", d_prime: "NA", p: "NA", r2: "NA" },
     two_by_two: { cells: { c11: String(A), c12: String(B), c21: String(C), c22: String(D) }, total: String(N) },
   };
 }
@@ -52,7 +56,8 @@ export async function ldpair(ctx, { var1 = "", var2 = "", pop, build = "grch37" 
   const rows = [];
   for (const { label, v } of snps) rows.push(await queryVariant(ctx, build, label, v, o));
   if (o.error !== undefined) return fail(o.error);
-  snps.forEach(({ v }, i) => { if (rows[i].pos !== v.pos) o.warning = `${W()}VCF File does not match variant coordinates for SNP${i + 1}. `; });
+  snps.forEach(({ v }, i) => { if (rows[i].pos !== v.pos) o.warning = `${W()}VCF File does not match variant coordinates for SNP${i + 1}. `;
+    });
   const c = await ctx.withPrepared(build, rows, pop, p => ctx.kernel.counts(p, [0], [1])[0]);
   const t = pairTable(s1.label, s2.label, rows[0], rows[1], c);
   t.snp1.coord = `chr${s1.v.chrom}:${s1.v.pos}`; t.snp2.coord = `chr${s2.v.chrom}:${s2.v.pos}`;

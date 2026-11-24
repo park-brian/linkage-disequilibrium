@@ -32,7 +32,8 @@ export function ldscoreL2(bed, bim, n, { windCm, windKb, mafMin = 0, chunkSize =
   const m0 = bim.length, nru = n % 4 ? n + (4 - (n % 4)) : n, bytesPerSnp = nru / 4;
   if ((bed.length - 3) * 8 !== 2 * m0 * nru) throw new Error(`Plink .bed file has ${(bed.length - 3) * 8} bits, expected ${2 * m0 * nru}`);
   // little-endian bit pairs per individual: (bit0, bit1); ldsc code: 00→0, 01→1, 10→9 (missing), 11→2
-  const code = (snp, i) => { const byte = bed[3 + snp * bytesPerSnp + (i >> 2)], s = (i & 3) * 2; const b0 = (byte >> s) & 1, b1 = (byte >> (s + 1)) & 1; return b0 === 0 ? (b1 === 0 ? 0 : 1) : (b1 === 0 ? 9 : 2); };
+  const code = (snp, i) => { const byte = bed[3 + snp * bytesPerSnp + (i >> 2)], s = (i & 3) * 2; const b0 = (byte >> s) & 1,
+    b1 = (byte >> (s + 1)) & 1; return b0 === 0 ? (b1 === 0 ? 0 : 1) : (b1 === 0 ? 9 : 2); };
   // ---- __filter_snps_maf__ (counts over all nru slots; padding slots are 00) ----
   const kept = [], freq = [];
   for (let j = 0; j < m0; j++) {

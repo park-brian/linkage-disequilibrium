@@ -40,7 +40,8 @@ else:
     rg = sumstats.estimate_rg(args, log)[0]
     res = {"mode": "rg", "hsq1": hsq_dict(rg.hsq1), "hsq2": hsq_dict(rg.hsq2),
            "gencov": {"tot": f(rg.gencov.tot), "tot_se": f(rg.gencov.tot_se), "intercept": f(rg.gencov.intercept),
-                      "intercept_se": f(rg.gencov.intercept_se), "mean_z1z2": f(rg.gencov.mean_z1z2), "p": f(rg.gencov.p), "z": f(rg.gencov.z)},
+                      "intercept_se": f(rg.gencov.intercept_se), "mean_z1z2": f(rg.gencov.mean_z1z2), "p": f(rg.gencov.p),
+                        "z": f(rg.gencov.z)},
            "rg_ratio": f(rg.rg_ratio), "rg_se": f(rg.rg_se), "z": f(rg.z), "p": f(rg.p), "summary": rg.summary()}
 json.dump(res, open(out, "w"), indent=2)
 print(json.dumps(res)[:600])

@@ -32,7 +32,8 @@ export const KERNEL_WASM = new URL("./kernel.wasm", import.meta.url);
 
 const DEFAULT_BLOCK = 128; // measured best for both backends (PARQUET_LAYOUT.md §9)
 const OUT_CAP = 1 << 22;   // default output buffer: 4M pairs; grows once to exactly `written` if more pass
-const EMPTY = () => ({ count: 0, written: 0, truncated: false, evaluated: 0, pruned: 0, i: new Uint32Array(0), j: new Uint32Array(0), r2: new Float32Array(0), dprime: new Float32Array(0) });
+const EMPTY = () => ({ count: 0, written: 0, truncated: false, evaluated: 0, pruned: 0, i: new Uint32Array(0), j: new Uint32Array(0),
+  r2: new Float32Array(0), dprime: new Float32Array(0) });
 
 
 /**
@@ -40,7 +41,8 @@ const EMPTY = () => ({ count: 0, written: 0, truncated: false, evaluated: 0, pru
  * haploid (chrX males outside the PARs, '.' calls). Rows are w32 = 2·ceil(nh/64) words; a's arrays come zeroed.
  */
 function pack(rows, { samples, haploidMales = new Set(), hapIndexes }, a, w32, masked) {
-  const nh = hapIndexes.length, hbytes = Math.ceil((2 * samples) / 8), alt8 = new Uint8Array(a.alt.buffer, a.alt.byteOffset, a.alt.byteLength);
+  const nh = hapIndexes.length, hbytes = Math.ceil((2 * samples) / 8), alt8 = new Uint8Array(a.alt.buffer, a.alt.byteOffset,
+    a.alt.byteLength);
   const identity = !masked && hapIndexes.every((k, j) => k === j); // a leading prefix of the panel: copy bytes, clear bits >= nh
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i], bits = decodeHaps(r.haps, hbytes), base = i * w32;
@@ -84,7 +86,8 @@ function maskClasses({ valid, nv, cls }, n, w32) {
     cls[i] = id;
   }
 }
-const popcount32 = w => { w -= (w >>> 1) & 0x55555555; w = (w & 0x33333333) + ((w >>> 2) & 0x33333333); return (((w + (w >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24; };
+const popcount32 = w => { w -= (w >>> 1) & 0x55555555; w = (w & 0x33333333) + ((w >>> 2) & 0x33333333);
+  return (((w + (w >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24; };
 
 /**
  * Shared front end over an engine:
@@ -108,14 +111,16 @@ function makeKernel(engine) {
     for (let i = r0; i < r1; i++) { if (j < i + 1) j = i + 1; while (j < n && pos[j] - pos[i] <= maxDist) j++; b += j - i - 1; }
     return b;
   }
-  function band(p, { maxDist = 500000, threshold = 0, stat = "r2", prune = true, maxOut, block = DEFAULT_BLOCK, rows, strict = false } = {}) {
+  function band(p, { maxDist = 500000, threshold = 0, stat = "r2", prune = true, maxOut, block = DEFAULT_BLOCK, rows,
+    strict = false } = {}) {
     if (strict) threshold = nextUp(threshold); // stat > t  ⇔  stat >= nextUp(t) for doubles
     const [r0, r1] = rows ?? [0, p.n];
     if (!Number.isInteger(r0) || !Number.isInteger(r1)) throw new Error("band: rows must be [start, end) integers");
     const st = stat === "r2" ? 0 : 1, lo = Math.max(0, r0), hi = Math.min(p.n, r1);
     if (hi <= lo || p.n < 2) return EMPTY();
     const run = cap => {
-      const o = p.masked ? engine.bandMasked(p, maxDist, threshold, st, cap, lo, hi) : engine.bandBlocked(p, maxDist, threshold, st, prune ? 1 : 0, cap, block, lo, hi);
+      const o = p.masked ? engine.bandMasked(p, maxDist, threshold, st, cap, lo, hi) : engine.bandBlocked(p, maxDist, threshold, st,
+        prune ? 1 : 0, cap, block, lo, hi);
       return { ...o, truncated: o.written > o.count };
     };
     if (maxOut !== undefined) return run(maxOut);
@@ -130,7 +135,8 @@ function makeKernel(engine) {
   /** per pair [n, alt_i, alt_j, alt_i∧alt_j] over the haplotypes valid in both rows (the 2×2 table's margins) */
   function counts(p, I, J) {
     const x = p.masked ? null : pairCounts(p, I, J), v = p.views(); // views AFTER any allocation: memory.grow detaches them
-    return Array.from(I, (i, k) => (p.masked ? js.maskedCounts(v.alt, v.valid, v.pa, v.nv, v.cls, i, J[k], p.w32) : [p.nh, v.pa[i], v.pa[J[k]], x[k]]));
+    return Array.from(I, (i, k) => (p.masked ? js.maskedCounts(v.alt, v.valid, v.pa, v.nv, v.cls, i, J[k], p.w32) : [p.nh, v.pa[i],
+      v.pa[J[k]], x[k]]));
   }
   function exact(p, I, J) {
     const m = I.length, r2 = new Float64Array(m), dprime = new Float64Array(m), s = new Float64Array(2), c = counts(p, I, J);
@@ -145,13 +151,16 @@ export function jsKernel() {
   return makeKernel({
     name: "js",
     alloc(n, w32, masked) {
-      const a = { alt: new Uint32Array(n * w32), valid: masked ? new Uint32Array(n * w32) : null, pa: new Uint32Array(n), pos: new Int32Array(n),
+      const a = { alt: new Uint32Array(n * w32), valid: masked ? new Uint32Array(n * w32) : null, pa: new Uint32Array(n),
+        pos: new Int32Array(n),
         nv: masked ? new Uint32Array(n) : null, cls: masked ? new Int32Array(n) : null };
       return { views: () => a };
     },
     rowCounts: p => { const v = p.views(); js.rowCounts(v.alt, p.n, p.w32, v.pa); },
-    bandBlocked: (p, d, t, s, pr, cap, B, r0, r1) => { const v = p.views(); return js.bandBlocked(v.alt, v.pa, v.pos, p.n, p.w32, p.nh, d, t, s, pr, cap, B, r0, r1); },
-    bandMasked: (p, d, t, s, cap, r0, r1) => { const v = p.views(); return js.bandMasked(v.alt, v.valid, v.pa, v.nv, v.cls, v.pos, p.n, p.w32, d, t, s, cap, r0, r1); },
+    bandBlocked: (p, d, t, s, pr, cap, B, r0, r1) => { const v = p.views(); return js.bandBlocked(v.alt, v.pa, v.pos, p.n, p.w32, p.nh, d,
+      t, s, pr, cap, B, r0, r1); },
+    bandMasked: (p, d, t, s, cap, r0, r1) => { const v = p.views(); return js.bandMasked(v.alt, v.valid, v.pa, v.nv, v.cls, v.pos, p.n,
+      p.w32, d, t, s, cap, r0, r1); },
     tile: (p, r0, nr, c0, nc) => { const v = p.views(); return js.tile(v.alt, v.pa, p.w32, p.nh, r0, nr, c0, nc); },
     pairCounts: (p, I, J) => js.pairCounts(p.views().alt, p.w32, I, J),
     reset() {},
@@ -171,7 +180,8 @@ export async function loadKernel(bytes) {
   };
   const scratch = f => { const save = top; try { return f(); } finally { top = save; } }; // per-call buffers
   // memory.grow detaches every view, so arrays are always re-viewed from their offsets
-  const u32 = (ptr, n) => new Uint32Array(mem.buffer, ptr, n), i32 = (ptr, n) => new Int32Array(mem.buffer, ptr, n), f32 = (ptr, n) => new Float32Array(mem.buffer, ptr, n);
+  const u32 = (ptr, n) => new Uint32Array(mem.buffer, ptr, n), i32 = (ptr, n) => new Int32Array(mem.buffer, ptr, n), f32 = (ptr,
+    n) => new Float32Array(mem.buffer, ptr, n);
   const W = p => p.w32 / 2; // the C side counts u64 words
   const bandOut = (cap, call) => scratch(() => {
     const ip = alloc(cap * 4), jp = alloc(cap * 4), rp = alloc(cap * 4), dp = alloc(cap * 4);
@@ -184,14 +194,17 @@ export async function loadKernel(bytes) {
     alloc(n, w32, masked) {
       const altPtr = alloc(n * w32 * 4), validPtr = masked ? alloc(n * w32 * 4) : 0, paPtr = alloc(n * 4), posPtr = alloc(n * 4);
       const nvPtr = masked ? alloc(n * 4) : 0, clsPtr = masked ? alloc(n * 4) : 0;
-      const p = { altPtr, validPtr, paPtr, posPtr, nvPtr, clsPtr, views: () => ({ alt: u32(altPtr, n * w32), valid: masked ? u32(validPtr, n * w32) : null,
+      const p = { altPtr, validPtr, paPtr, posPtr, nvPtr, clsPtr, views: () => ({ alt: u32(altPtr, n * w32), valid: masked ? u32(validPtr,
+        n * w32) : null,
         pa: u32(paPtr, n), pos: i32(posPtr, n), nv: masked ? u32(nvPtr, n) : null, cls: masked ? i32(clsPtr, n) : null }) };
       const v = p.views(); v.alt.fill(0); if (v.valid) v.valid.fill(0); // the arena is reused after reset(): zero it
       return p;
     },
     rowCounts: p => ex.row_counts(p.altPtr, p.n, W(p), p.paPtr),
-    bandBlocked: (p, d, t, s, pr, cap, B, r0, r1) => bandOut(cap, (ip, jp, rp, dp) => ex.band_blocked(p.altPtr, p.paPtr, p.posPtr, p.n, W(p), p.nh, d, t, s, pr, ip, jp, rp, dp, cap, B, r0, r1)),
-    bandMasked: (p, d, t, s, cap, r0, r1) => bandOut(cap, (ip, jp, rp, dp) => ex.band_masked(p.altPtr, p.validPtr, p.paPtr, p.nvPtr, p.clsPtr, p.posPtr, p.n, W(p), d, t, s, ip, jp, rp, dp, cap, r0, r1)),
+    bandBlocked: (p, d, t, s, pr, cap, B, r0, r1) => bandOut(cap, (ip, jp, rp, dp) => ex.band_blocked(p.altPtr, p.paPtr, p.posPtr, p.n,
+      W(p), p.nh, d, t, s, pr, ip, jp, rp, dp, cap, B, r0, r1)),
+    bandMasked: (p, d, t, s, cap, r0, r1) => bandOut(cap, (ip, jp, rp, dp) => ex.band_masked(p.altPtr, p.validPtr, p.paPtr, p.nvPtr,
+      p.clsPtr, p.posPtr, p.n, W(p), d, t, s, ip, jp, rp, dp, cap, r0, r1)),
     tile: (p, r0, nr, c0, nc) => scratch(() => {
       const a = alloc(nr * nc), b = alloc(nr * nc);
       ex.tile(p.altPtr, p.paPtr, W(p), p.nh, r0, nr, c0, nc, a, b);

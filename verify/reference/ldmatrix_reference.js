@@ -51,14 +51,16 @@ for (let i = 0; i < n; i++) for (let j = i; j < n; j++) {
   for (const h of allHaps) { const k = h[i] + h[j]; hap[k] = (hap[k] || 0) + 1; }
   for (const k of Object.keys(hap)) if (k.includes(".")) delete hap[k];
   if (Object.keys(hap).length !== 4)
-    for (const h of [alleles[i][0] + alleles[j][0], alleles[i][0] + alleles[j][1], alleles[i][1] + alleles[j][0], alleles[i][1] + alleles[j][1]])
+    for (const h of [alleles[i][0] + alleles[j][0], alleles[i][0] + alleles[j][1], alleles[i][1] + alleles[j][0],
+      alleles[i][1] + alleles[j][1]])
       if (!(h in hap)) hap[h] = 0;
   const ks = Object.keys(hap).sort(); // python sorted(): codepoint order, same as JS default sort for ASCII
   const [A, B, C, D] = ks.map(k => hap[k]);
   const delta = A * D - B * C, Ms = (A + C) * (B + D) * (A + B) * (C + D);
   let dp = "NA", rr = "NA";
   if (Ms !== 0) {
-    dp = round3(Math.abs(delta / (delta < 0 ? Math.min((A + C) * (A + B), (B + D) * (C + D)) : Math.min((A + C) * (C + D), (A + B) * (B + D)))));
+    dp = round3(Math.abs(delta / (delta < 0 ? Math.min((A + C) * (A + B), (B + D) * (C + D)) : Math.min((A + C) * (C + D),
+      (A + B) * (B + D)))));
     rr = round3(delta ** 2 / Ms);
   }
   dprime[i][j] = dprime[j][i] = dp; r2[i][j] = r2[j][i] = rr;

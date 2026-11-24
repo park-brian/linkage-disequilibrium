@@ -17,7 +17,8 @@ export async function pool(items, limit, fn) {
 export const ROW = Symbol("row");
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 // first index i with keys[i] >= lo
-function lowerBound(keys, lo) { let a = 0, b = keys.length; while (a < b) { const m = (a + b) >> 1; if (keys[m] < lo) a = m + 1; else b = m; } return a; }
+function lowerBound(keys, lo) { let a = 0, b = keys.length; while (a < b) { const m = (a + b) >> 1; if (keys[m] < lo) a = m + 1; else b = m;
+  } return a; }
 const anyInRange = (keys, lo, hi) => { const i = lowerBound(keys, lo); return i < keys.length && keys[i] <= hi; };
 const columnAt = (metadata, name) => metadata.row_groups[0].columns.findIndex(c => c.meta_data.path_in_schema.join(".") === name);
 const view = async (file, start, length) => new DataView(await file.slice(start, start + length));
@@ -164,7 +165,8 @@ export function coalesce(file, { gap = 32 << 10, maxSpan = 8 << 20 } = {}) {
       const start = q[i].start; let end = q[i].end, j = i + 1;
       while (j < q.length && q[j].start - end <= gap && Math.max(end, q[j].end) - start <= maxSpan) end = Math.max(end, q[j++].end);
       const group = q.slice(i, j);
-      Promise.resolve(file.slice(start, end)).then(buf => { for (const r of group) r.resolve(buf.slice(r.start - start, r.end - start)); }, err => group.forEach(r => r.reject(err)));
+      Promise.resolve(file.slice(start, end)).then(buf => { for (const r of group) r.resolve(buf.slice(r.start - start, r.end - start)); },
+        err => group.forEach(r => r.reject(err)));
       i = j;
     }
   }

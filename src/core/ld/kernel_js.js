@@ -30,7 +30,8 @@ function r2Bound(pa, pb, n) {
 }
 function output(maxOut) {
   const m = Math.max(1, maxOut);
-  return { written: 0, evaluated: 0, pruned: 0, i: new Uint32Array(m), j: new Uint32Array(m), r2: new Float32Array(m), dprime: new Float32Array(m), s: new Float64Array(2), maxOut };
+  return { written: 0, evaluated: 0, pruned: 0, i: new Uint32Array(m), j: new Uint32Array(m), r2: new Float32Array(m),
+    dprime: new Float32Array(m), s: new Float64Array(2), maxOut };
 }
 function put(o, i, j, n, pa, pb, x, thr, stat) { // kernel.c put()
   if (!stats(n, pa, pb, x, o.s)) return;
@@ -38,7 +39,8 @@ function put(o, i, j, n, pa, pb, x, thr, stat) { // kernel.c put()
   const k = o.written++;
   if (k < o.maxOut) { o.i[k] = i; o.j[k] = j; o.r2[k] = o.s[0]; o.dprime[k] = o.s[1]; }
 }
-const done = o => { const count = Math.min(o.written, o.maxOut); return { count, written: o.written, evaluated: o.evaluated, pruned: o.pruned,
+const done = o => { const count = Math.min(o.written, o.maxOut); return { count, written: o.written, evaluated: o.evaluated,
+  pruned: o.pruned,
   i: o.i.subarray(0, count), j: o.j.subarray(0, count), r2: o.r2.subarray(0, count), dprime: o.dprime.subarray(0, count) }; };
 
 export function rowCounts(alt, n, w32, pa) {
@@ -86,7 +88,8 @@ export function bandMasked(alt, valid, pa, nv, cls, pos, n, w32, maxDist, thr, s
       const aj = j * w32;
       o.evaluated++;
       if (cls[i] === cls[j]) put(o, i, j, nv[i], pa[i], pa[j], popAnd(alt, ai, alt, aj, w32), thr, stat);
-      else put(o, i, j, popAnd(valid, ai, valid, aj, w32), popAnd(alt, ai, valid, aj, w32), popAnd(alt, aj, valid, ai, w32), popAnd(alt, ai, alt, aj, w32), thr, stat);
+      else put(o, i, j, popAnd(valid, ai, valid, aj, w32), popAnd(alt, ai, valid, aj, w32), popAnd(alt, aj, valid, ai, w32), popAnd(alt, ai,
+        alt, aj, w32), thr, stat);
     }
   }
   return done(o);
@@ -108,7 +111,8 @@ export function tile(alt, pa, w32, hn, r0, nr, c0, nc) {
 export function maskedCounts(alt, valid, pa, nv, cls, i, j, w32) {
   const ai = i * w32, aj = j * w32;
   if (cls[i] === cls[j]) return [nv[i], pa[i], pa[j], popAnd(alt, ai, alt, aj, w32)];
-  return [popAnd(valid, ai, valid, aj, w32), popAnd(alt, ai, valid, aj, w32), popAnd(alt, aj, valid, ai, w32), popAnd(alt, ai, alt, aj, w32)];
+  return [popAnd(valid, ai, valid, aj, w32), popAnd(alt, ai, valid, aj, w32), popAnd(alt, aj, valid, ai, w32), popAnd(alt, ai, alt, aj,
+    w32)];
 }
 
 export function pairCounts(alt, w32, I, J) {

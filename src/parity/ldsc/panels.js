@@ -10,7 +10,8 @@ import { compressors } from "hyparquet-compressors";
 import { required } from "../../core/source.js";
 
 const kvOf = metadata => Object.fromEntries((metadata.key_value_metadata ?? []).map(x => [x.key, x.value]));
-const readAll = async (f, columns) => { let r = []; await parquetRead({ file: f.file, metadata: f.metadata, compressors, columns, onComplete: x => { r = x; } }); return r; };
+const readAll = async (f, columns) => { let r = []; await parquetRead({ file: f.file, metadata: f.metadata, compressors, columns,
+  onComplete: x => { r = x; } }); return r; };
 
 /** ldscore/ldsc_counts.parquet → Map(pop → the SNP count ldsc logs for that panel) */
 export async function ldscCounts(file) {
@@ -42,6 +43,7 @@ export async function ldscPanel(file, pop, need) {
 /** w_hm3.snplist (ldscore/w_hm3.snplist.parquet) → { SNP, A1, A2 } column arrays, file order */
 export async function mergeAlleles(file) {
   const out = { SNP: [], A1: [], A2: [] };
-  for (const [s, a, b] of await readAll(await required(file)("ldscore/w_hm3.snplist.parquet"), ["SNP", "A1", "A2"])) { out.SNP.push(s); out.A1.push(a); out.A2.push(b); }
+  for (const [s, a, b] of await readAll(await required(file)("ldscore/w_hm3.snplist.parquet"), ["SNP", "A1", "A2"])) { out.SNP.push(s);
+    out.A1.push(a); out.A2.push(b); }
   return out;
 }

@@ -31,7 +31,8 @@ function columnwise(rgs) {
   const out = { min: rgs.map(r => r.min), max: rgs.map(r => r.max), bytes: rgs.map(r => r.bytes) };
   if (rgs.some(r => r.keyIndex)) out.keyIndex = rgs.map(r => r.keyIndex);
   if (rgs.some(r => "payloadOffsetIndex" in r)) out.payloadOffsetIndex = rgs.map(r => r.payloadOffsetIndex ?? null);
-  if (rgs.some(r => r.colBytes)) out.colBytes = Object.fromEntries(Object.keys(rgs[0].colBytes).map(c => [c, rgs.map(r => r.colBytes[c] ?? 0)]));
+  if (rgs.some(r => r.colBytes)) out.colBytes = Object.fromEntries(Object.keys(rgs[0].colBytes).map(c => [c,
+    rgs.map(r => r.colBytes[c] ?? 0)]));
   return out;
 }
 const files = {};
@@ -48,9 +49,11 @@ for (const name of readdirSync(root, { withFileTypes: true }).filter(e => e.isDi
     rowGroups: columnwise(m.row_groups.map(rg => {
       const k = ki >= 0 ? rg.columns[ki] : null, st = k?.meta_data.statistics ?? {}, p = pi >= 0 ? rg.columns[pi] : null;
       // compressed bytes per column (+ total) so a planner can cost scans without opening the file
-      const size = Object.fromEntries(rg.columns.map(c => [c.meta_data.path_in_schema.join("."), Number(c.meta_data.total_compressed_size)]));
+      const size = Object.fromEntries(rg.columns.map(c => [c.meta_data.path_in_schema.join("."),
+        Number(c.meta_data.total_compressed_size)]));
       const o = { min: num(st.min_value), max: num(st.max_value), bytes: Object.values(size).reduce((a, b) => a + b, 0),
-        keyIndex: k?.column_index_length ? [num(k.column_index_offset), k.column_index_length, num(k.offset_index_offset), k.offset_index_length] : null };
+        keyIndex: k?.column_index_length ? [num(k.column_index_offset), k.column_index_length, num(k.offset_index_offset),
+          k.offset_index_length] : null };
       if (p) o.payloadOffsetIndex = p.offset_index_length ? [num(p.offset_index_offset), p.offset_index_length] : null;
       if (name.startsWith("genotypes/")) o.colBytes = Object.fromEntries(PRICED_COLUMNS.filter(c => c in size).map(c => [c, size[c]]));
       return o;

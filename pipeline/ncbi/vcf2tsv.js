@@ -39,7 +39,8 @@ function handle(line) {
   }
   if (fx.includes(",")) fx = fx.split(",").sort((a, b) => FLAGS.indexOf(a) - FLAGS.indexOf(b)).join(",");
   let nAlt = 1, anchored = ref.length > 1 && alt.charCodeAt(0) === ref.charCodeAt(0);
-  for (let k = alt.indexOf(","); k >= 0; k = alt.indexOf(",", k + 1)) { nAlt++; if (alt.charCodeAt(k + 1) !== ref.charCodeAt(0)) anchored = false; }
+  for (let k = alt.indexOf(","); k >= 0; k = alt.indexOf(",", k + 1)) { nAlt++;
+    if (alt.charCodeAt(k + 1) !== ref.charCodeAt(0)) anchored = false; }
   const s = `${o}\t${chrom}\t${pos}\t${f[2].startsWith("rs") ? f[2].slice(2) : ""}\t${ref}\t${alt}\t${nAlt}\t${vc}\t${fx}\t${anchored ? pos + 1 : pos}\n`;
   out.push(s); outLen += s.length; kept++;
   if (outLen > 8 << 20) flush();
@@ -50,7 +51,8 @@ const stream = createReadStream(src, { highWaterMark: 4 << 20 }).pipe(createGunz
 for await (const chunk of stream) {
   const text = rest + chunk.toString("latin1");
   let start = 0;
-  for (let nl = text.indexOf("\n"); nl >= 0; nl = text.indexOf("\n", start)) { handle(text.slice(start, nl)); start = nl + 1; if (done) break; }
+  for (let nl = text.indexOf("\n"); nl >= 0; nl = text.indexOf("\n", start)) { handle(text.slice(start, nl)); start = nl + 1;
+    if (done) break; }
   rest = text.slice(start);
   if (done) { stream.destroy(); break; }
 }

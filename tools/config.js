@@ -3,7 +3,8 @@
 //
 //   LD_DATA        generated data root (release/, build intermediates, verify reports)   default <repo>/../data
 //   LD_RELEASE     the release the app, tests and verifiers read                         default $LD_DATA/release_v4
-//   LD_PANELS      1000G population sample lists (<POP>.txt)                              default <repo>/../db/data/1000G_population_samples
+//   LD_PANELS      1000G population sample lists (<POP>.txt)                              default
+// <repo>/../db/data/1000G_population_samples
 //   LD_VCF         1000G VCFs (GRCh37/, GRCh38/, GRCh38_High_Coverage/)                  default <repo>/../db/1000G
 //   LDLINK_URL     a local LDlink (the parity oracle)                                    default http://127.0.0.1:8090
 //   LDLINK_HOME    that LDlink's working directory (data/tmp exchange, LDassoc examples)  default <repo>/../ldlink-local

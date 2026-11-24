@@ -21,11 +21,13 @@ import { chrYMessage, vcfAlleles, vcfId, rsAnnotations, cells, table2x2, check }
 const INTERNAL = { error: "Internal server error. Please contact LDlink admin." };
 const stripChr = s => s.replace(/^[chr]+|[chr]+$/g, ""); // str.strip("chr")
 const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
-const pyFloat = s => (/inf/i.test(s) ? (s.includes("-") ? -Infinity : Infinity) : /nan/i.test(s) ? NaN : Number(s.trim().replace(/_/g, "")));
+const pyFloat = s => (/inf/i.test(s) ? (s.includes("-") ? -Infinity : Infinity) : /nan/i.test(s) ? NaN : Number(s.trim().replace(/_/g,
+  "")));
 const PYINT = /^\s*[+-]?\d(_?\d)*\s*$/;
 
 /**
- * @param {{ text: string, columns: [chr, bp, pval], region: "variant"|"gene"|"region", origin?, window?, name?, start?, end?, pop, build }} a
+ * @param {{ text: string, columns: [chr, bp, pval], region: "variant"|"gene"|"region", origin?, window?, name?, start?, end?, pop, build }}
+ * a
  * @param {{ plot?: boolean, stat?: "r2" | "d" }} [opts] plot: also return LDlink's figure rows (server/LDassoc.py): every sorted row,
  *   and the association positions not in 1000G with their p-values; stat colours the points (LDassoc's --dprime)
  * @returns {{ text?, error?, warning? }}
@@ -45,7 +47,8 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     } else if (CHROMS.includes(stripChr(a.origin.split(":")[0])) && a.origin.split(":").length === 2) return INTERNAL;
     else return fail(`--origin (${a.origin}) is not a RS number (ex: rs12345) or chromosomal position (ex: chr22:25855459).`);
   }
-  const lines = a.text.split("\n"), header = (lines[0] ?? "").trim().split(/\s+/).filter(Boolean), first = (lines[1] ?? "").trim().split(/\s+/).filter(Boolean);
+  const lines = a.text.split("\n"), header = (lines[0] ?? "").trim().split(/\s+/).filter(Boolean),
+    first = (lines[1] ?? "").trim().split(/\s+/).filter(Boolean);
   if (header.length !== first.length) return fail(`Header has ${header.length} elements and first line has ${first.length} elements.`);
   if (!a.columns.every(c => header.includes(c))) return fail("Variables mapping is not listed in the association file header.");
   const [ci, pi, vi] = a.columns.map(c => header.indexOf(c));
@@ -58,8 +61,10 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     if (!g || g.begin == null) return fail(`Gene name ${a.name} is not in RefSeq database.`);
     c1 = Math.max(0, g.begin - window); c2 = g.end + window;
     if (a.origin != null) {
-      if (g.chrom !== chromosome) return fail(`Origin variant ${a.origin} is not on the same chromosome as ${a.name} (chr${chromosome} is not equal to chr${g.chrom}).`);
-      if (c1 > org || org > c2) return fail(`Origin variant ${a.origin} (chr${chromosome}:${org}) is not in the coordinate range chr${g.chrom}:${c1}-${c2}.`);
+      if (g.chrom !== chromosome)
+        return fail(`Origin variant ${a.origin} is not on the same chromosome as ${a.name} (chr${chromosome} is not equal to chr${g.chrom}).`);
+      if (c1 > org || org > c2)
+        return fail(`Origin variant ${a.origin} (chr${chromosome}:${org}) is not in the coordinate range chr${g.chrom}:${c1}-${c2}.`);
     } else chromosome = g.chrom;
   } else if (a.region === "region") {
     if (a.start == null) return fail("Start coordinate is needed when --region option is used.");
@@ -67,7 +72,8 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     if (a.start.split(":").length !== 2) return fail("Start coordinate is not in correct format (ex: chr22:25855459).");
     if (a.end.split(":").length !== 2) return fail("End coordinate is not in correct format (ex: chr22:25855459).");
     const up = c => (c === "x" || c === "y" ? c.toUpperCase() : c);
-    const cs = up(stripChr(a.start).split(":")[0]), ps = a.start.split(":")[1], ce = up(stripChr(a.end).split(":")[0]), pe = a.end.split(":")[1];
+    const cs = up(stripChr(a.start).split(":")[0]), ps = a.start.split(":")[1], ce = up(stripChr(a.end).split(":")[0]),
+      pe = a.end.split(":")[1];
     if (!CHROMS.includes(cs)) return fail(`Start chromosome (chr${cs}) is not an autosome (chr1-chr22) or sex chromosome (chrX or chrY).`);
     if (!CHROMS.includes(ce)) return fail(`End chromosome (chr${ce}) is not an autosome (chr1-chr22) or sex chromosome (chrX or chrY).`);
     if (cs !== ce) return fail(`Start and end chromosome must be the same (chr${cs} is not equal to chr${ce}).`);
@@ -75,8 +81,10 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     if (!PYINT.test(ps) || !PYINT.test(pe)) return INTERNAL;
     c1 = Math.max(0, +ps.replace(/_/g, "") - window); c2 = +pe.replace(/_/g, "") + window;
     if (a.origin != null) {
-      if (cs !== chromosome) return fail(`Origin variant ${a.origin} is not on the same chromosome as start and stop coordinates (chr${chromosome} is not equal to chr${ce}).`);
-      if (c1 > org || org > c2) return fail(`Origin variant ${a.origin} is not in the coordinate range ${a.start} to ${a.end} -/+ a ${window} bp window.`);
+      if (cs !== chromosome)
+        return fail(`Origin variant ${a.origin} is not on the same chromosome as start and stop coordinates (chr${chromosome} is not equal to chr${ce}).`);
+      if (c1 > org || org > c2)
+        return fail(`Origin variant ${a.origin} is not in the coordinate range ${a.start} to ${a.end} -/+ a ${window} bp window.`);
     } else chromosome = cs;
   }
   if (c2 - c1 > 3000000) return fail(`Queried region is ${c2 - c1} base pairs. Max size is 3000000 base pairs.`);
@@ -95,7 +103,8 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
   if (check.pop(pop)) return fail(check.pop(pop));
 
   const all = await ctx.windowRows(build, chromosome, c1, c2), at = overlapping(all); // the rows over p, VCF order
-  const { ids: samples, haploidMales } = await ctx.samples(build, chromosome), panel = await ctx.popIds(pop), hbytes = Math.ceil((2 * samples.length) / 8);
+  const { ids: samples, haploidMales } = await ctx.samples(build, chromosome), panel = await ctx.popIds(pop),
+    hbytes = Math.ceil((2 * samples.length) / 8);
   const polymorphic = row => { // get_query_variant_c / LDassoc: '0' and '1' characters of the population's GT strings
     const bits = decodeHaps(row.haps, hbytes); let n0 = 0, n1 = 0;
     samples.forEach((s, i) => {
@@ -109,11 +118,14 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     let missing = 0, found = false;
     for (const [p] of [...assoc].sort((x, y) => x[1] - y[1])) {
       snp = `${BUILDS[build].vcfPrefix}${chromosome}:${p}`;
-      const rows = BUILDS[build].vcfPrefix ? [] : at(p); // sic: this lookup prepends the prefix twice ("chrchr8:…"), so High Coverage never finds one
-      if (!rows.length) { missing++; W(`Lowest P-value variant (${snp}) is not in 1000G reference panel, using next lowest P-value variant`); continue; }
+      const rows = BUILDS[build].vcfPrefix ? [] : at(p);
+        // sic: this lookup prepends the prefix twice ("chrchr8:…"), so High Coverage never finds one
+      if (!rows.length) { missing++;
+        W(`Lowest P-value variant (${snp}) is not in 1000G reference panel, using next lowest P-value variant`); continue; }
       if (rows.length > 1) W(`Multiple variants map to lowest P-value variant (${snp}), using first variant in VCF file`);
       const r = rows[0];
-      if (r.multiallelic_source) { W(`Lowest P-value variant (${snp}) is not a biallelic variant, using next lowest P-value variant`); continue; }
+      if (r.multiallelic_source) { W(`Lowest P-value variant (${snp}) is not a biallelic variant, using next lowest P-value variant`);
+        continue; }
       if (!polymorphic(r)) { W(`Lowest P-value variant (${snp}) is monoallelic in the ${pop} population, using next lowest P-value variant`); continue; }
       org = p; q = r; found = true; break;
     }
@@ -124,7 +136,8 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     const rows = at(org);
     if (!rows.length) return fail("No LDassoc variants could be processed from the association file and 1000G reference panel.");
     const last = rows.at(-1), id = vcfId(last); // get_query_variant_c checks the LAST row; LDassoc_sub uses the FIRST
-    if (id !== snp && id.includes("rs")) o.warning = `Genomic position does not match RS number at 1000G position (chr${chromosome}:${last.pos} = ${id}).${o.warning ?? ""}`;
+    if (id !== snp && id.includes("rs"))
+      o.warning = `Genomic position does not match RS number at 1000G position (chr${chromosome}:${last.pos} = ${id}).${o.warning ?? ""}`;
     if (last.multiallelic_source) o.error = `${snp} variant is not a biallelic.${o.warning ?? ""}`;
     q = rows[0];
   }
@@ -142,13 +155,15 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
     const { dprime, r2 } = t, [pa0, pa1] = vcfAlleles(x.ref, x.alt), pal = { 0: pa0, 1: pa1 };
     const m = (k1, k2) => `${pal[k1[0]]}=${qal[k1[1]]},${pal[k2[0]]}=${qal[k2[1]]}`;
     const match = r2 > 0.1 ? ((A * D) / Math.max(B * C, 0.01) > 1 ? m("00", "11") : m("01", "10")) : "NA";
-    out.push({ x, dist: x.pos - q.pos, dprime, r2, match, mafq: Math.min((A + B) / N, (C + D) / N), mafp: Math.min((A + C) / N, (B + D) / N), id: vcfId(x), p: pyFloat(pval.get(x.pos)) });
+    out.push({ x, dist: x.pos - q.pos, dprime, r2, match, mafq: Math.min((A + B) / N, (C + D) / N), mafp: Math.min((A + C) / N,
+      (B + D) / N), id: vcfId(x), p: pyFloat(pval.get(x.pos)) });
   }
   if (!out.length) return fail("No LDassoc variants could be processed from the association file and 1000G reference panel.");
   out.sort((u, v) => Math.abs(u.dist) - Math.abs(v.dist)).sort((u, v) => u.p - v.p);
   // annotations, as LDproxy (get_coords for rsIDs: int-normalized)
   const noRs = [...new Set(out.filter(e => !e.id.startsWith("rs")).map(e => e.x.pos))], dAt = await ctx.dbsnpAt(build, chromosome, noRs);
-  const digits = e => { const t = e.id.replace(/^[rs]+|[rs]+$/g, ""); return PYINT.test(t) ? String(BigInt(t.trim().replace(/_/g, ""))) : null; };
+  const digits = e => { const t = e.id.replace(/^[rs]+|[rs]+$/g, ""); return PYINT.test(t) ? String(BigInt(t.trim().replace(/_/g,
+    ""))) : null; };
   for (const e of out) {
     if (e.id.startsWith("rs")) e.rs = e.id;
     else { const d = dAt.get(e.x.pos); e.rs = d ? `rs${d.rsid}` : "."; e.func = d ? d.function : "."; }
@@ -157,21 +172,27 @@ export async function ldassoc(ctx, a, { plot = false, stat = "r2" } = {}) {
   const docPos = e => (!e.id.startsWith("rs") ? e.x.pos : e.x.rsid_source === 1 && e.id === `rs${e.x.rsid}` && e.x.rsid_pos_delta != null ? e.x.pos + e.x.rsid_pos_delta : null);
   // unknown doc position: try the VCF POS (a single-doc rsID found there is exact; a miss falls back to find_one)
   const items = [...out.filter(e => e.id.startsWith("rs") && digits(e)).map(e => ({ id: digits(e), pos: docPos(e) ?? e.x.pos })),
-    ...out.filter(e => /^rs\d+$/.test(e.rs)).map(e => ({ id: String(BigInt(e.rs.slice(2))), pos: (e.rs === e.id ? docPos(e) : null) ?? e.x.pos }))];
-  const ann = await rsAnnotations(ctx, build, chromosome, items), rg = await ctx.regulome(build, chromosome, [...new Set(out.map(e => e.x.pos))]);
-  for (const e of out) if (e.id.startsWith("rs")) { const a = digits(e) && ann.get(digits(e)); e.func = a && a.func !== undefined ? a.func : "."; }
+    ...out.filter(e => /^rs\d+$/.test(e.rs)).map(e => ({ id: String(BigInt(e.rs.slice(2))),
+      pos: (e.rs === e.id ? docPos(e) : null) ?? e.x.pos }))];
+  const ann = await rsAnnotations(ctx, build, chromosome, items), rg = await ctx.regulome(build, chromosome,
+    [...new Set(out.map(e => e.x.pos))]);
+  for (const e of out) if (e.id.startsWith("rs")) { const a = digits(e) && ann.get(digits(e));
+    e.func = a && a.func !== undefined ? a.func : "."; }
   const forgeOf = e => (/^rs\d+$/.test(e.rs) ? ann.get(String(BigInt(e.rs.slice(2))))?.forge : undefined);
-  const line = (e, top) => [e.rs, `chr${chromosome}:${(top ? q : e.x).pos}`, `(${vcfAlleles((top ? q : e.x).ref, (top ? q : e.x).alt).join("/")})`,
+  const line = (e, top) => [e.rs, `chr${chromosome}:${(top ? q : e.x).pos}`, `(${vcfAlleles((top ? q : e.x).ref,
+    (top ? q : e.x).alt).join("/")})`,
     pyStr(pyRound(top ? e.mafq : e.mafp, 4)), String(e.dist), pyStr(pyRound(e.dprime, 4)), pyStr(pyRound(e.r2, 4)), e.match, pyStr(e.p),
     forgeOf(e)?.toString() ?? "NA", rg.get(e.x.pos) ?? ".", e.func ?? "NA"].join("\t");
   if (o.error !== undefined) return fail(o.error);
-  const text = ["RS_Number\tCoord\tAlleles\tMAF\tDistance\tDprime\tR2\tCorrelated_Alleles\tP-value\tFORGEdb\tRegulomeDB\tFunction", line(out[0], true),
+  const text = ["RS_Number\tCoord\tAlleles\tMAF\tDistance\tDprime\tR2\tCorrelated_Alleles\tP-value\tFORGEdb\tRegulomeDB\tFunction",
+    line(out[0], true),
     ...out.slice(1).filter(e => e.rs !== snp).map(e => line(e, false))].join("\n") + "\n";
   const res = { text, ...(o.warning !== undefined ? { warning: o.warning } : {}) };
   if (plot) {
     const plotted = new Set(out.map(e => e.x.pos));
     res.plot = { chrom: chromosome, index: { rs: snp, pos: q.pos }, lo: c1, hi: c2, stat,
-      rows: out.map(e => ({ rs: e.rs === "." ? `chr${chromosome}:${e.x.pos}` : e.rs, pos: e.x.pos, alleles: vcfAlleles(e.x.ref, e.x.alt).join("/"), dist: e.dist,
+      rows: out.map(e => ({ rs: e.rs === "." ? `chr${chromosome}:${e.x.pos}` : e.rs, pos: e.x.pos, alleles: vcfAlleles(e.x.ref,
+        e.x.alt).join("/"), dist: e.dist,
         r2: e.r2, dprime: e.dprime, match: e.match, maf: e.mafp, p: e.p, forge: forgeOf(e) ?? null, regulome: rg.get(e.x.pos) ?? null,
         func: e.func === "." ? "" : e.func == null || e.func === "NA" ? "none" : e.func })), // func with LDlink's fix-ups
       missing: [...new Set(assoc.map(([pos]) => pos))].filter(pos => !plotted.has(pos)).map(pos => ({ pos, p: pyFloat(pval.get(pos)) })) };

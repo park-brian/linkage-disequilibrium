@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Stream LDlink's annotation collections from the S3 mongodump (and the 2025 GWAS Catalog backup) to TSV, keeping
-# dump order (column 1 = ord) and only the fields LDlink reads. Needs the LDlink account credentials in $LD_AWS_ENV (default <repo>/../.env).
+# dump order (column 1 = ord) and only the fields LDlink reads. Needs the LDlink account credentials in $LD_AWS_ENV
+# (default <repo>/../.env).
 # usage: pipeline/annotations/fetch.sh [collection ...]   → $LD_DATA/annot_src/<collection>.tsv + .log
 #   no arguments: every collection; otherwise only the named ones (e.g. pipeline/annotations/fetch.sh gwas_catalog)
 set -euo pipefail
@@ -26,11 +27,13 @@ declare -A F=(
   [snp_col]="data $POS"
   [gtex_tissue_eqtl]="variant_id gene_id tss_distance ma_samples ma_count maf pval_nominal slope slope_se pval_nominal_threshold min_pval_nominal pval_beta tissueSiteDetailId $POS"
 )
-for c in refGene_grch37 refGene_grch38 recomb regulome forge_score genes_name_coords gtex_tissues gtex_genes platforms snp_col gtex_tissue_eqtl; do
+for c in refGene_grch37 refGene_grch38 recomb regulome forge_score genes_name_coords gtex_tissues gtex_genes platforms snp_col \
+    gtex_tissue_eqtl; do
   want "$c" || continue
   echo "== $c $(date -u +%T)"
   # LDlink queries these numerically ($gte/$lte): numeric-looking strings are written "s:..." so they stay un-keyed (B5)
-  aws s3 cp "$S3/deploy/mongodb/$c.bson.gz" - | NUMERIC_QUERY="$NUMQ" node "$REPO/pipeline/dbsnp/bson_stream.js" ${F[$c]} > "$OUT/$c.tsv" 2> "$OUT/$c.log"
+  aws s3 cp "$S3/deploy/mongodb/$c.bson.gz" - |
+    NUMERIC_QUERY="$NUMQ" node "$REPO/pipeline/dbsnp/bson_stream.js" ${F[$c]} > "$OUT/$c.tsv" 2> "$OUT/$c.log"
   tail -c 400 "$OUT/$c.log"; echo
 done
 # GWAS Catalog: the 2025-10-24 backup of the live collection (newer than the 2023 dump); mongoexport JSON array
@@ -38,7 +41,8 @@ if want gwas_catalog; then
   GWAS="DATE ADDED TO CATALOG|PUBMEDID|FIRST AUTHOR|DATE|JOURNAL|STUDY|DISEASE/TRAIT|MAPPED_TRAIT|MAPPED_GENE|STRONGEST SNP-RISK ALLELE|SNPS|MERGED|SNP_ID_CURRENT|CONTEXT|RISK ALLELE FREQUENCY|P-VALUE|PVALUE_MLOG|P-VALUE (TEXT)|OR or BETA|95% CI (TEXT)|STUDY ACCESSION|chromosome|position_grch37|position_grch38"
   IFS='|' read -r -a GF <<< "$GWAS"
   echo "== gwas_catalog (2025 backup) $(date -u +%T)"
-  aws s3 cp "$S3/backups/LDLink.gwas_catalog20251024.json" - | NUMERIC_QUERY="$NUMQ" node "$REPO/pipeline/dbsnp/json_array_stream.js" "${GF[@]}" > "$OUT/gwas_catalog.tsv" 2> "$OUT/gwas_catalog.log"
+  aws s3 cp "$S3/backups/LDLink.gwas_catalog20251024.json" - |
+    NUMERIC_QUERY="$NUMQ" node "$REPO/pipeline/dbsnp/json_array_stream.js" "${GF[@]}" > "$OUT/gwas_catalog.tsv" 2> "$OUT/gwas_catalog.log"
   tail -c 600 "$OUT/gwas_catalog.log"; echo
   printf '%s\n' "${GF[@]}" > "$OUT/gwas_catalog.fields"
 fi

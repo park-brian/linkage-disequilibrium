@@ -30,7 +30,8 @@ export function ldscore({ filename = "", ldwindow = "1", windUnit = "cm", isExam
   // run_ldsc_command: int(ldwindow) or 1, at least 1; 'kb' → --ld-wind-kb, anything else --ld-wind-cm
   const win = PYINT.test(String(ldwindow)) && +String(ldwindow).replace(/_/g, "") > 0 ? +String(ldwindow).replace(/_/g, "") : 1;
   const t0 = Date.now();
-  const { rows } = ldscoreL2(files[`${base}.bed`], readBim(files[`${base}.bim`]), readFamCount(files[`${base}.fam`]), windUnit === "kb" ? { windKb: win } : { windCm: win });
+  const { rows } = ldscoreL2(files[`${base}.bed`], readBim(files[`${base}.bim`]), readFamCount(files[`${base}.fam`]),
+    windUnit === "kb" ? { windKb: win } : { windCm: win });
   const maf = rows.map(r => r.MAF), l2 = rows.map(r => r.L2), dm = describe(maf), dl = describe(l2);
   const stats = ["mean", "std", "min", "25%", "50%", "75%", "max"];
   const c = corr(maf, l2);

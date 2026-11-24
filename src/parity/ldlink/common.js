@@ -3,11 +3,13 @@ import { erfc } from "../../core/stats.js";
 import { TITLE } from "../../core/genome.js";
 
 // LDcommon.get_population: the populations LDlink accepts
-export const POPS = ["ALL", "AFR", "AMR", "EAS", "EUR", "SAS", "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN", "FIN", "GBR", "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK", "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI"];
+export const POPS = ["ALL", "AFR", "AMR", "EAS", "EUR", "SAS", "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN", "FIN", "GBR",
+  "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK", "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI"];
 export const POP_ERROR = p => `${p} is not an ancestral population. Choose one of the following ancestral populations: AFR, AMR, EAS, EUR, or SAS; or one of the following sub-populations: ACB, ASW, BEB, CDX, CEU, CHB, CHS, CLM, ESN, FIN, GBR, GIH, GWD, IBS, ITU, JPT, KHV, LWK, MSL, MXL, PEL, PJL, PUR, STU, TSI, or YRI.`;
 
 /** LDcommon.check_allele / set_alleles: indels as "-" and the allele without its anchor base */
-export const vcfAlleles = (ref, alt) => (ref.length === 1 && alt.length === 1 ? [ref, alt] : ref.length === 1 ? ["-", alt.slice(1)] : alt.length === 1 ? [ref.slice(1), "-"] : [ref.slice(1), alt.slice(1)]);
+export const vcfAlleles = (ref, alt) => (ref.length === 1 && alt.length === 1 ? [ref, alt] : ref.length === 1 ? ["-",
+  alt.slice(1)] : alt.length === 1 ? [ref.slice(1), "-"] : [ref.slice(1), alt.slice(1)]);
 
 /** The chrY-on-GRCh38 message; LDpair and LDpop write "rsid - chrY:pos", the rest "rsid = chrY:pos" */
 export const chrYMessage = (v, sep = "=") =>
@@ -19,7 +21,8 @@ export const gate = t => t.length > 2 && (t.startsWith("rs") || t.startsWith("ch
 /** validsnp: one whitespace token list per line, duplicate lists removed (first kept; empty lists stay, once) */
 export function dedupeLists(lines) {
   const seen = new Set(), lists = [];
-  for (const l of lines) { const t = l.trim().split(/\s+/).filter(Boolean), k = t.join(" "); if (!seen.has(k)) { seen.add(k); lists.push(t); } }
+  for (const l of lines) { const t = l.trim().split(/\s+/).filter(Boolean), k = t.join(" "); if (!seen.has(k)) { seen.add(k); lists.push(t);
+    } }
   return lists;
 }
 
@@ -56,7 +59,8 @@ export function ldStats(A, B, C, D) {
  */
 export async function chunkedWindow(ctx, build, chrom, pos, window, chunks) {
   const parts = chunkWindow(pos, window, chunks), all = await ctx.windowRows(build, chrom, parts[0][0], parts.at(-1)[1]);
-  return { all, rows: parts.flatMap(([lo, hi]) => all.filter(x => x.pos <= hi && x.pos + x.ref.length - 1 >= lo && !x.multiallelic_source)) };
+  return { all, rows: parts.flatMap(([lo,
+    hi]) => all.filter(x => x.pos <= hi && x.pos + x.ref.length - 1 >= lo && !x.multiallelic_source)) };
 }
 
 /** LDcommon.chunkWindow → [[start, stop]] (Python floats, math.ceil; the last chunk ends a few bp past pos + window) */
@@ -90,7 +94,8 @@ export async function queryVariant(ctx, build, label, v, o) {
   const sel = v.selected;
   if (!sel?.row) { o.error = `${label} Variant is not in 1000G reference panel.${o.error ?? ""}`; return null; }
   const row = { ...(await ctx.row(build, v.chrom, sel.row)), chrom: v.chrom }, id = vcfId(row);
-  if (id !== label && id.includes("rs")) o.warning = `Genomic position does not match RS number at 1000G position (chr${v.chrom}:${row.pos} = ${id}).${o.warning ?? ""}`;
+  if (id !== label && id.includes("rs"))
+    o.warning = `Genomic position does not match RS number at 1000G position (chr${v.chrom}:${row.pos} = ${id}).${o.warning ?? ""}`;
   if (sel.status === "not_biallelic") o.error = `${label} variant is not a biallelic.${o.warning ?? ""}`; // sic: LDlink appends the warning
   return row;
 }

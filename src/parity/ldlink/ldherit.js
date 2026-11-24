@@ -14,17 +14,22 @@ const LDSC_POP = /^[A-Za-z0-9_+-]{1,64}$/;
 const EXAMPLE_DIR = "/data/ldscore";
 const DESCRIBE = {
   SNP: "Variant ID (e.g., rs number)", P: "p-Value", A1: "Allele 1, interpreted as ref allele for signed sumstat.",
-  A2: "Allele 2, interpreted as non-ref allele for signed sumstat.", N: "Sample size", N_CAS: "Number of cases", N_CON: "Number of controls",
-  Z: "Z-score (0 --> no effect; above 0 --> A1 is trait/risk increasing)", OR: "Odds ratio (1 --> no effect; above 1 --> A1 is risk increasing)",
+  A2: "Allele 2, interpreted as non-ref allele for signed sumstat.", N: "Sample size", N_CAS: "Number of cases",
+    N_CON: "Number of controls",
+  Z: "Z-score (0 --> no effect; above 0 --> A1 is trait/risk increasing)",
+    OR: "Odds ratio (1 --> no effect; above 1 --> A1 is risk increasing)",
   BETA: "[linear/logistic] regression coefficient (0 --> no effect; above 0 --> A1 is trait/risk increasing)",
-  LOG_ODDS: "Log odds ratio (0 --> no effect; above 0 --> A1 is risk increasing)", INFO: "INFO score (imputation quality; higher --> better imputation)",
-  FRQ: "Allele frequency", SIGNED_SUMSTAT: "Directional summary statistic as specified by --signed-sumstats.", NSTUDY: "Number of studies in which the SNP was genotyped.",
+  LOG_ODDS: "Log odds ratio (0 --> no effect; above 0 --> A1 is risk increasing)",
+    INFO: "INFO score (imputation quality; higher --> better imputation)",
+  FRQ: "Allele frequency", SIGNED_SUMSTAT: "Directional summary statistic as specified by --signed-sumstats.",
+    NSTUDY: "Number of studies in which the SNP was genotyped.",
 };
 const HERIT_FAILED = "The heritability calculation failed. This can happen when the selected LD score source does not overlap with the summary statistics (e.g. different chromosome coverage or genome build).";
 
 /** _parse_probability_value: float(...) strictly between 0 and 1, re-printed with format(x, ".15g") */
 export function probability(raw, field) {
-  const s = String(raw).trim(), x = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s) || /^[+-]?(inf|infinity|nan)$/i.test(s) ? Number(s.replace(/^([+-]?)inf(inity)?$/i, "$1Infinity")) : NaN;
+  const s = String(raw).trim(),
+    x = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s) || /^[+-]?(inf|infinity|nan)$/i.test(s) ? Number(s.replace(/^([+-]?)inf(inity)?$/i, "$1Infinity")) : NaN;
   if (Number.isNaN(x) && !/^[+-]?nan$/i.test(s)) throw new Error(`Invalid ${field}: value must be a number between 0 and 1 (exclusive).`);
   if (!(x > 0 && x < 1)) throw new Error(`Invalid ${field}: value must be between 0 and 1 (exclusive).`);
   return cFormatG(x, 15);
@@ -47,8 +52,10 @@ function mungeLog(m, sumstatsPath, base, t0 = Date.now()) {
   if (L.removed_p > 0) warn.push(`WARNING: ${L.removed_p} SNPs had P outside of (0,1]. The P column may be mislabeled.`);
   const chunks = Math.max(1, Math.ceil(L.read / 5_000_000));
   out.push(`${warn.map(w => `${w}\n`).join("")}${".".repeat(chunks)} done`);
-  out.push([`Read ${L.read} SNPs from --sumstats file.`, `Removed ${L.removed_merge} SNPs not in --merge-alleles.`, `Removed ${L.removed_na} SNPs with missing values.`,
-    `Removed ${L.removed_info} SNPs with INFO <= 0.9.`, `Removed ${L.removed_maf} SNPs with MAF <= 0.01.`, `Removed ${L.removed_p} SNPs with out-of-bounds p-values.`,
+  out.push([`Read ${L.read} SNPs from --sumstats file.`, `Removed ${L.removed_merge} SNPs not in --merge-alleles.`,
+    `Removed ${L.removed_na} SNPs with missing values.`,
+    `Removed ${L.removed_info} SNPs with INFO <= 0.9.`, `Removed ${L.removed_maf} SNPs with MAF <= 0.01.`,
+      `Removed ${L.removed_p} SNPs with out-of-bounds p-values.`,
     `Removed ${L.removed_alleles} variants that were not SNPs or were strand-ambiguous.`, `${L.remain} SNPs remain.`].join("\n"));
   const afterDups = L.remain - L.removed_dups;
   out.push(`Removed ${L.removed_dups} SNPs with duplicated rs numbers (${afterDups} SNPs remain).`);
@@ -74,7 +81,8 @@ export function hsqSummary(h, P, K) {
   out.push(`Lambda GC: ${npStr4(h.lambda_gc)}`);
   out.push(`Mean Chi^2: ${npStr4(h.mean_chisq)}`);
   out.push(`Intercept: ${npStr4(h.intercept)} (${npStr4(h.intercept_se)})`);
-  if (h.mean_chisq > 1) out.push(h.ratio < 0 ? "Ratio < 0 (usually indicates GC correction)." : `Ratio: ${npStr4(h.ratio)} (${npStr4(h.ratio_se)})`);
+  if (h.mean_chisq > 1)
+    out.push(h.ratio < 0 ? "Ratio < 0 (usually indicates GC correction)." : `Ratio: ${npStr4(h.ratio)} (${npStr4(h.ratio_se)})`);
   else out.push("Ratio: NA (mean chi^2 < 1)");
   return out.join("\n");
 }
@@ -90,11 +98,13 @@ export async function ldherit(ctx, { pop, filename, text, isExample = false, sca
   if (pop && !LDSC_POP.test(String(pop).trim())) return { error: "Invalid pop parameter." };
   let P = null, K = null;
   if (String(scale).trim().toLowerCase() === "liability") {
-    if (!String(samp_prev).trim() || !String(pop_prev).trim()) return { error: "When scale=liability for LDherit, both samp_prev and pop_prev are required as values between 0 and 1." };
+    if (!String(samp_prev).trim() || !String(pop_prev).trim())
+      return { error: "When scale=liability for LDherit, both samp_prev and pop_prev are required as values between 0 and 1." };
     try { P = probability(samp_prev, "samp_prev"); K = probability(pop_prev, "pop_prev"); } catch (e) { return { error: e.message }; }
   }
   if (isExample && text == null) return { error: `Example file '${filename}' was not found.` };
-  const t0 = Date.now(), base = String(filename).replace(/\.[^.]*$/, ""), sumstatsPath = isExample ? `${EXAMPLE_DIR}/${filename}` : filename;
+  const t0 = Date.now(), base = String(filename).replace(/\.[^.]*$/, ""),
+    sumstatsPath = isExample ? `${EXAMPLE_DIR}/${filename}` : filename;
   const lpop = String(pop).trim().toLowerCase(), [ma, counts] = await Promise.all([ctx.mergeAlleles(), ctx.ldscCounts()]);
   let m;
   try { m = mungeSumstats(text, ma); } catch (e) { return { error: `An error occurred while running the command (exit 1): ${e.message}` }; }
@@ -104,12 +114,14 @@ export async function ldherit(ctx, { pop, filename, text, isExample = false, sca
   panel.rows = counts.get(lpop);
   // ldsc.py --h2
   const t1 = Date.now(), dir = `${EXAMPLE_DIR}/${String(pop).trim().toLowerCase()}/`, h = estimateH2(m.text, panel, panel.M);
-  const opts = [["out", base], ["h2", `${base}.sumstats.gz`], ["ref-ld-chr", dir], ["w-ld-chr", dir], ...(P != null ? [["samp-prev", P], ["pop-prev", K]] : [])];
+  const opts = [["out", base], ["h2", `${base}.sumstats.gz`], ["ref-ld-chr", dir], ["w-ld-chr", dir], ...(P != null ? [["samp-prev", P],
+    ["pop-prev", K]] : [])];
   const L = [callHeader("ldsc.py", opts), `Beginning analysis at ${ctime()}`, `Reading summary statistics from ${base}.sumstats.gz ...`,
     `RuntimeWarning: compression has no effect when passing a non-binary object as input for file ${base}.sumstats.gz`,
     `Read summary statistics for ${m.log.nonmissing} SNPs.`, `Reading reference panel LD Score from ${dir}[1-22] ... (ldscore_fromlist)`,
     `Read reference panel LD Scores for ${panel.rows} SNPs.`, "Removing partitioned LD Scores with zero variance.",
-    `Reading regression weight LD Score from ${dir}[1-22] ... (ldscore_fromlist)`, `Read regression weight LD Scores for ${panel.rows} SNPs.`,
+    `Reading regression weight LD Score from ${dir}[1-22] ... (ldscore_fromlist)`,
+      `Read regression weight LD Scores for ${panel.rows} SNPs.`,
     `After merging with reference panel LD, ${h.n_snp} SNPs remain.`, `After merging with regression SNP LD, ${h.n_snp} SNPs remain.`];
   if (h.n_snp < 200000) L.push("WARNING: number of SNPs less than 200k; this is almost always bad.");
   L.push("Using two-step estimator with cutoff at 30.", hsqSummary(h, P == null ? null : +P, K == null ? null : +K),

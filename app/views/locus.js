@@ -16,20 +16,26 @@ export function renderLocus(holder, spec) {
   const lay = layout(tracks, PAD.top + PLOT + 8 + RUG + 8), H = lay.end + 4, { cv, g } = canvas(W, H);
   g.font = "11px system-ui"; g.textBaseline = "top";
   // title and frame
-  g.fillStyle = "#1d2330"; g.font = "600 12px system-ui"; g.textAlign = "center"; g.fillText(spec.title, W / 2, 2); g.textAlign = "left"; g.font = "11px system-ui";
+  g.fillStyle = "#1d2330"; g.font = "600 12px system-ui"; g.textAlign = "center"; g.fillText(spec.title, W / 2, 2); g.textAlign = "left";
+    g.font = "11px system-ui";
   g.strokeStyle = "#c9ced6"; g.strokeRect(PAD.left, PAD.top, inner, PLOT);
   // y axes: the statistic (left), recombination rate −3..103 (right)
   g.fillStyle = "#555"; g.textBaseline = "middle";
-  for (const t of ticks(spec.y0, spec.y1, 5)) { line(g, PAD.left - 4, Y(t), PAD.left, Y(t)); g.textAlign = "right"; g.fillText(fmt(t), PAD.left - 6, Y(t)); }
-  for (const r of [0, 20, 40, 60, 80, 100]) { const yy = PAD.top + PLOT - ((r + 3) / 106) * PLOT; line(g, W - PAD.right, yy, W - PAD.right + 4, yy); g.textAlign = "left"; g.fillText(String(r), W - PAD.right + 6, yy); }
+  for (const t of ticks(spec.y0, spec.y1, 5)) { line(g, PAD.left - 4, Y(t), PAD.left, Y(t)); g.textAlign = "right"; g.fillText(fmt(t),
+    PAD.left - 6, Y(t)); }
+  for (const r of [0, 20, 40, 60, 80, 100]) { const yy = PAD.top + PLOT - ((r + 3) / 106) * PLOT; line(g, W - PAD.right, yy,
+    W - PAD.right + 4, yy); g.textAlign = "left"; g.fillText(String(r), W - PAD.right + 6, yy); }
   g.save(); g.translate(10, PAD.top + PLOT / 2); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.fillText(spec.yLabel, 0, 0); g.restore();
-  g.save(); g.translate(W - 8, PAD.top + PLOT / 2); g.rotate(Math.PI / 2); g.textAlign = "center"; g.fillText("Combined Recombination Rate (cM/Mb)", 0, 0); g.restore();
+  g.save(); g.translate(W - 8, PAD.top + PLOT / 2); g.rotate(Math.PI / 2); g.textAlign = "center";
+    g.fillText("Combined Recombination Rate (cM/Mb)", 0, 0); g.restore();
   g.textAlign = "left"; g.textBaseline = "top";
   // clip the plot area: recombination, the significance line, points, labels
   g.save(); g.beginPath(); g.rect(PAD.left, PAD.top, inner, PLOT); g.clip();
   g.strokeStyle = "rgba(0,0,0,.5)"; g.lineWidth = 1; g.beginPath();
-  spec.recomb.forEach((r, k) => { const xx = X(r.pos), yy = Y(spec.recombY(r.rate)); k ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }); g.stroke();
-  if (spec.hline != null) { g.strokeStyle = "rgba(0,0,255,.5)"; line(g, PAD.left, Y(spec.hline), W - PAD.right, Y(spec.hline)); } // genome-wide significance
+  spec.recomb.forEach((r, k) => { const xx = X(r.pos), yy = Y(spec.recombY(r.rate)); k ? g.lineTo(xx, yy) : g.moveTo(xx, yy); });
+    g.stroke();
+  if (spec.hline != null) { g.strokeStyle = "rgba(0,0,255,.5)"; line(g, PAD.left, Y(spec.hline), W - PAD.right, Y(spec.hline));
+    } // genome-wide significance
   for (const p of spec.points) {
     g.globalAlpha = p.alpha; g.fillStyle = p.color; g.beginPath(); g.arc(X(p.pos), Y(p.y), p.size / 2, 0, 7); g.fill();
     if (p.stroke) { g.globalAlpha = 1; g.strokeStyle = p.stroke; g.stroke(); }
@@ -46,7 +52,8 @@ export function renderLocus(holder, spec) {
 
   const hit = (mx, my) => {
     let best = null, bd = Infinity;
-    for (const p of spec.points) { const d = Math.hypot(X(p.pos) - mx, Y(p.y) - my); if (d <= Math.max(4, p.size / 2) && d < bd) { bd = d; best = p; } }
+    for (const p of spec.points) { const d = Math.hypot(X(p.pos) - mx, Y(p.y) - my); if (d <= Math.max(4, p.size / 2) && d < bd) { bd = d;
+      best = p; } }
     return best;
   };
   const tip = tooltip(cv, (mx, my) => {
@@ -60,7 +67,8 @@ export function renderLocus(holder, spec) {
   holder.replaceChildren(cv, tip);
 }
 
-function ticks(a, b, n) { const step = niceStep((b - a) / n), out = []; for (let t = Math.ceil(a / step) * step; t <= b + 1e-9; t += step) out.push(+t.toFixed(10)); return out; }
+function ticks(a, b, n) { const step = niceStep((b - a) / n), out = []; for (let t = Math.ceil(a / step) * step; t <= b + 1e-9;
+  t += step) out.push(+t.toFixed(10)); return out; }
 const fmt = t => (Math.abs(t) < 1e-9 ? "0" : String(+t.toFixed(2)));
 
 /** LDlink's LDproxy figure from ldproxy(…, { plot: true }).plot */
@@ -70,16 +78,20 @@ export function proxySpec(plot, { pop, annotate = "forge", genes, recomb, collap
     pos: r.pos, y: r[stat], alpha: 0.5, size: 9 + r.maf * 14, row: r,
     color: i === 0 ? "blue" : r.func !== "none" && r.func !== "" ? "red" : "orange",
     label: annotate === "forge" ? r.forge : annotate === "regulome" ? r.regulome : null,
-    hover: [`Query Variant: ${plot.query.rs} ${plot.query.alleles}`, `Proxy Variant: ${r.rs} ${r.alleles}`, `Distance (Mb): ${r4(r.dist / 1e6)}`, `MAF (Query,Proxy): ${r4(r.mafq)},${r4(r.maf)}`,
-      `R²: ${r4(r.r2)}`, `D': ${r4(r.dprime)}`, `Correlated Alleles: ${r.match}`, `FORGEdb Score: ${r.forge ?? ""}`, `RegulomeDB Rank: ${r.regulome ?? ""}`, `Functional Class: ${r.func}`].join("\n"),
+    hover: [`Query Variant: ${plot.query.rs} ${plot.query.alleles}`, `Proxy Variant: ${r.rs} ${r.alleles}`,
+      `Distance (Mb): ${r4(r.dist / 1e6)}`, `MAF (Query,Proxy): ${r4(r.mafq)},${r4(r.maf)}`,
+      `R²: ${r4(r.r2)}`, `D': ${r4(r.dprime)}`, `Correlated Alleles: ${r.match}`, `FORGEdb Score: ${r.forge ?? ""}`,
+        `RegulomeDB Rank: ${r.regulome ?? ""}`, `Functional Class: ${r.func}`].join("\n"),
   }));
   const pad = 10000; // LDlink's 0.01 Mb whitespace
-  return { title: `Proxies for ${plot.query.rs} in ${pop}`, xlo: plot.lo - pad, xhi: plot.hi + pad, yLabel: stat === "r2" ? "R²" : "D'", y0: -0.03, y1: 1.03,
+  return { title: `Proxies for ${plot.query.rs} in ${pop}`, xlo: plot.lo - pad, xhi: plot.hi + pad, yLabel: stat === "r2" ? "R²" : "D'",
+    y0: -0.03, y1: 1.03,
     points, recomb, recombY: rate => rate / 100, genes, collapsed };
 }
 
 // LDassoc's 101-step ramp, #FFCCCC → #FF0000 (server/LDassoc.py), indexed by int(stat · 100)
-const REDS = Array.from({ length: 101 }, (_, i) => `#FF${Math.round(0xcc * (1 - i / 100)).toString(16).padStart(2, "0").toUpperCase().repeat(2)}`);
+const REDS = Array.from({ length: 101 }, (_, i) => `#FF${Math.round(0xcc * (1 - i / 100)).toString(16).padStart(2,
+  "0").toUpperCase().repeat(2)}`);
 
 /** LDlink's LDassoc figure from ldassoc(…, { plot: true }).plot */
 export function assocSpec(plot, { pop, annotate = "forge", genes, recomb, collapsed = true }) {
@@ -91,10 +103,13 @@ export function assocSpec(plot, { pop, annotate = "forge", genes, recomb, collap
     pos: r.pos, y: nlp(r.p), alpha: 0.7, size: 9 + r.maf * 14, row: r,
     color: r.pos === plot.index.pos ? "#0000FF" : REDS[Math.trunc(r[stat] * 100)],
     label: annotate === "forge" ? r.forge : annotate === "regulome" ? r.regulome : null,
-    hover: [`Variant: ${r.rs} ${r.alleles}`, `P-value: ${r.p}`, `Distance (Mb): ${r4(r.dist / 1e6)}`, `MAF: ${r4(r.maf)}`, `R² (${q}): ${r4(r.r2)}`, `D' (${q}): ${r4(r.dprime)}`,
-      `Correlated Alleles: ${r.match}`, `FORGEdb Score: ${r.forge ?? ""}`, `RegulomeDB Rank: ${r.regulome ?? ""}`, `Functional Class: ${r.func}`].join("\n"),
+    hover: [`Variant: ${r.rs} ${r.alleles}`, `P-value: ${r.p}`, `Distance (Mb): ${r4(r.dist / 1e6)}`, `MAF: ${r4(r.maf)}`,
+      `R² (${q}): ${r4(r.r2)}`, `D' (${q}): ${r4(r.dprime)}`,
+      `Correlated Alleles: ${r.match}`, `FORGEdb Score: ${r.forge ?? ""}`, `RegulomeDB Rank: ${r.regulome ?? ""}`,
+        `Functional Class: ${r.func}`].join("\n"),
   }));
   const pad = 10000;
-  return { title: `P-values and Regional LD for ${q} in ${pop}`, xlo: plot.lo - pad, xhi: plot.hi + pad, yLabel: "-log10 P-value", y0: -0.03, y1: ymax * 1.03,
+  return { title: `P-values and Regional LD for ${q} in ${pop}`, xlo: plot.lo - pad, xhi: plot.hi + pad, yLabel: "-log10 P-value",
+    y0: -0.03, y1: ymax * 1.03,
     points: [...missing, ...points], recomb, recombY: rate => (rate / 100) * ymax, hline: nlp(5e-8), genes, collapsed };
 }

@@ -49,7 +49,8 @@ export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshol
       if (usable(q, v.pos) && usable(g, rec.pos)) pairs.push({ key, g });
     }
     if (pairs.length) { // every pair against the query in one kernel call
-      const counts = await ctx.withPrepared(build, [q, ...pairs.map(x => x.g)], pop, p => ctx.kernel.counts(p, pairs.map(() => 0), pairs.map((_, i) => i + 1)));
+      const counts = await ctx.withPrepared(build, [q, ...pairs.map(x => x.g)], pop, p => ctx.kernel.counts(p, pairs.map(() => 0),
+        pairs.map((_, i) => i + 1)));
       const [a1, b1] = vcfAlleles(q.ref, q.alt);
       pairs.forEach(({ key, g }, i) => {
         const [n, p1, p2, x] = counts[i], [a2, b2] = vcfAlleles(g.ref, g.alt);
@@ -65,7 +66,8 @@ export async function ldtrait(ctx, { snps: text, pop, r2_d = "r2", r2_d_threshol
     for (const rec of recs) {
       const l = ld.get(`rs${rec.snp_id_current ?? ""}`);
       if (!l || !((r2_d === "r2" ? l.r2 : l.dprime) >= r2_d_threshold)) continue;
-      rows.push([label, rec.trait ?? "", rec.pubmedid ?? "", `rs${rec.snp_id_current ?? ""}`, `chr${rec.chromosome}:${rec.pos}`, l.alleles, pyStr(l.r2), pyStr(l.dprime),
+      rows.push([label, rec.trait ?? "", rec.pubmedid ?? "", `rs${rec.snp_id_current ?? ""}`, `chr${rec.chromosome}:${rec.pos}`, l.alleles,
+        pyStr(l.r2), pyStr(l.dprime),
         nz(rec.risk_allele_frequency), rec.or_beta != null && rec.or_beta.length ? castFloat(rec.or_beta) : "NA",
         rec.ci_95_text != null && rec.ci_95_text.length ? rangeString(rec.ci_95_text) : "NA", nz(rec.p_value)].join("\t"));
     }

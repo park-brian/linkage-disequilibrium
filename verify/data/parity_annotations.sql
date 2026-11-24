@@ -43,27 +43,34 @@ COPY (SELECT * FROM recomb_cases(c38, p38)) TO 'annot_src/parity_recomb38.json' 
 -- refGene: getRefGene = find({chrom: "chr"+chr, $or of 4 cases}) = inclusive overlap; order not guaranteed (no sort)
 CREATE OR REPLACE MACRO gene_cases(tbl) AS TABLE
 WITH docs AS (SELECT chrom, txStart::BIGINT s, txEnd::BIGINT e, name, name2, ord::BIGINT ord FROM query_table(tbl)),
-w AS (SELECT chrom, s - 100000 AS lo, s + 400000 AS hi FROM docs WHERE chrom ~ '^chr([0-9]+|X|Y)$' USING SAMPLE reservoir(100 ROWS) REPEATABLE (11))
+w AS (SELECT chrom, s - 100000 AS lo,
+  s + 400000 AS hi FROM docs WHERE chrom ~ '^chr([0-9]+|X|Y)$' USING SAMPLE reservoir(100 ROWS) REPEATABLE (11))
 SELECT w.chrom, w.lo, w.hi,
-  (SELECT list(coalesce(name, '') || '@' || s || '-' || e ORDER BY name, s, e, ord) FROM docs d WHERE d.chrom = w.chrom AND d.s <= w.hi AND d.e >= w.lo) AS transcripts FROM w;
+  (SELECT list(coalesce(name, '') || '@' || s || '-' || e ORDER BY name, s, e,
+    ord) FROM docs d WHERE d.chrom = w.chrom AND d.s <= w.hi AND d.e >= w.lo) AS transcripts FROM w;
 COPY (SELECT * FROM gene_cases('a_refgene37')) TO 'annot_src/parity_genes37.json' (FORMAT json, ARRAY true);
 COPY (SELECT * FROM gene_cases('a_refgene38')) TO 'annot_src/parity_genes38.json' (FORMAT json, ARRAY true);
 
 -- GWAS Catalog: get_window_variants = find({chromosome, position_grchXX: {$gte: max(0, pos-w), $lte: pos+w}}) in index order
 CREATE OR REPLACE MACRO gwas_cases(pp) AS TABLE
-WITH docs AS (SELECT chromosome AS c, try_cast(pp AS BIGINT) AS p, ord::BIGINT ord, pubmedid, snp_id_current, trait FROM a_gwas WHERE try_cast(pp AS BIGINT) IS NOT NULL),
-w AS (SELECT c, greatest(0, p - 500000) AS lo, p + 500000 AS hi FROM docs WHERE c ~ '^([0-9]+|X|Y)$' USING SAMPLE reservoir(100 ROWS) REPEATABLE (13))
-SELECT w.c, w.lo, w.hi, (SELECT list(coalesce(pubmedid, '') || '|' || coalesce(snp_id_current, '') || '|' || coalesce(trait, '') ORDER BY p, ord) FROM docs d WHERE d.c = w.c AND d.p BETWEEN w.lo AND w.hi) AS records FROM w;
+WITH docs AS (SELECT chromosome AS c, try_cast(pp AS BIGINT) AS p, ord::BIGINT ord, pubmedid, snp_id_current,
+  trait FROM a_gwas WHERE try_cast(pp AS BIGINT) IS NOT NULL),
+w AS (SELECT c, greatest(0, p - 500000) AS lo,
+  p + 500000 AS hi FROM docs WHERE c ~ '^([0-9]+|X|Y)$' USING SAMPLE reservoir(100 ROWS) REPEATABLE (13))
+SELECT w.c, w.lo, w.hi, (SELECT list(coalesce(pubmedid, '') || '|' || coalesce(snp_id_current, '') || '|' || coalesce(trait, '') ORDER BY p,
+  ord) FROM docs d WHERE d.c = w.c AND d.p BETWEEN w.lo AND w.hi) AS records FROM w;
 COPY (SELECT * FROM gwas_cases(p37)) TO 'annot_src/parity_gwas37.json' (FORMAT json, ARRAY true);
 COPY (SELECT * FROM gwas_cases(p38)) TO 'annot_src/parity_gwas38.json' (FORMAT json, ARRAY true);
 
 -- GTEx (LDexpress): match {tissue ∈ T, chromosome_grchXX: str(chr), position_grchXX: int}, inner-joined to tissues and genes
 CREATE OR REPLACE MACRO gtex_cases(cc, pp) AS TABLE
-WITH docs AS (SELECT cc AS c, try_cast(pp AS BIGINT) AS p, ord::BIGINT ord, gene_id, tissue, slope, pval_nominal FROM a_gtex WHERE try_cast(pp AS BIGINT) IS NOT NULL),
+WITH docs AS (SELECT cc AS c, try_cast(pp AS BIGINT) AS p, ord::BIGINT ord, gene_id, tissue, slope,
+  pval_nominal FROM a_gtex WHERE try_cast(pp AS BIGINT) IS NOT NULL),
 ts AS (SELECT list(tissueSiteDetailId ORDER BY tissueSiteDetailId) l FROM (SELECT tissueSiteDetailId FROM a_gtex_t USING SAMPLE reservoir(8 ROWS) REPEATABLE (17))),
 q AS (SELECT DISTINCT c, p FROM docs USING SAMPLE reservoir(150 ROWS) REPEATABLE (19))
 SELECT q.c, q.p, (SELECT l FROM ts) AS tissues,
-  (SELECT list(coalesce(d.gene_id, '') || '|' || coalesce(d.tissue, '') || '|' || coalesce(d.slope, '') || '|' || coalesce(d.pval_nominal, '') || '|' || coalesce(g.gene_name_v26, '') || '|' || coalesce(t.tissueSiteDetail, '') ORDER BY d.ord)
+  (SELECT list(coalesce(d.gene_id, '') || '|' || coalesce(d.tissue, '') || '|' || coalesce(d.slope, '') || '|' || coalesce(d.pval_nominal,
+    '') || '|' || coalesce(g.gene_name_v26, '') || '|' || coalesce(t.tissueSiteDetail, '') ORDER BY d.ord)
    FROM docs d JOIN a_gtex_t t ON t.tissueSiteDetailId = d.tissue JOIN a_gtex_g g ON g.gene_id_v26 = d.gene_id
    WHERE d.c = q.c AND d.p = q.p AND list_contains((SELECT l FROM ts), d.tissue)) AS rows FROM q;
 COPY (SELECT * FROM gtex_cases(c37, p37)) TO 'annot_src/parity_gtex37.json' (FORMAT json, ARRAY true);
@@ -71,8 +78,11 @@ COPY (SELECT * FROM gtex_cases(c38, p38)) TO 'annot_src/parity_gtex38.json' (FOR
 
 -- SNPchip: find({chromosome_grchXX: str(chr), position_grchXX: int(pos)}) → every doc's platform list, in dump order
 CREATE OR REPLACE MACRO chip_cases(cc, pp) AS TABLE
-WITH docs AS (SELECT cc AS c, try_cast(pp AS BIGINT) AS p, ord::BIGINT ord, platforms FROM a_snpcol WHERE try_cast(pp AS BIGINT) > 0 AND cc ~ '^([0-9]+|X|Y)$'),
-picks AS ((SELECT c, p FROM docs USING SAMPLE reservoir(1000 ROWS) REPEATABLE (23)) UNION ALL (SELECT c, p + 1 FROM docs USING SAMPLE reservoir(100 ROWS) REPEATABLE (29)))
-SELECT DISTINCT q.c, q.p, (SELECT list(coalesce(platforms, '') ORDER BY ord) FROM docs d WHERE d.c = q.c AND d.p = q.p) AS platforms FROM picks q;
+WITH docs AS (SELECT cc AS c, try_cast(pp AS BIGINT) AS p, ord::BIGINT ord,
+  platforms FROM a_snpcol WHERE try_cast(pp AS BIGINT) > 0 AND cc ~ '^([0-9]+|X|Y)$'),
+picks AS ((SELECT c, p FROM docs USING SAMPLE reservoir(1000 ROWS) REPEATABLE (23)) UNION ALL (SELECT c,
+  p + 1 FROM docs USING SAMPLE reservoir(100 ROWS) REPEATABLE (29)))
+SELECT DISTINCT q.c, q.p, (SELECT list(coalesce(platforms,
+  '') ORDER BY ord) FROM docs d WHERE d.c = q.c AND d.p = q.p) AS platforms FROM picks q;
 COPY (SELECT * FROM chip_cases(c37, p37)) TO 'annot_src/parity_arrays37.json' (FORMAT json, ARRAY true);
 COPY (SELECT * FROM chip_cases(c38, p38)) TO 'annot_src/parity_arrays38.json' (FORMAT json, ARRAY true);

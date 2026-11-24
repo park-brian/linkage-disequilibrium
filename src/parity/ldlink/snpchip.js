@@ -36,7 +36,8 @@ export async function snpchip(ctx, { snps: text, platforms: query, build = "grch
     if (!got.length) none.push(k.label);
     return [k.label, `${k.chrom}:${k.pos}`, got.join(",")].join("\t");
   });
-  if (none.length && none.length !== kept.length) warning += `The following RS number did not have any platforms found: ${none.join(", ")}. `;
+  if (none.length && none.length !== kept.length)
+    warning += `The following RS number did not have any platforms found: ${none.join(", ")}. `;
   else if (none.length === kept.length) warning += "Entries from the input variant list were not found in any of the selected arrays. ";
   const out = [["RS Number", `Position (${TITLE[build]})`, "Arrays"].join("\t"), ...rows].join("\n") + "\n";
   return { text: out + (warning !== "" ? `\nWARNING: ${warning}\n\n` : "") };

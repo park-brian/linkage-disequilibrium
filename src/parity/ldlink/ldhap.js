@@ -24,7 +24,8 @@ export async function ldhap(ctx, { snps: lines, pop, build = "grch37" }) {
   const diff = kept.findIndex(k => k.v.chrom !== kept[0].v.chrom); // check_same_chromosome: reported after parse_vcf
   if (diff > 0) o.error = `${sameChromError(kept, diff)} ${W()}`;
   const ps = kept.map(k => k.v.pos), range = Math.max(...ps) - Math.min(...ps);
-  if (range > 1e6) warnAdd(`Switch rate errors become more common as distance between query variants increases (Query range = ${range} bp). `);
+  if (range > 1e6)
+    warnAdd(`Switch rate errors become more common as distance between query variants increases (Query range = ${range} bp). `);
   // parse_vcf: tabix on the first SNP's chromosome; entries keyed chr:pos_label (dups collapse), sorted by position
   const chrom = kept[0].v.chrom, found = kept.filter(k => k.v.chrom === chrom && k.v.selected?.row);
   const missing = kept.filter(k => !found.includes(k)).map(k => k.label);
@@ -38,7 +39,8 @@ export async function ldhap(ctx, { snps: lines, pop, build = "grch37" }) {
   const h1 = idx.map(() => []), h2 = idx.map(() => []), snps = [];
   for (const { label, v } of entries) {
     const row = await ctx.row(build, chrom, v.selected.row);
-    if (row.pos !== v.pos) warnAdd(`Genomic position (${row.pos}) in 1000G data does not match dbSNP155 (${TITLE[build]}) search coordinates for query variant ${label}. `);
+    if (row.pos !== v.pos)
+      warnAdd(`Genomic position (${row.pos}) in 1000G data does not match dbSNP155 (${TITLE[build]}) search coordinates for query variant ${label}. `);
     if (v.selected.status === "not_biallelic") {
       if (entries.length > 1) { warnAdd(`${label} variant is not a biallelic`); continue; }
       return fail(`${o.error ?? ""}${label} variant is not a biallelic`);
@@ -52,7 +54,8 @@ export async function ldhap(ctx, { snps: lines, pop, build = "grch37" }) {
       for (const b of y === null ? [x] : [x, y]) b ? c1++ : c0++;
     });
     const f0 = pyRound(c0 / (c0 + c1), 4), f1 = pyRound(c1 / (c0 + c1), 4), s3 = f => pyStr(pyRound(f, 3));
-    snps.push({ Alleles: f0 >= f1 ? `${a1}=${s3(f0)}, ${a2}=${s3(f1)}` : `${a2}=${s3(f1)}, ${a1}=${s3(f0)}`, Coord: `chr${chrom}:${v.pos}`, RS: label });
+    snps.push({ Alleles: f0 >= f1 ? `${a1}=${s3(f0)}, ${a2}=${s3(f1)}` : `${a2}=${s3(f1)}, ${a1}=${s3(f0)}`, Coord: `chr${chrom}:${v.pos}`,
+      RS: label });
   }
   const counts = new Map();
   for (const h of [h1, h2].flatMap(x => x)) { const k = h.join("_"); counts.set(k, (counts.get(k) ?? 0) + 1); }
@@ -60,7 +63,8 @@ export async function ldhap(ctx, { snps: lines, pop, build = "grch37" }) {
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
   const haps = [...counts].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).sort((a, b) => b[1] - a[1]);
   const out = {
-    haplotypes: Object.fromEntries(haps.map(([k, n], i) => [`haplotype_${pad(i + 1, haps.length)}`, { Count: n, Frequency: pyRound(n / total, 4), Haplotype: k }])),
+    haplotypes: Object.fromEntries(haps.map(([k, n], i) => [`haplotype_${pad(i + 1, haps.length)}`, { Count: n,
+      Frequency: pyRound(n / total, 4), Haplotype: k }])),
     snps: Object.fromEntries(snps.map((s, i) => [`snp_${pad(i + 1, snps.length)}`, s])),
     ...(o.warning !== undefined ? { warning: o.warning } : {}),
   };
@@ -73,6 +77,7 @@ export function ldhapText(out, build) {
     const x = out.snps[k], [a, b] = x.Alleles.trim().split(",");
     return [x.RS, x.Coord, `${a}${"0".repeat(Math.max(0, 7 - a.length))},${b}${"0".repeat(Math.max(0, 8 - b.length))}`].join("\t");
   })].join("\n") + "\n";
-  const h = ["Haplotype\tCount\tFrequency", ...Object.keys(out.haplotypes).sort().map(k => { const x = out.haplotypes[k]; return [x.Haplotype, x.Count, pyStr(x.Frequency)].join("\t"); })].join("\n") + "\n";
+  const h = ["Haplotype\tCount\tFrequency", ...Object.keys(out.haplotypes).sort().map(k => { const x = out.haplotypes[k];
+    return [x.Haplotype, x.Count, pyStr(x.Frequency)].join("\t"); })].join("\n") + "\n";
   return `${s}\n${"#".repeat(85)}\n\n${h}`;
 }

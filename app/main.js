@@ -43,4 +43,5 @@ const route = () => {
 };
 window.addEventListener("hashchange", route);
 route();
-status("loading core…"); context().catch(err => { console.error(err); status("failed to load the release"); show([notice(String(err), true)]); });
+status("loading core…"); context().catch(err => { console.error(err); status("failed to load the release"); show([notice(String(err),
+  true)]); });

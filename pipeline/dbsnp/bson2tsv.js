@@ -27,7 +27,8 @@ function parseDoc(b, start, end) {
     switch (t) {
       case 2: { const l = b.readInt32LE(i); rec[k] = dec.decode(b.subarray(i + 4, i + 3 + l)); i += 4 + l; break; }
       case 7: i += 12; break;
-      case 1: case 9: case 18: rec[k] = t === 1 ? b.readDoubleLE(i) : Number(b.readBigInt64LE(i)); (stats.nonString[k] ??= 0, stats.nonString[k]++); i += 8; break;
+      case 1: case 9: case 18: rec[k] = t === 1 ? b.readDoubleLE(i) : Number(b.readBigInt64LE(i)); (stats.nonString[k] ??= 0,
+        stats.nonString[k]++); i += 8; break;
       case 16: rec[k] = b.readInt32LE(i); (stats.nonString[k] ??= 0, stats.nonString[k]++); i += 4; break;
       case 8: rec[k] = !!b[i]; i += 1; break;
       case 10: rec[k] = null; break;
@@ -67,5 +68,6 @@ gunzip.on("end", () => {
   // LDlink queries dbsnp with strings (find_one({"id": str}), position: str(pos)): a non-string value in these fields
   // would be unreachable in Mongo but resolvable here, so fail instead of silently diverging (ROADMAP B5)
   const bad = ["id", "ref_id", "chromosome", "position_grch37", "position_grch38"].filter(f => stats.nonString[f]);
-  if (bad.length) { process.stderr.write(`non-string values in queried fields: ${bad.map(f => `${f}=${stats.nonString[f]}`).join(", ")}\n`); process.exitCode = 1; }
+  if (bad.length) { process.stderr.write(`non-string values in queried fields: ${bad.map(f => `${f}=${stats.nonString[f]}`).join(", ")}\n`);
+    process.exitCode = 1; }
 });

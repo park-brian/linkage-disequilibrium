@@ -3,7 +3,8 @@
 import { ldassoc } from "../../../src/parity/ldlink/ldassoc.js";
 import { drive, example } from "../lib.js";
 
-const FILE = { grch37: "prostate_example_grch37.txt", grch38: "prostate_example_grch38.txt", grch38_high_coverage: "prostate_example_grch38.txt" };
+const FILE = { grch37: "prostate_example_grch37.txt", grch38: "prostate_example_grch38.txt",
+  grch38_high_coverage: "prostate_example_grch38.txt" };
 export function cases() {
   const cs = [], add = (name, c) => cs.push({ name, columns: ["chr", "pos", "p"], build: "grch37", pop: "EUR", ...c });
   for (const build of ["grch37", "grch38", "grch38_high_coverage"]) {
@@ -13,7 +14,8 @@ export function cases() {
   }
   add("variant rs6983267 ±500 kb ALL", { region: "variant", origin: "rs6983267", window: 500000, pop: "ALL" });
   add("gene MYC with origin rs6983267", { region: "gene", geneName: "MYC", window: 100000, origin: "rs6983267" });
-  add("region with origin, CEU+YRI", { region: "region", start: "chr8:128400000", end: "chr8:128600000", origin: "rs7837688", pop: "CEU+YRI" });
+  add("region with origin, CEU+YRI", { region: "region", start: "chr8:128400000", end: "chr8:128600000", origin: "rs7837688",
+    pop: "CEU+YRI" });
   add("region chrX", { region: "region", start: "chrX:2700000", end: "chrX:3500000" });
   add("region chr22 (no association rows)", { region: "region", start: "chr22:30000000", end: "chr22:30100000" });
   add("region > 3 Mb", { region: "region", start: "chr8:120000000", end: "chr8:124000000" });
@@ -27,8 +29,10 @@ export function cases() {
 }
 // one shape for both sides: the error wins over text and warning (the JSON has both when LDlink fails late)
 const norm = x => ({ text: x.text ?? null, error: x.error ?? null, warning: x.error ? null : x.warning ?? null });
-export const ldlink = async cs => drive("ldassoc", cs.map(({ geneName, ...c }) => ({ module: "ldassoc", file: FILE[c.build], ...c, name: geneName })))
-  .map(r => norm(r.exception ? { error: "Internal server error. Please contact LDlink admin." } : { text: r.text ?? undefined, error: r.json.error, warning: r.json.warning }));
+export const ldlink = async cs => drive("ldassoc", cs.map(({ geneName, ...c }) => ({ module: "ldassoc", file: FILE[c.build], ...c,
+  name: geneName })))
+  .map(r => norm(r.exception ? { error: "Internal server error. Please contact LDlink admin." } : { text: r.text ?? undefined,
+    error: r.json.error, warning: r.json.warning }));
 export async function ours(ctx, { geneName, ...c }) {
   return norm(await ldassoc(ctx, { ...c, name: geneName, text: await example(ctx, FILE[c.build]) }));
 }

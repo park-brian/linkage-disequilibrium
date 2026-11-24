@@ -6,7 +6,8 @@ export function cases() {
   const cs = [];
   for (const c of matrixCases()) {
     const ins = c.inputs.map(clean);
-    for (let i = 0; i < ins.length; i += 10) cs.push({ name: `${c.name} [${i}..]`, build: c.build, pop: c.pop, snps: ins.slice(i, i + 10).join("\n") });
+    for (let i = 0; i < ins.length; i += 10) cs.push({ name: `${c.name} [${i}..]`, build: c.build, pop: c.pop, snps: ins.slice(i,
+      i + 10).join("\n") });
   }
   const edge = (name, snps, extra = {}) => cs.push({ name, build: "grch37", pop: "CEU", snps: snps.join("\n"), ...extra });
   const known = ["rs12465506", "rs3", "rs7837688", "rs4242382", "rs6983267", "rs10505477", "rs1447295"];

@@ -82,7 +82,8 @@ export async function candidateRows(files, positions, { columns, gap = 10_000 } 
 
 
 /** the columns a module needs from a genotype row (vcf_id: files built with it, GRCh37 from release v4) */
-const ROW_COLS = ["pos", "vcf_order", "rsid", "rsid_source", "rsid_pos_delta", "ref", "alt", "multiallelic_source", "haps", "missing", "male_haploid"];
+const ROW_COLS = ["pos", "vcf_order", "rsid", "rsid_source", "rsid_pos_delta", "ref", "alt", "multiallelic_source", "haps", "missing",
+  "male_haploid"];
 const TIERS = ["common", "low", "rare"];
 
 /** Genotype rows and samples over a source's file(rel) → { file, metadata } (e.g. planner.file). */

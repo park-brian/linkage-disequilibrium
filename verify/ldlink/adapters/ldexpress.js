@@ -8,7 +8,8 @@ export async function cases(ctx) {
   const cs = [];
   for (const c of matrixCases()) {
     const ins = c.inputs.map(clean);
-    for (let i = 0; i < ins.length; i += 10) cs.push({ name: `${c.name} [${i}..]`, build: c.build, pop: c.pop, snps: ins.slice(i, i + 10).join("\n") });
+    for (let i = 0; i < ins.length; i += 10) cs.push({ name: `${c.name} [${i}..]`, build: c.build, pop: c.pop, snps: ins.slice(i,
+      i + 10).join("\n") });
   }
   const edge = (name, snps, extra = {}) => cs.push({ name, build: "grch37", pop: "CEU", snps: snps.join("\n"), ...extra });
   const known = ["rs12465506", "rs3", "rs7837688", "rs4242382", "rs6983267"];
@@ -26,6 +27,7 @@ export async function cases(ctx) {
   edge("bad window", ["rs3"], { window: 2000000 });
   return cs.map(c => ({ r2_d: "r2", r2_d_threshold: 0.1, p_threshold: 0.1, window: 500000, tissues: TISSUES, ...c }));
 }
-export const ldlink = cs => Promise.all(cs.map(async c => asText(await post("ldexpress", { snps: c.snps, pop: c.pop, tissues: c.tissues, r2_d: c.r2_d,
+export const ldlink = cs => Promise.all(cs.map(async c => asText(await post("ldexpress", { snps: c.snps, pop: c.pop, tissues: c.tissues,
+  r2_d: c.r2_d,
   r2_d_threshold: String(c.r2_d_threshold), p_threshold: String(c.p_threshold), window: String(c.window), genome_build: c.build }))));
 export const ours = (ctx, c) => ldexpress(ctx, c);

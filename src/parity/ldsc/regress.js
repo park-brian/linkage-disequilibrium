@@ -31,7 +31,8 @@ function solve(A, b) { // A: p x p (array of rows), b: p
 }
 // np.floor(np.linspace(0, N, nBlocks + 1)): linspace computes i * (N / nBlocks) in floating point (not exactly) and sets
 // the last point to N, so a boundary can land just below an integer (e.g. N = 228: blocks 50, 100, 150 shift by 1)
-export const getSeparators = (N, nBlocks) => { const step = N / nBlocks; return Array.from({ length: nBlocks + 1 }, (_, i) => (i === nBlocks ? N : Math.floor(i * step))); };
+export const getSeparators = (N, nBlocks) => { const step = N / nBlocks; return Array.from({ length: nBlocks + 1 }, (_,
+  i) => (i === nBlocks ? N : Math.floor(i * step))); };
 
 /** x: array of p Float64Arrays (columns), y: Float64Array */
 function lstsqJackknifeFast(x, y, nBlocks, separators) {
@@ -41,14 +42,17 @@ function lstsqJackknifeFast(x, y, nBlocks, separators) {
   const xty = [], xtx = [];
   for (let i = 0; i < nb; i++) {
     const a = new Array(p).fill(0), B = Array.from({ length: p }, () => new Array(p).fill(0));
-    for (let k = s[i]; k < s[i + 1]; k++) for (let u = 0; u < p; u++) { a[u] += x[u][k] * y[k]; for (let v = 0; v < p; v++) B[u][v] += x[u][k] * x[v][k]; }
+    for (let k = s[i]; k < s[i + 1]; k++) for (let u = 0; u < p; u++) { a[u] += x[u][k] * y[k]; for (let v = 0; v < p;
+      v++) B[u][v] += x[u][k] * x[v][k]; }
     xty.push(a); xtx.push(B);
   }
   const xtyTot = new Array(p).fill(0), xtxTot = Array.from({ length: p }, () => new Array(p).fill(0));
-  for (let i = 0; i < nb; i++) for (let u = 0; u < p; u++) { xtyTot[u] += xty[i][u]; for (let v = 0; v < p; v++) xtxTot[u][v] += xtx[i][u][v]; }
+  for (let i = 0; i < nb; i++) for (let u = 0; u < p; u++) { xtyTot[u] += xty[i][u]; for (let v = 0; v < p;
+    v++) xtxTot[u][v] += xtx[i][u][v]; }
   const est = solve(xtxTot, xtyTot);
   const del = [];
-  for (let j = 0; j < nb; j++) del.push(solve(xtxTot.map((r, u) => r.map((v, w) => v - xtx[j][u][w])), xtyTot.map((v, u) => v - xty[j][u])));
+  for (let j = 0; j < nb; j++) del.push(solve(xtxTot.map((r, u) => r.map((v, w) => v - xtx[j][u][w])), xtyTot.map((v,
+    u) => v - xty[j][u])));
   return { est, delete_values: del, separators: s, ...jknife(pseudovalues(del, est)) };
 }
 const pseudovalues = (del, est) => del.map(d => d.map((v, u) => del.length * est[u] - (del.length - 1) * v));
@@ -56,7 +60,8 @@ function jknife(pv) {
   const nb = pv.length, p = pv[0].length;
   const m = Array.from({ length: p }, (_, u) => mean(pv.map(r => r[u])));
   const cov = Array.from({ length: p }, () => new Array(p).fill(0));
-  for (let u = 0; u < p; u++) for (let v = 0; v < p; v++) { let s = 0; for (const r of pv) s += (r[u] - m[u]) * (r[v] - m[v]); cov[u][v] = s / (nb - 1) / nb; }
+  for (let u = 0; u < p; u++) for (let v = 0; v < p; v++) { let s = 0; for (const r of pv) s += (r[u] - m[u]) * (r[v] - m[v]);
+    cov[u][v] = s / (nb - 1) / nb; }
   return { jknife_est: m, jknife_cov: cov, jknife_var: cov.map((r, u) => r[u]), jknife_se: cov.map((r, u) => Math.sqrt(r[u])) };
 }
 function weightCols(x, w) { // IRWLS._weight: w normalized to sum 1
@@ -65,7 +70,8 @@ function weightCols(x, w) { // IRWLS._weight: w normalized to sum 1
 }
 function wls(x, y, w) { // np.linalg.lstsq on weighted data; full-rank p<=2 → normal equations
   const xw = weightCols(x, w), yw = weightCols([y], w)[0], p = x.length;
-  const A = Array.from({ length: p }, (_, u) => Array.from({ length: p }, (_, v) => { let s = 0; for (let k = 0; k < y.length; k++) s += xw[u][k] * xw[v][k]; return s; }));
+  const A = Array.from({ length: p }, (_, u) => Array.from({ length: p }, (_, v) => { let s = 0; for (let k = 0; k < y.length;
+    k++) s += xw[u][k] * xw[v][k]; return s; }));
   const b = Array.from({ length: p }, (_, u) => { let s = 0; for (let k = 0; k < y.length; k++) s += xw[u][k] * yw[k]; return s; });
   return solve(A, b);
 }
@@ -78,7 +84,8 @@ function irwls(x, y, updateFunc, nBlocks, w, separators) {
 // ---------- regression weights ----------
 function hsqWeights(ld, wLd, N, M, hsq, intercept = 1) {
   hsq = Math.min(Math.max(hsq, 0), 1);
-  return ld.map((l, k) => { const L = Math.max(l, 1), W = Math.max(wLd[k], 1), c = (hsq * N[k]) / M; return (1 / (2 * (intercept + c * L) ** 2)) * (1 / W); });
+  return ld.map((l, k) => { const L = Math.max(l, 1), W = Math.max(wLd[k], 1), c = (hsq * N[k]) / M;
+    return (1 / (2 * (intercept + c * L) ** 2)) * (1 / W); });
 }
 function gencovWeights(ld, wLd, N1, N2, M, h1, h2, rho, igc = 0, ih1 = 1, ih2 = 1) {
   h1 = Math.min(Math.max(h1, 0), 1); h2 = Math.min(Math.max(h2, 0), 1); rho = Math.max(Math.min(rho, 1), -1);
@@ -138,11 +145,13 @@ export function hsq(chisq, ld, wLd, N, M, { nBlocks = 200, twostep = 30 } = {}) 
   const step1 = twostep != null ? Array.from(chisq, v => v < twostep) : null;
   const r = ldScoreRegression("hsq", chisq, ld, wLd, N, M, nBlocks, step1);
   r.mean_chisq = mean(chisq); r.lambda_gc = median(chisq) / 0.4549;
-  if (r.mean_chisq > 1) { r.ratio = (r.intercept - 1) / (r.mean_chisq - 1); r.ratio_se = r.intercept_se / (r.mean_chisq - 1); } else r.ratio = r.ratio_se = "NA";
+  if (r.mean_chisq > 1) { r.ratio = (r.intercept - 1) / (r.mean_chisq - 1); r.ratio_se = r.intercept_se / (r.mean_chisq - 1);
+    } else r.ratio = r.ratio_se = "NA";
   return r;
 }
 export function rg(z1, z2, ld, wLd, N1, N2, M, { nBlocks = 200, twostep = 30 } = {}) {
-  const h1 = hsq(z1.map(v => v * v), ld, wLd, N1, M, { nBlocks, twostep }), h2 = hsq(z2.map(v => v * v), ld, wLd, N2, M, { nBlocks, twostep });
+  const h1 = hsq(z1.map(v => v * v), ld, wLd, N1, M, { nBlocks, twostep }), h2 = hsq(z2.map(v => v * v), ld, wLd, N2, M, { nBlocks,
+    twostep });
   const y = z1.map((v, k) => v * z2[k]);
   const step1 = twostep != null ? Array.from(z1, (v, k) => v * v < twostep && z2[k] * z2[k] < twostep) : null;
   const gc = ldScoreRegression("gencov", y, ld, wLd, N1.map((v, k) => Math.sqrt(v * N2[k])), M, nBlocks, step1,

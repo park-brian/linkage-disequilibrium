@@ -46,17 +46,22 @@ FROM d WHERE rsid IS NOT NULL;
 
 -- sorted tables (rsID index: partition = rsid >> 26, 67,108,864 ids per file; position index: per chromosome)
 CREATE OR REPLACE TABLE krs AS SELECT rsid >> 26 AS part, rsid, ref_rsid, chrom, key37, key38, ord FROM k ORDER BY rsid, ord;
-CREATE OR REPLACE TABLE kp37 AS SELECT chrom, key37 AS key, rsid, is_ref, type, function, ord FROM k WHERE key37 IS NOT NULL ORDER BY key37, ord;
-CREATE OR REPLACE TABLE kp38 AS SELECT chrom, key38 AS key, rsid, is_ref, type, function, ord FROM k WHERE key38 IS NOT NULL ORDER BY key38, ord;
+CREATE OR REPLACE TABLE kp37 AS SELECT chrom, key37 AS key, rsid, is_ref, type, function, ord FROM k WHERE key37 IS NOT NULL ORDER BY key37,
+  ord;
+CREATE OR REPLACE TABLE kp38 AS SELECT chrom, key38 AS key, rsid, is_ref, type, function, ord FROM k WHERE key38 IS NOT NULL ORDER BY key38,
+  ord;
 
 @for p in 0..31
-COPY (SELECT rsid, ref_rsid, chrom, key37, key38, ord FROM krs WHERE part = {p} ORDER BY rsid, ord) TO 'dbsnp_dump/sorted_rsid/part={p}.parquet' (FORMAT parquet, COMPRESSION 'zstd');
+COPY (SELECT rsid, ref_rsid, chrom, key37, key38, ord FROM krs WHERE part = {p} ORDER BY rsid,
+  ord) TO 'dbsnp_dump/sorted_rsid/part={p}.parquet' (FORMAT parquet, COMPRESSION 'zstd');
 @end
 @for c in 1..25
-COPY (SELECT key, rsid, is_ref, type, function, ord FROM kp37 WHERE chrom = {c} ORDER BY key, ord) TO 'dbsnp_dump/sorted_pos37/chrom={c}.parquet' (FORMAT parquet, COMPRESSION 'zstd');
+COPY (SELECT key, rsid, is_ref, type, function, ord FROM kp37 WHERE chrom = {c} ORDER BY key,
+  ord) TO 'dbsnp_dump/sorted_pos37/chrom={c}.parquet' (FORMAT parquet, COMPRESSION 'zstd');
 @end
 @for c in 1..25
-COPY (SELECT key, rsid, is_ref, type, function, ord FROM kp38 WHERE chrom = {c} ORDER BY key, ord) TO 'dbsnp_dump/sorted_pos38/chrom={c}.parquet' (FORMAT parquet, COMPRESSION 'zstd');
+COPY (SELECT key, rsid, is_ref, type, function, ord FROM kp38 WHERE chrom = {c} ORDER BY key,
+  ord) TO 'dbsnp_dump/sorted_pos38/chrom={c}.parquet' (FORMAT parquet, COMPRESSION 'zstd');
 @end
 
 -- summary for the docs

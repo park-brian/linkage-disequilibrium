@@ -13,7 +13,8 @@ mkdir -p "$L"; cd "$LD_DATA"; [ "$WHAT" = ldlink ] || : > "$L/summary.txt"
 step() { # name cmd...
   local name=$1; shift; local t0=$(date +%s)
   "$@" > "$L/$name.log" 2>&1; local s=$?; [ $s -eq 0 ] || FAILED="$FAILED $name"
-  printf '%-18s exit=%s %5ss  %s\n' "$name" "$s" "$(( $(date +%s) - t0 ))" "$(tail -1 "$L/$name.log" | cut -c1-200)" | tee -a "$L/summary.txt"
+  printf '%-18s exit=%s %5ss  %s\n' "$name" "$s" "$(( $(date +%s) - t0 ))" "$(tail -1 "$L/$name.log" | cut -c1-200)" |
+    tee -a "$L/summary.txt"
 }
 vcf() { echo "$G/ALL.chr$1.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz"; }
 if [ "$WHAT" != ldlink ]; then
@@ -24,12 +25,15 @@ if [ "$WHAT" != ldlink ]; then
   step verify_annot   node "$V/data/annotations.js" "$REL"
   step kernel_chr1    node "$V/data/kernel.js" "$REL/genotypes/grch37/chr1" "$(vcf 1)" "$(vcf 1).tbi" 1 207000000 "verify/kernel_chr1.json"
   step kernel_chrX    node "$V/data/kernel.js" "$REL/genotypes/grch37/chrX" "$(vcf X)" "$(vcf X).tbi" X 100100000 "verify/kernel_chrX.json"
-  step verify_select  node "$V/data/select.js" "$(vcf 22)" "$REL/genotypes/grch37/chr22" phaseB/ncbi/37_chr22.parquet "verify/select.json" 20000
+  step verify_select  node "$V/data/select.js" "$(vcf 22)" "$REL/genotypes/grch37/chr22" phaseB/ncbi/37_chr22.parquet \
+    "verify/select.json" 20000
   step ldsc_munge     node "$V/ldsc/munge.js" ldscore_src/ldscore ldsc_runs/h2rg "$REL/ldscore"
   step ldsc_regress   node "$V/ldsc/regress.js" ldsc_runs/h2rg "$REL/ldscore"
 fi
 if [ "$WHAT" != data ]; then
-  for m in ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc ldherit ldcorrelation ldscore; do step "$m" node "$V/ldlink/compare.js" "$m"; done
+  for m in ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc ldherit ldcorrelation ldscore; do
+    step "$m" node "$V/ldlink/compare.js" "$m"
+  done
 fi
 echo "done: $L/summary.txt"
 if [ -n "${FAILED:-}" ]; then echo "FAILED:$FAILED"; exit 1; fi

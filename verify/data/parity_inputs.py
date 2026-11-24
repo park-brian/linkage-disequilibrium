@@ -5,7 +5,8 @@
 #                       → first doc / first id==ref_id doc, "Multiple rsIDs (...) map to genomic coordinates <snp>"
 #   get_coords          rsid.strip("rs"); str(int(rsid)); find_one({"id"})  (first doc in dump order)
 # and records LDmatrix's extra gate (LDmatrix.py:69-72: len > 2, starts with rs/chr, last char a digit) separately,
-# because it is module logic, not resolver logic. Dump lookups go through DuckDB on dbsnp_dump/work.duckdb (relative to LD_DATA: verify/data/parity.js runs it there)
+# because it is module logic, not resolver logic. Dump lookups go through DuckDB on dbsnp_dump/work.duckdb (relative to LD_DATA:
+# verify/data/parity.js runs it there)
 # (table d: ord = dump order, Mongo semantics as in parity_expected.sql). Stdlib only; run with python -I.
 # usage (cwd = LD_DATA): python -I verify/data/parity_inputs.py <inputs.json> <build grch37|grch38> <out.json>
 import json
@@ -119,7 +120,8 @@ if rs_keys:
 
 out = []
 for raw, t, r in zip(raw_inputs, first_tokens, replaced):
-    e = {"input": raw, "token": t, "rsid": None, "ref_rsid": None, "chrom": None, "pos": None, "found": False, "warning": None, "ldmatrix_gate": False}
+    e = {"input": raw, "token": t, "rsid": None, "ref_rsid": None, "chrom": None, "pos": None, "found": False, "warning": None,
+      "ldmatrix_gate": False}
     if t is not None:
         var, warning = r
         e["warning"] = warning
@@ -127,7 +129,8 @@ for raw, t, r in zip(raw_inputs, first_tokens, replaced):
         k = rsid_key(var) if var[0:2] == "rs" else None
         doc = rs_docs.get(k) if k is not None else None
         if doc is not None:
-            e.update(found=True, rsid="rs" + doc["id"], ref_rsid=None if doc["ref_id"] == doc["id"] else "rs" + doc["ref_id"], chrom=doc["chromosome"],
+            e.update(found=True, rsid="rs" + doc["id"], ref_rsid=None if doc["ref_id"] == doc["id"] else "rs" + doc["ref_id"],
+              chrom=doc["chromosome"],
                      pos=None if doc["pos"] == "NA" else int(doc["pos"]))
     out.append(e)
 json.dump(out, open(out_path, "w", encoding="utf8"), indent=1)

@@ -49,7 +49,8 @@ export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_th
     if (v.selected.status === "not_biallelic") {
       const alts = [row.alt];
       for (let k = row.vcf_order - 1; ; k--) { // the record's other ALTs: the split rows just before, same pos and REF
-        const w = (await ctx.windowRows(build, chrom, row.pos, row.pos)).find(x => x.vcf_order === k && x.pos === row.pos && x.ref === row.ref && x.multiallelic_source);
+        const w = (await ctx.windowRows(build, chrom, row.pos,
+          row.pos)).find(x => x.vcf_order === k && x.pos === row.pos && x.ref === row.ref && x.multiallelic_source);
         if (!w) break; alts.unshift(w.alt);
       }
       set(label, [`chr${chrom}:${v.pos}`, `${row.ref}=NA, ${alts.join(",")}=NA`, "Variant is not biallelic, variant removed."]);
@@ -66,14 +67,17 @@ export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_th
     const f0 = z / (z + n1), f1 = n1 / (z + n1), maf = Math.min(f0, f1), [a0, a1] = vcfAlleles(row.ref, row.alt);
     const d = [`chr${chrom}:${v.pos}`, `${a0}=${pyStr(pyRound(f0, 3))}, ${a1}=${pyStr(pyRound(f1, 3))}`];
     set(label, d);
-    if (maf_threshold <= maf) { rows.push(row); order.push(label); } else d.push(`Variant MAF is ${pyStr(pyRound(maf, 4))}, variant removed.`);
+    if (maf_threshold <= maf) { rows.push(row); order.push(label); } else d.push(`Variant MAF is ${pyStr(pyRound(maf,
+      4))}, variant removed.`);
   }
-  for (const k of kept) if (!order.includes(k.label) && !details.has(k.label)) set(k.label, [`chr${chrom}:${k.v.pos}-${k.v.pos}`, "NA", "Variant not in 1000G data, variant removed."]);
+  for (const k of kept) if (!order.includes(k.label) && !details.has(k.label)) set(k.label, [`chr${chrom}:${k.v.pos}-${k.v.pos}`, "NA",
+    "Variant not in 1000G data, variant removed."]);
   // greedy pruning; pairs whose rows differ in haploid-ness use the set without haploid males
   const alive = rows.map(() => true), s2 = new Float64Array(2);
   const failed = await ctx.withPrepared(build, rows, pop, p => { // synchronous: both prepared sets live until the reset
     const noMales = [...haploidMales].some(i => panel.has(samples[i])) && rows.some(r => r.male_haploid) && rows.some(r => !r.male_haploid)
-      ? ctx.kernel.prepare(rows, { samples: samples.length, haploidMales, hapIndexes: idx.filter(i => !haploidMales.has(i)).flatMap(i => [2 * i, 2 * i + 1]) }) : null;
+      ? ctx.kernel.prepare(rows, { samples: samples.length, haploidMales,
+        hapIndexes: idx.filter(i => !haploidMales.has(i)).flatMap(i => [2 * i, 2 * i + 1]) }) : null;
     for (let i = 0; i < rows.length; i++) {
       if (!alive[i]) continue;
       details.get(order[i]).push("Variant kept.");
@@ -82,7 +86,8 @@ export async function snpclip(ctx, { snps: text, pop, r2_threshold = 0.1, maf_th
       const cA = ctx.kernel.counts(p, J.map(() => i), J), cB = noMales ? ctx.kernel.counts(noMales, J.map(() => i), J) : null;
       for (const [k, j] of J.entries()) {
         if (!stats(...(mixed(j) ? cB[k] : cA[k]), s2)) return true; // r2 None: TypeError in LDlink
-        if (r2_threshold <= s2[0]) { alive[j] = false; details.get(order[j]).push(`Variant in LD with ${order[i]} (R2=${pyStr(pyRound(s2[0], 4))}), variant removed.`); }
+        if (r2_threshold <= s2[0]) { alive[j] = false; details.get(order[j]).push(`Variant in LD with ${order[i]} (R2=${pyStr(pyRound(s2[0],
+          4))}), variant removed.`); }
       }
     }
     return false;

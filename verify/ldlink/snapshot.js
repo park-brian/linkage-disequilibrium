@@ -21,7 +21,8 @@ for (const m of pick.length ? pick : MODULES) {
   const A = await import(`./adapters/${m}.js`), t0 = performance.now(), cases = await A.cases(ctx), got = [];
   for (const c of cases) got.push([c.name, hash(await A.ours(ctx, c))]);
   const want = saved[m] ?? [], wantBy = new Map(want), differ = got.filter(([n, h]) => wantBy.get(n) !== h);
-  totals[m] = { cases: got.length, same: got.length - differ.length, differ: differ.length, seconds: Math.round((performance.now() - t0) / 1000) };
+  totals[m] = { cases: got.length, same: got.length - differ.length, differ: differ.length,
+    seconds: Math.round((performance.now() - t0) / 1000) };
   for (const [n] of differ.slice(0, 5)) console.log(JSON.stringify({ module: m, case: n, saved: wantBy.get(n) ?? null }));
   console.log(JSON.stringify({ module: m, ...totals[m] }));
   if (update) out[m] = got;

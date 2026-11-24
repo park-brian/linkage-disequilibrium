@@ -15,10 +15,12 @@ const MOUNTS = [ // URL prefix → directory (first match wins)
   ...(flag("--no-release") ? [] : [["/release/", resolve(release)]]),
   ["/", here],
 ];
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Range", "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Range",
+  "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
   "Timing-Allow-Origin": "*" }; // lets the page measure cross-origin bytes (bench/app_requests.js)
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
-  ".json": "application/json", ".wasm": "application/wasm", ".txt": "text/plain; charset=utf-8", ".parquet": "application/octet-stream", ".svg": "image/svg+xml" };
+  ".json": "application/json", ".wasm": "application/wasm", ".txt": "text/plain; charset=utf-8", ".parquet": "application/octet-stream",
+    ".svg": "image/svg+xml" };
 
 // a read error (file removed, permissions) closes the response instead of crashing the server
 const send = (stream, res) => stream.on("error", () => res.destroy()).pipe(res);
@@ -26,17 +28,22 @@ const send = (stream, res) => stream.on("error", () => res.destroy()).pipe(res);
 createServer((req, res) => {
   if (cors && req.method === "OPTIONS") { res.writeHead(204, CORS).end(); return; }
   let url;
-  try { url = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400, cors ? CORS : {}).end("bad URL"); return; }
+  try { url = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400, cors ? CORS : {}).end("bad URL");
+    return; }
   const [prefix, dir] = MOUNTS.find(([p]) => url.startsWith(p));
   let path = normalize(join(dir, url.slice(prefix.length)));
   if (!path.startsWith(dir + sep) && path !== dir) { res.writeHead(403, cors ? CORS : {}).end(); return; } // no escaping the mount
   let st;
-  try { st = statSync(path); if (st.isDirectory()) { path = join(path, "index.html"); st = statSync(path); } } catch { res.writeHead(404, cors ? CORS : {}).end("not found"); return; }
-  const headers = { "Content-Type": TYPES[extname(path)] ?? "application/octet-stream", "Accept-Ranges": "bytes", "Cache-Control": "no-cache", ...(cors ? CORS : {}) };
+  try { st = statSync(path); if (st.isDirectory()) { path = join(path, "index.html"); st = statSync(path); } } catch { res.writeHead(404,
+    cors ? CORS : {}).end("not found"); return; }
+  const headers = { "Content-Type": TYPES[extname(path)] ?? "application/octet-stream", "Accept-Ranges": "bytes",
+    "Cache-Control": "no-cache", ...(cors ? CORS : {}) };
   const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? "");
   if (m) {
-    let start = m[1] === "" ? Math.max(0, st.size - +m[2]) : +m[1], end = m[1] === "" || m[2] === "" ? st.size - 1 : Math.min(+m[2], st.size - 1);
-    if (start > end || start >= st.size) { res.writeHead(416, { "Content-Range": `bytes */${st.size}`, ...(cors ? CORS : {}) }).end(); return; }
+    let start = m[1] === "" ? Math.max(0, st.size - +m[2]) : +m[1], end = m[1] === "" || m[2] === "" ? st.size - 1 : Math.min(+m[2],
+      st.size - 1);
+    if (start > end || start >= st.size) { res.writeHead(416, { "Content-Range": `bytes */${st.size}`, ...(cors ? CORS : {}) }).end();
+      return; }
     res.writeHead(206, { ...headers, "Content-Range": `bytes ${start}-${end}/${st.size}`, "Content-Length": end - start + 1 });
     if (req.method === "HEAD") return res.end();
     send(createReadStream(path, { start, end }), res);
@@ -45,4 +52,5 @@ createServer((req, res) => {
     if (req.method === "HEAD") return res.end();
     send(createReadStream(path), res);
   }
-}).listen(+port, "127.0.0.1", () => console.log(`serving ${here} on http://127.0.0.1:${port}/app/${MOUNTS.length > 1 ? ` (release: ${MOUNTS[0][1]})` : ""}${cors ? " with CORS" : ""}`));
+}).listen(+port, "127.0.0.1",
+  () => console.log(`serving ${here} on http://127.0.0.1:${port}/app/${MOUNTS.length > 1 ? ` (release: ${MOUNTS[0][1]})` : ""}${cors ? " with CORS" : ""}`));

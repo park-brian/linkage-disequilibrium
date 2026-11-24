@@ -13,14 +13,17 @@ import { useDataCwd } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
 const [root, outPath] = process.argv.slice(2);
-const TIERS = { common: ["common_bits_p64k", m => m >= 0.05], low: ["low_bits_p64k", m => m >= 0.01 && m < 0.05], rare: ["rare_sparse_p16k", m => m < 0.01] };
-const COLS = ["pos", "rsid", "rsid_pos_delta", "rsid_candidates", "rsid_source", "ref", "alt", "multiallelic_source", "male_haploid", "ac", "haps", "missing", "maf_max", "function", "vcf_order", "allele_is_label", "allele_rsids"];
+const TIERS = { common: ["common_bits_p64k", m => m >= 0.05], low: ["low_bits_p64k", m => m >= 0.01 && m < 0.05], rare: ["rare_sparse_p16k",
+  m => m < 0.01] };
+const COLS = ["pos", "rsid", "rsid_pos_delta", "rsid_candidates", "rsid_source", "ref", "alt", "multiallelic_source", "male_haploid", "ac",
+  "haps", "missing", "maf_max", "function", "vcf_order", "allele_is_label", "allele_rsids"];
 const KV = ["samples", "male_haploid_samples", "tier_rule", "rsid_rule", "max_ref_len", "vcf_order_rule", "allele_rule"];
 const report = { root, chromosomes: [], failures: 0 };
 for (const build of readdirSync(root, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name).sort()) {
   for (const chr of readdirSync(`${root}/${build}`, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name)) {
     const dir = `${root}/${build}/${chr}`, r = { build, chr, problems: [] };
-    if (!existsSync(`${dir}/build_report.json`)) { r.problems.push("no build_report.json (build incomplete)"); report.chromosomes.push(r); report.failures++; continue; }
+    if (!existsSync(`${dir}/build_report.json`)) { r.problems.push("no build_report.json (build incomplete)"); report.chromosomes.push(r);
+      report.failures++; continue; }
     const br = JSON.parse(readFileSync(`${dir}/build_report.json`, "utf8"));
     r.rows = br.rows; r.bytes = 0; r.tiers = {};
     const seen = new Uint8Array(br.rows);
@@ -34,7 +37,8 @@ for (const build of readdirSync(root, { withFileTypes: true }).filter(d => d.isD
       const kv = Object.fromEntries((m.key_value_metadata ?? []).map(x => [x.key, x.value]));
       for (const k of KV) if (!(k in kv)) r.problems.push(`${tier}: no metadata ${k}`);
       let n = 0, prevPos = -1, prevOrd = -1, bad = { order: 0, ord: 0, tier: 0, delta: 0, label: 0, dupOrd: 0, range: 0 };
-      await parquetRead({ file, metadata: m, compressors, utf8: false, columns: ["pos", "vcf_order", "maf_max", "rsid", "rsid_pos_delta", "allele_is_label"], rowFormat: "array",
+      await parquetRead({ file, metadata: m, compressors, utf8: false, columns: ["pos", "vcf_order", "maf_max", "rsid", "rsid_pos_delta",
+        "allele_is_label"], rowFormat: "array",
         onComplete: rows => {
           for (const [pos, ord, maf, rsid, delta, isLabel] of rows) {
             if (pos < prevPos) bad.order++;
@@ -61,7 +65,8 @@ for (const build of readdirSync(root, { withFileTypes: true }).filter(d => d.isD
 }
 report.totals = Object.fromEntries([...new Set(report.chromosomes.map(c => c.build))].map(b => {
   const cs = report.chromosomes.filter(c => c.build === b);
-  return [b, { chromosomes: cs.length, rows: cs.reduce((a, c) => a + (c.rows ?? 0), 0), gb: +(cs.reduce((a, c) => a + (c.bytes ?? 0), 0) / 1e9).toFixed(2) }];
+  return [b, { chromosomes: cs.length, rows: cs.reduce((a, c) => a + (c.rows ?? 0), 0), gb: +(cs.reduce((a, c) => a + (c.bytes ?? 0),
+    0) / 1e9).toFixed(2) }];
 }));
 console.log(JSON.stringify({ totals: report.totals, failures: report.failures }));
 if (outPath) writeFileSync(outPath, JSON.stringify(report, null, 2));

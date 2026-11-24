@@ -107,7 +107,8 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     let pages = 0, bytes = 0, b = f.footer.length;
     for (const rg of f.rowGroups) {
       if (Number(rg.max) < klo || Number(rg.min) > khi) continue;
-      const span = Math.max(1, Number(rg.max) - Number(rg.min)), frac = Math.min(1, (Math.min(khi, Number(rg.max)) - Math.max(klo, Number(rg.min)) + 1) / span);
+      const span = Math.max(1, Number(rg.max) - Number(rg.min)), frac = Math.min(1, (Math.min(khi, Number(rg.max)) - Math.max(klo,
+        Number(rg.min)) + 1) / span);
       const rgPages = rg.keyIndex ? Math.max(1, Math.round(rg.keyIndex[3] / 12)) : 1;
       pages += rgPages * frac; bytes += rg.bytes * 3 / 5 * frac; // key, rsid, is_ref of 5 columns
       b += rg.keyIndex ? rg.keyIndex[1] + rg.keyIndex[3] * 3 : 0;  // key column index + offset indexes of 3 columns
@@ -133,14 +134,16 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
   }
   function clusters(positions) {
     const s = [...new Set(positions)].sort((a, b) => a - b), out = [];
-    for (const p of s) { const c = out.at(-1); if (c && p - c.hi <= COST.clusterGap) { c.hi = p; c.points.push(p); } else out.push({ lo: p, hi: p, points: [p] }); }
+    for (const p of s) { const c = out.at(-1); if (c && p - c.hi <= COST.clusterGap) { c.hi = p; c.points.push(p); } else out.push({ lo: p,
+      hi: p, points: [p] }); }
     return out;
   }
 
   async function readRange(path, lo, hi, columns) {
     const { file, metadata } = await need(path);
     let rows = [];
-    await parquetRead({ file, metadata, compressors, rowFormat: "object", columns, utf8: false, filter: { pos: { $gte: lo, $lte: hi } }, onComplete: r => { rows = r; } }); // utf8: binary haps/missing
+    await parquetRead({ file, metadata, compressors, rowFormat: "object", columns, utf8: false, filter: { pos: { $gte: lo, $lte: hi } },
+      onComplete: r => { rows = r; } }); // utf8: binary haps/missing
     return rows;
   }
   async function readPoints(path, keys, columns) {
@@ -152,40 +155,52 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
   async function resolveRsids(rsids, build, tiers, plan, forceRsid) {
     const norm = rsids.map(firstToken);
     const ids = norm.map(s => { const t = s.replace(/^[rs]+|[rs]+$/g, ""); return /^\d+$/.test(t) ? BigInt(t) : null; });
-    const direct = async idx => { const r = await resolver.resolveRsids(idx.map(i => rsids[i]), build); return new Map(idx.map((i, k) => [i, r[k]])); };
+    const direct = async idx => { const r = await resolver.resolveRsids(idx.map(i => rsids[i]), build); return new Map(idx.map((i, k) => [i,
+      r[k]])); };
     const all = rsids.map((_, i) => i);
-    if (forceRsid === "direct" || (!forceRsid && rsids.length <= COST.directMax)) { plan.rsid = { strategy: "direct", n: rsids.length, predicted: Math.round(directRsidBytes(ids)) }; return direct(all); }
+    if (forceRsid === "direct" || (!forceRsid && rsids.length <= COST.directMax)) { plan.rsid = { strategy: "direct", n: rsids.length,
+      predicted: Math.round(directRsidBytes(ids)) }; return direct(all); }
     // duplicated rsIDs always go direct (their answer depends on dump order)
     const dupFile = await open("dbsnp/duplicated_rsids.parquet"); // absent: no duplicates
-    const dupRows = dupFile ? (await sortedLookup({ ...dupFile, column: "rsid", keys: ids.filter(x => x !== null), columns: ["rsid"], compressors })).rows : [];
+    const dupRows = dupFile ? (await sortedLookup({ ...dupFile, column: "rsid", keys: ids.filter(x => x !== null), columns: ["rsid"],
+      compressors })).rows : [];
     const dups = new Set(dupRows.map(r => String(r.rsid)));
     const eligible = all.filter(i => ids[i] !== null && !dups.has(String(ids[i])));
     // discover regions from a sample
-    const step = Math.max(1, Math.floor(eligible.length / COST.hybridSample)), sample = eligible.filter((_, k) => k % step === 0).slice(0, COST.hybridSample);
+    const step = Math.max(1, Math.floor(eligible.length / COST.hybridSample)), sample = eligible.filter((_, k) => k % step === 0).slice(0,
+      COST.hybridSample);
     const res = await direct(sample);
     const byChrom = new Map();
-    for (const r of res.values()) if (r.found && r.pos != null) { if (!byChrom.has(r.chrom)) byChrom.set(r.chrom, []); byChrom.get(r.chrom).push(r.pos); }
-    const regions = [...byChrom].flatMap(([chrom, ps]) => clusters(ps).map(c => ({ chrom, lo: c.lo - COST.clusterGap / 2, hi: c.hi + COST.clusterGap / 2 })));
-    const scanCost = regions.reduce((a, g) => a + tierFiles(build, g.chrom, tiers).reduce((b, f) => b + scanBytes(f, g.lo, g.hi, LABEL_COLS), 0), 0);
-    const sampleCost = directRsidBytes(sample.map(i => ids[i])), dupCost = manifest.files["dbsnp/duplicated_rsids.parquet"]?.byteLength ?? 0;
+    for (const r of res.values()) if (r.found && r.pos != null) { if (!byChrom.has(r.chrom)) byChrom.set(r.chrom, []);
+      byChrom.get(r.chrom).push(r.pos); }
+    const regions = [...byChrom].flatMap(([chrom, ps]) => clusters(ps).map(c => ({ chrom, lo: c.lo - COST.clusterGap / 2,
+      hi: c.hi + COST.clusterGap / 2 })));
+    const scanCost = regions.reduce((a, g) => a + tierFiles(build, g.chrom, tiers).reduce((b, f) => b + scanBytes(f, g.lo, g.hi,
+      LABEL_COLS), 0), 0);
+    const sampleCost = directRsidBytes(sample.map(i => ids[i])),
+      dupCost = manifest.files["dbsnp/duplicated_rsids.parquet"]?.byteLength ?? 0;
     const directCost = directRsidBytes(eligible.filter(i => !sample.includes(i)).map(i => ids[i]));
-    plan.rsid = { n: rsids.length, duplicated: dups.size, sample: sample.length, regions: regions.length, scanPredicted: Math.round(scanCost), directPredicted: Math.round(directCost),
+    plan.rsid = { n: rsids.length, duplicated: dups.size, sample: sample.length, regions: regions.length,
+      scanPredicted: Math.round(scanCost), directPredicted: Math.round(directCost),
       fixedPredicted: Math.round(sampleCost + dupCost) };
-    if (forceRsid === "direct" || (!forceRsid && scanCost >= directCost)) { plan.rsid.strategy = "direct"; plan.rsid.directPredicted = Math.round(directRsidBytes(ids) + dupCost); return direct(all); }
+    if (forceRsid === "direct" || (!forceRsid && scanCost >= directCost)) { plan.rsid.strategy = "direct";
+      plan.rsid.directPredicted = Math.round(directRsidBytes(ids) + dupCost); return direct(all); }
     plan.rsid.strategy = "hybrid";
     // scan labels: accept only labels that guarantee a current dbSNP doc for that rsID at pos + rsid_pos_delta
     // (source 1 vcf, 3 pos+type, 4 allele match; 2 is a merged VCF ID whose current doc may sit elsewhere)
     const label = new Map();
     await Promise.all(regions.flatMap(g => tierFiles(build, g.chrom, tiers).map(async f => {
       for (const r of await readRange(f, g.lo, g.hi, LABEL_COLS))
-        if (r.rsid != null && (r.rsid_source === 1 || r.rsid_source === 3 || r.rsid_source === 4)) label.set(String(r.rsid), { chrom: g.chrom, pos: r.pos + (r.rsid_pos_delta ?? 0) });
+        if (r.rsid != null && (r.rsid_source === 1 || r.rsid_source === 3 || r.rsid_source === 4)) label.set(String(r.rsid),
+          { chrom: g.chrom, pos: r.pos + (r.rsid_pos_delta ?? 0) });
     })));
     const out = new Map(res), left = [];
     for (const i of all) {
       if (out.has(i)) continue;
       const hit = ids[i] !== null && !dups.has(String(ids[i])) ? label.get(String(ids[i])) : undefined;
       // labels are current IDs: the direct path returns ref_rsid null for those (the index stores ref_rsid only for merged docs)
-      if (hit) out.set(i, { input: rsids[i], found: true, rsid: `rs${ids[i]}`, ref_rsid: null, chrom: hit.chrom, pos: hit.pos, via: "label" });
+      if (hit) out.set(i, { input: rsids[i], found: true, rsid: `rs${ids[i]}`, ref_rsid: null, chrom: hit.chrom, pos: hit.pos,
+        via: "label" });
       else left.push(i);
     }
     plan.rsid.matchedByLabel = all.length - sample.length - left.length; plan.rsid.leftoverDirect = left.length;
@@ -204,14 +219,16 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     if (coIdx.length) {
       // predicted cost of LDlink-parity resolution through the dbSNP position index
       const byC = groupBy(coIdx.map(i => parseCoord(toks[i])).filter(p => p?.key != null), p => p.chro);
-      const bytes = [...byC].reduce((a, [c, ps]) => a + clusters(ps.map(p => Number(p.pos))).reduce((b, k) => b + coordBytes(build, c, k.lo, k.hi, k.points.length), 0), 0);
+      const bytes = [...byC].reduce((a, [c, ps]) => a + clusters(ps.map(p => Number(p.pos))).reduce((b, k) => b + coordBytes(build, c, k.lo,
+        k.hi, k.points.length), 0), 0);
       plan.coords = { n: coIdx.length, predicted: Math.round(bytes) };
       const co = await resolver.resolveCoords(coIdx.map(i => toks[i]), build);
       coIdx.forEach((i, k) => { if (co[k].rsid) asRs[i] = co[k].rsid; if (co[k].warning) warn.set(i, co[k].warning); });
     }
     const rsIdx = asRs.map((t, i) => (t && t.slice(0, 2) === "rs" ? i : -1)).filter(i => i >= 0);
     const rs = await resolveRsids(rsIdx.map(i => asRs[i]), build, tiers, plan, forceRsid);
-    const variants = inputs.map((input, i) => ({ found: false, input, token: toks[i], rsid: null, ref_rsid: null, chrom: null, pos: null }));
+    const variants = inputs.map((input, i) => ({ found: false, input, token: toks[i], rsid: null, ref_rsid: null, chrom: null,
+      pos: null }));
     rsIdx.forEach((i, k) => { variants[i] = { ...rs.get(k), input: inputs[i], token: toks[i] }; });
     for (const [i, w] of warn) variants[i].warning = w;
     return variants;
@@ -219,7 +236,8 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
   /** regions → Map(chrom → merged [lo, hi] intervals): chromosome names normalized like LDlink's (chr prefix, case,
    *  X/Y, 23/24), overlapping or adjacent regions merged so no row is fetched twice; invalid ones go to plan.invalidRegions */
   function normalizeRegions(regions, plan) {
-    const CHR = c => { const t = String(c ?? "").trim().replace(/^chr/i, "").toUpperCase(); return t === "23" ? "X" : t === "24" ? "Y" : /^([1-9]|1\d|2[0-2]|X|Y)$/.test(t) ? t : null; };
+    const CHR = c => { const t = String(c ?? "").trim().replace(/^chr/i, "").toUpperCase();
+      return t === "23" ? "X" : t === "24" ? "Y" : /^([1-9]|1\d|2[0-2]|X|Y)$/.test(t) ? t : null; };
     const valid = [];
     plan.invalidRegions = [];
     for (const g of regions) {
@@ -229,7 +247,8 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     const merged = new Map();
     for (const [c, xs] of groupBy(valid, x => x.c)) {
       const out = [];
-      for (const [lo, hi] of xs.map(x => x.iv).sort((a, b) => a[0] - b[0])) { const last = out.at(-1); if (last && lo <= last[1] + 1) last[1] = Math.max(last[1], hi); else out.push([lo, hi]); }
+      for (const [lo, hi] of xs.map(x => x.iv).sort((a, b) => a[0] - b[0])) { const last = out.at(-1);
+        if (last && lo <= last[1] + 1) last[1] = Math.max(last[1], hi); else out.push([lo, hi]); }
       merged.set(c, out);
     }
     return merged;
@@ -240,7 +259,8 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     const want = new Map(), get = c => { if (!want.has(c)) want.set(c, { points: new Set(), regions: [] }); return want.get(c); };
     for (const v of variants) if (v?.pos != null && v.chrom) get(v.chrom).points.add(v.pos); // chromosomes in this order
     for (const [c, iv] of merged) get(c).regions.push(...iv);
-    const rows = [], tasks = [], add = (got, f) => { const t = f.split(".").at(-2); for (const r of got) rows.push({ ...r, tier: t }); }; // no spread: results can be large
+    const rows = [], tasks = [], add = (got, f) => { const t = f.split(".").at(-2); for (const r of got) rows.push({ ...r, tier: t }); };
+      // no spread: results can be large
     for (const [chrom, w] of want) {
       for (const [lo, hi] of w.regions) for (const f of tierFiles(build, chrom, tiers)) {
         plan.fetch.push({ file: f, kind: "scan", lo, hi, predicted: Math.round(scanBytes(f, lo, hi, ROW_COLUMNS)) });
@@ -248,11 +268,14 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
       }
       const inRegion = p => w.regions.some(([lo, hi]) => p >= lo && p <= hi);
       for (const c of clusters([...w.points].filter(p => !inRegion(p)))) for (const f of tierFiles(build, chrom, tiers)) {
-        const s = scanBytes(f, c.lo, c.hi, ROW_COLUMNS), pt = pointBytes(f, c.lo, c.hi, c.points.length), kind = force ?? (s <= pt ? "scan" : "points");
-        plan.fetch.push({ file: f, kind, lo: c.lo, hi: c.hi, points: c.points.length, predicted: Math.round(Math.min(s, pt)), scanPredicted: Math.round(s), pointsPredicted: Math.round(pt) });
+        const s = scanBytes(f, c.lo, c.hi, ROW_COLUMNS), pt = pointBytes(f, c.lo, c.hi, c.points.length),
+          kind = force ?? (s <= pt ? "scan" : "points");
+        plan.fetch.push({ file: f, kind, lo: c.lo, hi: c.hi, points: c.points.length, predicted: Math.round(Math.min(s, pt)),
+          scanPredicted: Math.round(s), pointsPredicted: Math.round(pt) });
         tasks.push(async () => {
           const pts = new Set(c.points);
-          add(kind === "scan" ? (await readRange(f, c.lo, c.hi, ROW_COLUMNS)).filter(r => pts.has(r.pos)) : await readPoints(f, c.points, ROW_COLUMNS), f);
+          add(kind === "scan" ? (await readRange(f, c.lo, c.hi, ROW_COLUMNS)).filter(r => pts.has(r.pos)) : await readPoints(f, c.points,
+            ROW_COLUMNS), f);
         });
       }
     }
@@ -263,7 +286,8 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
    *  all tiers (LDlink's last overlapping row, or the allele-aware match) → variants[i].selected */
   async function selectRows(build, variants, tiers, select, plan) {
     plan.select = { mode: select, windows: 0 };
-    const SEL = ["pos", "rsid", "ref", "alt", "vcf_order", "multiallelic_source", ...(select === "allele" ? ["allele_is_label", "allele_rsids"] : [])];
+    const SEL = ["pos", "rsid", "ref", "alt", "vcf_order", "multiallelic_source", ...(select === "allele" ? ["allele_is_label",
+      "allele_rsids"] : [])];
     for (const [chrom, vs] of groupBy(variants.filter(v => v?.pos != null && v.chrom), v => v.chrom)) {
       const files = await Promise.all(tierFiles(build, chrom, tiers).map(async f => ({ tier: f.split(".").at(-2), ...(await need(f)) })));
       const { rows: cand, reach } = await candidateRows(files, vs.map(v => v.pos), { columns: SEL }), range = posRange(cand);

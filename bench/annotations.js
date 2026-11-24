@@ -28,7 +28,8 @@ for (const [span, lo] of [[1e6, 25e6], [1e7, 25e6]]) {
     const metadata = await parquetMetadataAsync(file, { initialFetchSize: 64 << 10 });
     let rows = await rangeScan({ file, metadata, column: "key", lo: K(22, Math.max(0, from)), hi: K(22, hi), columns, compressors });
     if (track === "genes") rows = rows.filter(r => r.txEnd >= lo);
-    const o = { track, window: `${span / 1e6} Mb`, rows: rows.length, requests: stats.requests, KB: Math.round(stats.bytes / 1024), ms: Math.round(performance.now() - t0) };
+    const o = { track, window: `${span / 1e6} Mb`, rows: rows.length, requests: stats.requests, KB: Math.round(stats.bytes / 1024),
+      ms: Math.round(performance.now() - t0) };
     results.push(o); console.log(JSON.stringify(o));
   }
 }

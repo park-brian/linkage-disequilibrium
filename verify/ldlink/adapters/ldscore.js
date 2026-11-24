@@ -20,7 +20,8 @@ export function cases() {
   cs.push({ name: "missing example", filename: "23.bed,23.bim,23.fam", ldwindow: "1", windUnit: "cm" });
   return cs;
 }
-const query = c => new URLSearchParams({ pop: "EUR", genome_build: "grch37", filename: c.filename, ldwindow: c.ldwindow, windUnit: c.windUnit, isExample: "true" });
+const query = c => new URLSearchParams({ pop: "EUR", genome_build: "grch37", filename: c.filename, ldwindow: c.ldwindow,
+  windUnit: c.windUnit, isExample: "true" });
 export const ldlink = cs => Promise.all(cs.map(async c => asText(await get("ldscore", query(c)))));
 export async function ours(ctx, c) {
   const files = {};

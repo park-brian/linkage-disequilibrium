@@ -9,7 +9,8 @@ import { ldscPanel, ldscCounts, mergeAlleles } from "../ldsc/panels.js";
 import { memo } from "../../core/source.js";
 
 /**
- * @param {{ root: string, open: (path: string, byteLength?: number) => Promise<AsyncBuffer>, readPanel?: (pop: string) => Promise<string[]>,
+ * @param {{ root: string, open: (path: string, byteLength?: number) => Promise<AsyncBuffer>, readPanel?: (pop: string) =>
+ * Promise<string[]>,
  *   kernel, manifest?: object }} o manifest: the parsed manifest.json when the caller has it (else read through open)
  */
 export async function createContext({ root, open, readPanel, kernel, manifest }) {
@@ -40,7 +41,9 @@ export async function createContext({ root, open, readPanel, kernel, manifest })
   }
   // LD score panels and the HapMap3 list for the LDscore family, read once each (src/parity/ldsc/panels.js)
   const ldsc = new Map();
-  return { root, planner, kernel, ldscPanel: (pop, need) => ldscPanel(planner.file, pop, need), ldscCounts: () => memo(ldsc, "counts", () => ldscCounts(planner.file)),
+  return { root, planner, kernel, ldscPanel: (pop, need) => ldscPanel(planner.file, pop, need), ldscCounts: () => memo(ldsc, "counts",
+    () => ldscCounts(planner.file)),
     mergeAlleles: () => memo(ldsc, "w_hm3", () => mergeAlleles(planner.file)), ...genotypes, ...annotations, popIds, withPrepared,
-    dbsnpAt: planner.resolver.findAt, dbsnpById: planner.resolver.findById, dbsnpAllAt: planner.resolver.findAllAt, duplicatedRsids: planner.resolver.duplicated };
+    dbsnpAt: planner.resolver.findAt, dbsnpById: planner.resolver.findById, dbsnpAllAt: planner.resolver.findAllAt,
+      duplicatedRsids: planner.resolver.duplicated };
 }

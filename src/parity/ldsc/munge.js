@@ -12,12 +12,14 @@ const DEFAULT_CNAMES = {
   A2: "A2", ALLELE2: "A2", ALLELE_2: "A2", OTHER_ALLELE: "A2", NON_EFFECT_ALLELE: "A2", DEC_ALLELE: "A2", NEA: "A2",
   N: "N", NCASE: "N_CAS", CASES_N: "N_CAS", N_CASE: "N_CAS", N_CASES: "N_CAS", N_CONTROLS: "N_CON", N_CAS: "N_CAS", N_CON: "N_CON",
   NCONTROL: "N_CON", CONTROLS_N: "N_CON", N_CONTROL: "N_CON", WEIGHT: "N",
-  ZSCORE: "Z", "Z-SCORE": "Z", GC_ZSCORE: "Z", Z: "Z", OR: "OR", B: "BETA", BETA: "BETA", LOG_ODDS: "LOG_ODDS", EFFECTS: "BETA", EFFECT: "BETA",
+  ZSCORE: "Z", "Z-SCORE": "Z", GC_ZSCORE: "Z", Z: "Z", OR: "OR", B: "BETA", BETA: "BETA", LOG_ODDS: "LOG_ODDS", EFFECTS: "BETA",
+    EFFECT: "BETA",
   SIGNED_SUMSTAT: "SIGNED_SUMSTAT", INFO: "INFO", EAF: "FRQ", FRQ: "FRQ", MAF: "FRQ", FRQ_U: "FRQ", F_U: "FRQ",
 };
 const NULL_VALUES = { LOG_ODDS: 0, BETA: 0, OR: 1, Z: 0 };
 // pandas read_csv default NA strings + na_values=['.', 'NA']
-const NA = new Set(["", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", "1.#IND", "1.#QNAN", "<NA>", "N/A", "NA", "NULL", "NaN", "None", "n/a", "nan", "null", "."]);
+const NA = new Set(["", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", "1.#IND", "1.#QNAN", "<NA>", "N/A", "NA", "NULL",
+  "NaN", "None", "n/a", "nan", "null", "."]);
 const cleanHeader = h => h.toUpperCase().replace(/-/g, "_").replace(/\./g, "_").replace(/\n/g, "");
 
 /** chi2.isf(P, 1) = (Q^-1(P/2))^2 with Q = upper normal tail; Newton in log space on the accurate erfc */
@@ -69,7 +71,8 @@ export function npSum(a, lo = 0, n = a.length) {
   return npSum(a, lo, n2) + npSum(a, lo + n2, n - n2);
 }
 // Python str.split() whitespace (read_header): NOT the BOM (U+FEFF), unlike JS \s / trim()
-const PY_WS = new RegExp("[" + [[9, 13], [28, 32], [0x85, 0x85], [0xa0, 0xa0], [0x1680, 0x1680], [0x2000, 0x200a], [0x2028, 0x2029], [0x202f, 0x202f], [0x205f, 0x205f], [0x3000, 0x3000]]
+const PY_WS = new RegExp("[" + [[9, 13], [28, 32], [0x85, 0x85], [0xa0, 0xa0], [0x1680, 0x1680], [0x2000, 0x200a], [0x2028, 0x2029],
+  [0x202f, 0x202f], [0x205f, 0x205f], [0x3000, 0x3000]]
   .map(([a, b]) => String.fromCodePoint(a) + "-" + String.fromCodePoint(b)).join("") + "]+", "u"); // str.isspace() code points
 const pySplit = s => s.split(PY_WS).filter(Boolean);
 // pandas sep=r'\s+' (C engine: delim_whitespace) splits data rows on spaces and tabs
@@ -93,16 +96,20 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
   const printed = { ...translation }; // munge_sumstats.py prints cname_translation before the signed column is renamed
   const signName = signCols[0], signNull = NULL_VALUES[translation[signName]];
   translation[signName] = "SIGNED_SUMSTAT";
-  for (const c of ["SNP", "P", "SIGNED_SUMSTAT"]) if (!Object.values(translation).includes(c)) throw new Error(`Could not find ${c} column.`);
+  for (const c of ["SNP", "P",
+    "SIGNED_SUMSTAT"]) if (!Object.values(translation).includes(c)) throw new Error(`Could not find ${c} column.`);
   // munge_sumstats.py:614-622 sits inside `for field in cname_translation:` and the loop body returns, so only the FIRST
   // mapped field is checked for repeats; the "different ... columns" check sees the count of the LAST mapped value
   const firstField = Object.keys(translation)[0], numk = fileCnames.filter(x => x === firstField).length;
   if (numk > 1) throw new Error(`Found ${numk} columns named ${firstField}`);
-  { const vs = Object.values(translation), last = vs.at(-1), numc = vs.filter(v => v === last).length; if (numc > 1) throw new Error(`Found ${numc} different ${last} columns`); }
+  { const vs = Object.values(translation), last = vs.at(-1), numc = vs.filter(v => v === last).length;
+    if (numc > 1) throw new Error(`Found ${numc} different ${last} columns`); }
   const vals = Object.values(translation);
   if (!vals.includes("N") && !(vals.includes("N_CAS") && vals.includes("N_CON"))) throw new Error("Could not determine N.");
-  if ((vals.includes("N") || (vals.includes("N_CAS") && vals.includes("N_CON"))) && vals.includes("NSTUDY")) for (const x of Object.keys(translation)) if (translation[x] === "NSTUDY") delete translation[x];
-  if (!(Object.values(translation).includes("A1") && Object.values(translation).includes("A2"))) throw new Error("Could not find A1/A2 columns.");
+  if ((vals.includes("N") || (vals.includes("N_CAS") && vals.includes("N_CON"))) && vals.includes("NSTUDY"))
+    for (const x of Object.keys(translation)) if (translation[x] === "NSTUDY") delete translation[x];
+  if (!(Object.values(translation).includes("A1") && Object.values(translation).includes("A2")))
+    throw new Error("Could not find A1/A2 columns.");
   // usecols, file order; a repeated name is read once: pandas renames later copies to "X.1", which usecols skips
   const used = fileCnames.map((c, i) => [c, i]).filter(([c, i]) => c in translation && fileCnames.indexOf(c) === i);
   const numeric = new Set(["P", "N", "N_CAS", "N_CON", "Z", "OR", "BETA", "LOG_ODDS", "INFO", "FRQ", "SIGNED_SUMSTAT", "NSTUDY"]);
@@ -129,7 +136,8 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
     if (na) { drops.NA++; continue; }
     if (!merge.has(r.SNP)) { drops.MERGE++; continue; }
     if ("INFO" in r) { if (r.INFO > 1.5 || r.INFO < 0) bad.INFO++; if (!(r.INFO >= infoMin)) { drops.INFO++; continue; } }
-    if ("FRQ" in r) { const out = r.FRQ < 0 || r.FRQ > 1, maf = Math.min(r.FRQ, 1 - r.FRQ); if (out) bad.FRQ++; if (!(maf > mafMin) || out) { drops.FRQ++; continue; } }
+    if ("FRQ" in r) { const out = r.FRQ < 0 || r.FRQ > 1, maf = Math.min(r.FRQ, 1 - r.FRQ); if (out) bad.FRQ++;
+      if (!(maf > mafMin) || out) { drops.FRQ++; continue; } }
     if (!(r.P > 0 && r.P <= 1)) { drops.P++; continue; }
     r.A1 = r.A1.toUpperCase(); r.A2 = r.A2.toUpperCase();
     if (!VALID_SNPS.has(r.A1 + r.A2)) { drops.A++; continue; }
@@ -153,7 +161,8 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
   dat = dat.filter(r => r.N >= nMin);
   // Z from P, signed by SIGNED_SUMSTAT
   const med = median(dat.map(r => r.SIGNED_SUMSTAT));
-  if (Math.abs(med - signNull) > 0.1) throw new Error(`WARNING: median value of ${signName} is ${pyRepr2(med)} (should be close to ${signNull}). This column may be mislabeled.`);
+  if (Math.abs(med - signNull) > 0.1)
+    throw new Error(`WARNING: median value of ${signName} is ${pyRepr2(med)} (should be close to ${signNull}). This column may be mislabeled.`);
   for (const r of dat) { r.Z = Math.sqrt(chi2Isf1(r.P)) * (r.SIGNED_SUMSTAT < signNull ? -1 : 1); }
   // allele_merge: left merge in --merge-alleles order; mismatched alleles → NA
   const bySnp = new Map(dat.map(r => [r.SNP, r]));
@@ -170,15 +179,20 @@ export function mungeSumstats(text, mergeAlleles, { infoMin = 0.9, mafMin = 0.01
   // columns: SNP first (allele_merge left-merges dat onto the --merge-alleles frame), then dat's columns in order
   // (P renamed to Z in place) among N/Z/A1/A2
   const printCols = ["SNP", ...datCols.map(n => (n === "P" ? "Z" : n)).filter(n => ["N", "Z", "A1", "A2"].includes(n))];
-  const fmt = (r, c) => { const v = r[c]; if (v === undefined || v === null) return ""; return c === "Z" || c === "N" ? pyRoundStr(v, 3) : String(v); };
+  const fmt = (r, c) => { const v = r[c]; if (v === undefined || v === null) return ""; return c === "Z" || c === "N" ? pyRoundStr(v,
+    3) : String(v); };
   const body = out.map(r => printCols.map(c => fmt(r, c)).join("\t")).join("\n");
   const z2 = out.filter(r => r.Z !== undefined).map(r => r.Z * r.Z);
   return {
     text: printCols.join("\t") + "\n" + body + "\n",
-    log: { read: tot, removed_merge: drops.MERGE, removed_na: drops.NA, removed_info: drops.INFO, removed_maf: drops.FRQ, removed_p: drops.P, removed_alleles: drops.A,
+    log: { read: tot, removed_merge: drops.MERGE, removed_na: drops.NA, removed_info: drops.INFO, removed_maf: drops.FRQ,
+      removed_p: drops.P, removed_alleles: drops.A,
       remain: before, removed_dups: dupDrops, n_min: nMin, removed_n: beforeN - dat.length, median_signed: med, removed_mismatch: nMismatch,
-      written: out.length, nonmissing: out.length - out.filter(r => r.Z === undefined).length, mean_chisq: npSum(z2) / z2.length, // pandas mean: numpy pairwise summation
-      median_chisq: median(z2), max_chisq: z2.reduce((m, v) => (v > m ? v : m), -Infinity), n_gws: z2.filter(v => v > 29).length, cnames: printed, sign_name: signName, merge_snps: mergeAlleles.SNP.length,
-      bad_info: bad.INFO, bad_frq: bad.FRQ, has_info: Object.values(translation).includes("INFO"), has_frq: Object.values(translation).includes("FRQ") },
+      written: out.length, nonmissing: out.length - out.filter(r => r.Z === undefined).length, mean_chisq: npSum(z2) / z2.length,
+        // pandas mean: numpy pairwise summation
+      median_chisq: median(z2), max_chisq: z2.reduce((m, v) => (v > m ? v : m), -Infinity), n_gws: z2.filter(v => v > 29).length,
+        cnames: printed, sign_name: signName, merge_snps: mergeAlleles.SNP.length,
+      bad_info: bad.INFO, bad_frq: bad.FRQ, has_info: Object.values(translation).includes("INFO"),
+        has_frq: Object.values(translation).includes("FRQ") },
   };
 }

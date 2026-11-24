@@ -12,20 +12,27 @@ export function cases() {
   for (const pop of POPS) cs.push({ name: `HDL x LDL ${pop}`, pop, filename: H, filename2: L });
   for (const pop of ["EAS", "EUR"]) cs.push({ name: `LDL x HDL ${pop}`, pop, filename: L, filename2: H });
   cs.push({ name: "HDL x HDL EAS (rg = 1)", pop: "EAS", filename: H, filename2: H, degenerate: true });
-  cs.push({ name: "liability EAS 0.3,0.4 / 0.1,0.2", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3,0.4", pop_prev: "0.1,0.2" });
-  cs.push({ name: "liability EUR 0.5,0.5 / .01,1e-2", pop: "EUR", filename: H, filename2: L, scale: "liability", samp_prev: "0.5,0.5", pop_prev: ".01,1e-2" });
-  cs.push({ name: "liability with one samp_prev", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3", pop_prev: "0.1,0.2" });
-  cs.push({ name: "liability pop_prev out of range", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3,0.4", pop_prev: "0.1,2" });
+  cs.push({ name: "liability EAS 0.3,0.4 / 0.1,0.2", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3,0.4",
+    pop_prev: "0.1,0.2" });
+  cs.push({ name: "liability EUR 0.5,0.5 / .01,1e-2", pop: "EUR", filename: H, filename2: L, scale: "liability", samp_prev: "0.5,0.5",
+    pop_prev: ".01,1e-2" });
+  cs.push({ name: "liability with one samp_prev", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3",
+    pop_prev: "0.1,0.2" });
+  cs.push({ name: "liability pop_prev out of range", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3,0.4",
+    pop_prev: "0.1,2" });
   cs.push({ name: "liability without pop_prev", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3,0.4" });
   cs.push({ name: "bad scale", pop: "EAS", filename: H, filename2: L, scale: "Observed" });
   cs.push({ name: "unknown population", pop: "XYZ", filename: H, filename2: L });
   return cs;
 }
-const query = c => new URLSearchParams({ pop: c.pop, genome_build: "grch37", filename: c.filename, filename2: c.filename2, isExample: "true",
-  ...(c.scale ? { scale: c.scale } : {}), ...(c.samp_prev ? { samp_prev: c.samp_prev } : {}), ...(c.pop_prev ? { pop_prev: c.pop_prev } : {}) });
+const query = c => new URLSearchParams({ pop: c.pop, genome_build: "grch37", filename: c.filename, filename2: c.filename2,
+  isExample: "true",
+  ...(c.scale ? { scale: c.scale } : {}), ...(c.samp_prev ? { samp_prev: c.samp_prev } : {}),
+    ...(c.pop_prev ? { pop_prev: c.pop_prev } : {}) });
 export const ldlink = cs => Promise.all(cs.map(async c => asText(await get("ldcorrelation", query(c)))));
 export async function ours(ctx, c) {
-  const o = await ldcorrelation(ctx, { ...c, text: await example(ctx, c.filename), text2: await example(ctx, c.filename2), isExample: true });
+  const o = await ldcorrelation(ctx, { ...c, text: await example(ctx, c.filename), text2: await example(ctx, c.filename2),
+    isExample: true });
   return typeof o === "string" ? { text: o } : { error: o.error };
 }
 const FAIL = /^An error occurred while running the (second )?command \(exit \d+\): /;
@@ -37,7 +44,9 @@ const zMask = s => s.replace(/^Z-score: .*$/m, "Z-score: …").replace(/^(\S+\.s
  *    must match, and the verdict says which case this is
  */
 export function verdict(l, o, c) {
-  if (l.text && o.text && FAIL.test(l.text) && FAIL.test(o.text)) return l.text.match(FAIL)[0] === o.text.match(FAIL)[0] ? { verdict: "identical" } : { verdict: "differ", detail: { ldlink: l.text.slice(0, 200), ours: o.text.slice(0, 200) } };
-  if (c?.degenerate && l.text && o.text) { const r = textVerdict({ text: zMask(l.text) }, { text: zMask(o.text) }); return r.verdict === "identical" ? { verdict: "degenerate_z" } : r; }
+  if (l.text && o.text && FAIL.test(l.text) && FAIL.test(o.text))
+    return l.text.match(FAIL)[0] === o.text.match(FAIL)[0] ? { verdict: "identical" } : { verdict: "differ", detail: { ldlink: l.text.slice(0, 200), ours: o.text.slice(0, 200) } };
+  if (c?.degenerate && l.text && o.text) { const r = textVerdict({ text: zMask(l.text) }, { text: zMask(o.text) });
+    return r.verdict === "identical" ? { verdict: "degenerate_z" } : r; }
   return textVerdict(l, o);
 }

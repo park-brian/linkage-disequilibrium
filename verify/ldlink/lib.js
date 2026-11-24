@@ -10,7 +10,8 @@ import * as CONFIG from "../../tools/config.js";
 
 export { CONFIG };
 /** the comparisons, in run order (compare.js, snapshot.js) */
-export const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc", "ldherit",
+export const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc",
+  "ldherit",
   "ldcorrelation", "ldscore"];
 export const BASE = CONFIG.LDLINK_URL;
 
@@ -33,7 +34,8 @@ export function example(ctx, name, { binary = false } = {}) {
   const key = `${ctx.root}|${name}|${binary}`;
   if (!examples.has(key)) examples.set(key, (async () => {
     const at = `${ctx.root}/examples/${name}`;
-    if (/^https?:/.test(ctx.root)) { const r = await fetch(at); return r.ok ? (binary ? new Uint8Array(await r.arrayBuffer()) : r.text()) : null; }
+    if (/^https?:/.test(ctx.root)) { const r = await fetch(at);
+      return r.ok ? (binary ? new Uint8Array(await r.arrayBuffer()) : r.text()) : null; }
     return existsSync(at) ? (binary ? new Uint8Array(readFileSync(at)) : readFileSync(at, "utf8")) : null;
   })());
   return examples.get(key);
@@ -62,11 +64,14 @@ export function drive(name, cases) {
   const tmp = CONFIG.LDLINK_TMP, inFile = `${name}_cases.json`, outFile = `${name}_cases.out.jsonl`;
   writeFileSync(`${tmp}/${inFile}`, JSON.stringify(cases));
   execFileSync("docker", ["compose", "exec", "-T", "backend", "python3.13", "-", `/data/tmp/${inFile}`, `/data/tmp/${outFile}`],
-    { cwd: CONFIG.LDLINK_HOME, input: readFileSync(CONFIG.repo("tools/ldlink-local/drive.py")), env: { ...process.env, MSYS_NO_PATHCONV: "1", LD_DATA: CONFIG.DATA } /* the kit's compose file mounts ${LD_DATA}/ldscore_src */, maxBuffer: 1 << 28, stdio: ["pipe", "ignore", "ignore"] });
+    { cwd: CONFIG.LDLINK_HOME, input: readFileSync(CONFIG.repo("tools/ldlink-local/drive.py")), env: { ...process.env,
+      MSYS_NO_PATHCONV: "1", LD_DATA: CONFIG.DATA } /* the kit's compose file mounts ${LD_DATA}/ldscore_src */, maxBuffer: 1 << 28,
+      stdio: ["pipe", "ignore", "ignore"] });
   return readFileSync(`${tmp}/${outFile}`, "utf8").trim().split("\n").map(l => JSON.parse(l));
 }
 /** LDproxy's JSON side file for a request reference (its warning is not in the API text) */
-export const proxyJson = ref => { const p = `${CONFIG.LDLINK_TMP}/proxy${ref}.json`; try { return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : {}; } catch { return {}; } };
+export const proxyJson = ref => { const p = `${CONFIG.LDLINK_TMP}/proxy${ref}.json`; try { return existsSync(p) ? JSON.parse(readFileSync(p,
+  "utf8")) : {}; } catch { return {}; } };
 
 /** json.dumps(sort_keys=True): key order for comparing JSON */
 export const canon = o => (Array.isArray(o) ? o.map(canon) : o && typeof o === "object" ? Object.fromEntries(Object.keys(o).sort().map(k => [k, canon(o[k])])) : o);

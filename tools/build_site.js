@@ -31,11 +31,14 @@ for (const f of readdirSync(join(out, "app")).filter(f => f.endsWith(".html"))) 
   if (next === html) throw new Error(`${f}: no import map to rewrite`);
   writeFileSync(p, next);
 }
-const site = join(out, "app", "site.js"), src = readFileSync(site, "utf8"), set = src.replace("export const DATA = null;", `export const DATA = ${JSON.stringify(data ?? null)};`);
+const site = join(out, "app", "site.js"), src = readFileSync(site, "utf8"), set = src.replace("export const DATA = null;",
+  `export const DATA = ${JSON.stringify(data ?? null)};`);
 if (set === src && data) throw new Error("app/site.js: DATA line not found");
 writeFileSync(site, set);
-writeFileSync(join(out, "index.html"), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=app/"><a href="app/">LD tools</a>\n');
+writeFileSync(join(out, "index.html"),
+  '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=app/"><a href="app/">LD tools</a>\n');
 writeFileSync(join(out, ".nojekyll"), "");
 
-const size = d => readdirSync(d, { withFileTypes: true }).reduce((s, e) => s + (e.isDirectory() ? size(join(d, e.name)) : statSync(join(d, e.name)).size), 0);
+const size = d => readdirSync(d, { withFileTypes: true }).reduce((s, e) => s + (e.isDirectory() ? size(join(d, e.name)) : statSync(join(d,
+  e.name)).size), 0);
 console.log(JSON.stringify({ out, data: data ?? "../release", bytes: size(out) }));

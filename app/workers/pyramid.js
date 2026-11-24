@@ -12,7 +12,8 @@ self.onmessage = async ({ data: q }) => {
     const t0 = performance.now();
     const p = kernel.prepare(q.rows, { samples: q.samples, haploidMales: new Set(q.haploidMales), hapIndexes: q.hapIndexes });
     // rows [r0, r1): this worker's share of the band (pairs i in the range, j > i anywhere), on either kernel path
-    const b = kernel.band(p, { maxDist: q.maxDist, threshold: q.threshold, stat: q.stat, prune: true, ...(q.range ? { rows: q.range } : {}) });
+    const b = kernel.band(p, { maxDist: q.maxDist, threshold: q.threshold, stat: q.stat, prune: true,
+      ...(q.range ? { rows: q.range } : {}) });
     const t1 = performance.now();
     const { W, lo, hi } = q, span = Math.max(1, hi - lo), H = Math.ceil(((q.maxDist / 2) / span) * W) + 1;
     const grid = new Float32Array(W * H).fill(-1), bi = new Int32Array(W * H), bj = new Int32Array(W * H);

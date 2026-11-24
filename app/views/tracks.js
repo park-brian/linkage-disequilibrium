@@ -38,18 +38,22 @@ export function tooltip(cv, textAt) {
   return tip;
 }
 export function line(g, a, b, c, d) { g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }
-export function nearest(list, p, at, tol) { let best = null, bd = tol; for (const o of list) { const d = Math.abs(at(o) - p); if (d <= bd) { bd = d; best = o; } } return best; }
-export const niceStep = s => { const p = 10 ** Math.floor(Math.log10(s)), m = s / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
+export function nearest(list, p, at, tol) { let best = null, bd = tol; for (const o of list) { const d = Math.abs(at(o) - p);
+  if (d <= bd) { bd = d; best = o; } } return best; }
+export const niceStep = s => { const p = 10 ** Math.floor(Math.log10(s)), m = s / p;
+  return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
 
 export function gwasTrack(gwas, ax) {
-  const H = 70, gp = gwas.map(r => ({ r, p: Number(r.p_value) })).filter(o => Number.isFinite(o.p)), gmax = Math.max(8, ...gp.map(o => nlp(o.p)));
+  const H = 70, gp = gwas.map(r => ({ r, p: Number(r.p_value) })).filter(o => Number.isFinite(o.p)), gmax = Math.max(8,
+    ...gp.map(o => nlp(o.p)));
   const yOf = (top, v) => top + H - (Math.min(v, gmax) / gmax) * (H - 14);
   return {
     height: H, gap: 8,
     draw(g, top) {
       title(g, "GWAS Catalog −log₁₀ p", top);
       g.strokeStyle = "#e6e8ec"; line(g, 0, top + H - (GWS / gmax) * (H - 14), ax.W, top + H - (GWS / gmax) * (H - 14));
-      for (const o of gp) { g.fillStyle = nlp(o.p) >= GWS ? "#7a2e9a" : "#b9a3c6"; g.beginPath(); g.arc(ax.x(o.r.pos), yOf(top, nlp(o.p)), 2.2, 0, 7); g.fill(); }
+      for (const o of gp) { g.fillStyle = nlp(o.p) >= GWS ? "#7a2e9a" : "#b9a3c6"; g.beginPath(); g.arc(ax.x(o.r.pos), yOf(top, nlp(o.p)),
+        2.2, 0, 7); g.fill(); }
     },
     hover(gpos) {
       const near = nearest(gp, gpos, o => o.r.pos, ax.span / ax.W * 4);
@@ -69,7 +73,8 @@ export function eqtlTrack(eqtl, ax) {
         g.fillStyle = r.slope >= 0 ? "rgba(214,110,20,.55)" : "rgba(30,130,140,.55)"; g.fillRect(ax.x(r.pos), top + H - h, 1.2, h);
       }
     },
-    hover(gpos) { const near = nearest(eqtl.rows, gpos, r => r.pos, ax.span / ax.W * 3); return near && `${near.gene} · ${near.tissue}\nslope ${near.slope} · p ${near.p}`; },
+    hover(gpos) { const near = nearest(eqtl.rows, gpos, r => r.pos, ax.span / ax.W * 3);
+      return near && `${near.gene} · ${near.tissue}\nslope ${near.slope} · p ${near.p}`; },
   };
 }
 
@@ -87,11 +92,13 @@ export function scoresTrack(forge, regulome, ax) {
       title(g, "FORGEdb score · RegulomeDB rank (not in LDlink's region views)", top);
       g.fillStyle = "rgba(42,110,90,.6)";
       for (const r of forge) { const h = (r.score / 10) * (barH - 12); g.fillRect(ax.x(r.pos), top + barH - h, 1, Math.max(1, h)); }
-      for (const r of regulome) { g.fillStyle = REG_COLOR[REG_CLASS(r.score)]; g.fillRect(ax.x(r.pos), top + barH + 6 + REG_CLASS(r.score) * 3, 1.5, 3); }
+      for (const r of regulome) { g.fillStyle = REG_COLOR[REG_CLASS(r.score)]; g.fillRect(ax.x(r.pos),
+        top + barH + 6 + REG_CLASS(r.score) * 3, 1.5, 3); }
     },
     hover(gpos, my, top) {
       const tol = ax.span / ax.W * 3;
-      if (my < top + barH) { const n = nearest(forge, gpos, r => r.pos, tol); return n && `FORGEdb ${n.score} · rs${n.rsid} at ${n.pos.toLocaleString()}`; }
+      if (my < top + barH) { const n = nearest(forge, gpos, r => r.pos, tol);
+        return n && `FORGEdb ${n.score} · rs${n.rsid} at ${n.pos.toLocaleString()}`; }
       const n = nearest(regulome, gpos, r => r.pos, tol); return n && `RegulomeDB ${n.score} at ${n.pos.toLocaleString()}`;
     },
   };
@@ -104,9 +111,11 @@ export function recombTrack(recomb, ax) {
     draw(g, top) {
       title(g, "Recombination rate (cM/Mb)", top);
       g.strokeStyle = "#2f6db5"; g.lineWidth = 1; g.beginPath();
-      recomb.forEach((r, k) => { const xx = ax.x(r.pos), yy = top + H - (r.rate / rmax) * (H - 14); k ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }); g.stroke();
+      recomb.forEach((r, k) => { const xx = ax.x(r.pos), yy = top + H - (r.rate / rmax) * (H - 14); k ? g.lineTo(xx, yy) : g.moveTo(xx, yy);
+        }); g.stroke();
     },
-    hover(gpos) { const near = nearest(recomb, gpos, r => r.pos, ax.span); return near && `${near.rate.toFixed(2)} cM/Mb at ${near.pos.toLocaleString()}`; },
+    hover(gpos) { const near = nearest(recomb, gpos, r => r.pos, ax.span);
+      return near && `${near.rate.toFixed(2)} cM/Mb at ${near.pos.toLocaleString()}`; },
   };
 }
 
@@ -115,8 +124,10 @@ export function collapse(genes) {
   const by = new Map();
   for (const t of genes) {
     const s = (t.exonStarts ?? "").split(",").filter(Boolean).map(Number), e = (t.exonEnds ?? "").split(",").filter(Boolean).map(Number);
-    const g = by.get(t.name2) ?? { name2: t.name2, name: t.name, strand: t.strand, txStart: t.txStart, txEnd: t.txEnd, exons: [], transcripts: 0 };
-    g.txStart = Math.min(g.txStart, t.txStart); g.txEnd = Math.max(g.txEnd, t.txEnd); g.transcripts++; s.forEach((a, k) => g.exons.push([a, e[k]])); by.set(t.name2, g);
+    const g = by.get(t.name2) ?? { name2: t.name2, name: t.name, strand: t.strand, txStart: t.txStart, txEnd: t.txEnd, exons: [],
+      transcripts: 0 };
+    g.txStart = Math.min(g.txStart, t.txStart); g.txEnd = Math.max(g.txEnd, t.txEnd); g.transcripts++; s.forEach((a, k) => g.exons.push([a,
+      e[k]])); by.set(t.name2, g);
   }
   return [...by.values()].sort((a, b) => a.txStart - b.txStart);
 }
@@ -126,7 +137,8 @@ const measure = document.createElement("canvas").getContext("2d");
 function transcripts(genes) {
   return genes.map(t => {
     const s = (t.exonStarts ?? "").split(",").filter(Boolean).map(Number), e = (t.exonEnds ?? "").split(",").filter(Boolean).map(Number);
-    return { name2: t.name2, name: t.name, strand: t.strand, txStart: t.txStart, txEnd: t.txEnd, exons: s.map((a, k) => [a, e[k]]), label: `${t.name2} (${t.name})` };
+    return { name2: t.name2, name: t.name, strand: t.strand, txStart: t.txStart, txEnd: t.txEnd, exons: s.map((a, k) => [a, e[k]]),
+      label: `${t.name2} (${t.name})` };
   }).sort((a, b) => a.txStart - b.txStart || a.txEnd - b.txEnd);
 }
 
@@ -146,8 +158,10 @@ export function genesTrack(genes, ax, { collapsed = true } = {}) {
       for (const { g: t, r } of placed) {
         const yy = top + 12 + r * 20, xs = Math.max(0, ax.x(t.txStart)), xe = Math.min(ax.W, ax.x(t.txEnd));
         g.fillStyle = g.strokeStyle = "#2b5d34"; line(g, xs, yy + 3, xe, yy + 3);
-        for (const [s0, e0] of t.exons) { const a = Math.max(0, ax.x(s0)), b = Math.min(ax.W, ax.x(e0)); if (b >= a) g.fillRect(a, yy, Math.max(1, b - a), 7); }
-        const text = t.label ?? t.name2; g.fillStyle = "#1d2330"; g.fillText(text, Math.max(0, Math.min(ax.W - g.measureText(text).width, xs)), yy + 8);
+        for (const [s0, e0] of t.exons) { const a = Math.max(0, ax.x(s0)), b = Math.min(ax.W, ax.x(e0)); if (b >= a) g.fillRect(a, yy,
+          Math.max(1, b - a), 7); }
+        const text = t.label ?? t.name2; g.fillStyle = "#1d2330"; g.fillText(text, Math.max(0, Math.min(ax.W - g.measureText(text).width,
+          xs)), yy + 8);
       }
     },
     hover(gpos, my, top) {
@@ -164,7 +178,8 @@ export function axisTrack(ax) {
       const step = niceStep(ax.span / 6); g.fillStyle = "#555"; g.strokeStyle = "#999"; line(g, 0, top + 2, ax.W, top + 2);
       let lastEnd = -Infinity;
       for (let t = Math.ceil(ax.lo / step) * step; t <= ax.hi; t += step) {
-        const label = `${(t / 1e6).toFixed(step < 1e5 ? 3 : 2)} Mb`, w = g.measureText(label).width, lx = Math.min(ax.W - w, Math.max(0, ax.x(t) - w / 2));
+        const label = `${(t / 1e6).toFixed(step < 1e5 ? 3 : 2)} Mb`, w = g.measureText(label).width, lx = Math.min(ax.W - w, Math.max(0,
+          ax.x(t) - w / 2));
         line(g, ax.x(t), top, ax.x(t), top + 6);
         if (lx > lastEnd + 8) { g.fillText(label, lx, top + 8); lastEnd = lx + w; }
       }
@@ -182,6 +197,7 @@ export function layout(tracks, y0 = 0) {
 export function drawTracks(g, tracks, tops) { tracks.forEach((t, k) => t.draw(g, tops[k])); }
 /** the hover text of the track whose band [tops[k], tops[k+1]) holds my (the last band ends at `end`) */
 export function hoverAt(tracks, { tops, end }, gpos, my) {
-  for (let k = 0; k < tracks.length; k++) if (my >= tops[k] && my < (k + 1 < tracks.length ? tops[k + 1] : end)) return tracks[k].hover(gpos, my, tops[k]);
+  for (let k = 0; k < tracks.length;
+    k++) if (my >= tops[k] && my < (k + 1 < tracks.length ? tops[k + 1] : end)) return tracks[k].hover(gpos, my, tops[k]);
   return null;
 }

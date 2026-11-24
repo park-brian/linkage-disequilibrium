@@ -6,7 +6,8 @@ export function cases() {
   const cs = [];
   for (const c of matrixCases()) {
     const ins = c.inputs.map(clean);
-    for (let i = 0; i < ins.length; i += 10) cs.push({ name: `${c.name} [${i}..]`, build: c.build, pop: c.pop, snps: ins.slice(i, i + 10) });
+    for (let i = 0; i < ins.length; i += 10) cs.push({ name: `${c.name} [${i}..]`, build: c.build, pop: c.pop, snps: ins.slice(i,
+      i + 10) });
     cs.push({ name: `${c.name} [first 30]`, build: c.build, pop: c.pop, snps: ins.slice(0, 30) });
   }
   const edge = (name, snps, pop = "CEU", build = "grch37") => cs.push({ name, build, pop, snps });
@@ -28,4 +29,5 @@ export async function ours(ctx, c) {
   const o = await ldhap(ctx, c);
   return { json: canon(o), text: o.error !== undefined ? null : ldhapText(o, c.build) };
 }
-export const verdict = (l, o) => (l.exception ? { verdict: "ldlink_exception", detail: { exception: l.exception } } : null); // null: default comparison
+export const verdict = (l, o) => (l.exception ? { verdict: "ldlink_exception", detail: { exception: l.exception } } : null);
+  // null: default comparison

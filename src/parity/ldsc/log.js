@@ -18,11 +18,13 @@ export function callHeader(script, options) {
   return `${h.slice(0, -1)}\n`;
 }
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+  "Oct", "Nov", "Dec"];
 /** time.ctime(): "Mon Nov  3 07:33:52 2026" (local time; the day is space-padded) */
 export function ctime(d = new Date()) {
   const p = n => String(n).padStart(2, "0");
-  return `${DAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${String(d.getDate()).padStart(2, " ")} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} ${d.getFullYear()}`;
+  return `${DAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${String(d.getDate()).padStart(2,
+    " ")} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} ${d.getFullYear()}`;
 }
 
 /** sec_to_str(round(seconds, 2)): "4.64s", "1m:2.3s", "2h:0m:1.0s" (Python divmod on floats, str() of the remainder) */

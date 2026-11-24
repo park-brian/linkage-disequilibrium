@@ -33,11 +33,13 @@ UNION ALL SELECT 'dump_rows', count(*) FROM q
 UNION ALL SELECT 'identical_records', sum(least(n_parse, n_dump)) FROM x WHERE n_parse IS NOT NULL AND n_dump IS NOT NULL
 UNION ALL SELECT 'parse_only_records', sum(n_parse - coalesce(n_dump, 0)) FROM x WHERE n_parse > coalesce(n_dump, 0)
 UNION ALL SELECT 'dump_only_records', sum(n_dump - coalesce(n_parse, 0)) FROM x WHERE n_dump > coalesce(n_parse, 0)
-UNION ALL SELECT 'dump_only_merged_copies(id<>ref_id)', sum(n_dump - coalesce(n_parse, 0)) FROM x WHERE n_dump > coalesce(n_parse, 0) AND id <> ref_id;
+UNION ALL SELECT 'dump_only_merged_copies(id<>ref_id)', sum(n_dump - coalesce(n_parse, 0)) FROM x WHERE n_dump > coalesce(n_parse,
+  0) AND id <> ref_id;
 
 -- order: does the dump keep the parser's order for the records both have?
 SELECT count(*) AS pairs, sum((pord_rank = ord_rank)::INT) AS same_rank FROM (
   SELECT row_number() OVER (ORDER BY pord) AS pord_rank, row_number() OVER (ORDER BY ord) AS ord_rank
-  FROM (SELECT p.pord, min(q.ord) AS ord FROM p JOIN q ON p.id IS NOT DISTINCT FROM q.id AND p.ref_id IS NOT DISTINCT FROM q.ref_id AND p.position_grch37 IS NOT DISTINCT FROM q.position_grch37 AND p.position_grch38 IS NOT DISTINCT FROM q.position_grch38 AND p.type IS NOT DISTINCT FROM q.type AND p.fset IS NOT DISTINCT FROM q.fset GROUP BY p.pord));
+  FROM (SELECT p.pord,
+    min(q.ord) AS ord FROM p JOIN q ON p.id IS NOT DISTINCT FROM q.id AND p.ref_id IS NOT DISTINCT FROM q.ref_id AND p.position_grch37 IS NOT DISTINCT FROM q.position_grch37 AND p.position_grch38 IS NOT DISTINCT FROM q.position_grch38 AND p.type IS NOT DISTINCT FROM q.type AND p.fset IS NOT DISTINCT FROM q.fset GROUP BY p.pord));
 
 COPY (SELECT * FROM x WHERE n_parse IS DISTINCT FROM n_dump ORDER BY hash(id) LIMIT 300) TO 'ncbi_dbsnp/b155/parse22_diff_samples.csv' (HEADER);

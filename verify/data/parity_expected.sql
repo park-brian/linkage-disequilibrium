@@ -32,8 +32,10 @@ CREATE OR REPLACE MACRO expected_coords(g) AS TABLE
 WITH picks AS (
   (SELECT key FROM query_table(g) USING SAMPLE reservoir(1500 ROWS) REPEATABLE (42))
   UNION ALL (SELECT key FROM (SELECT key FROM query_table(g) WHERE len(ids) > 1) USING SAMPLE reservoir(1000 ROWS) REPEATABLE (42))
-  UNION ALL (SELECT key FROM (SELECT key FROM query_table(g) WHERE len(ids) > 1 AND coalesce(len(refs), 0) = 0) USING SAMPLE reservoir(300 ROWS) REPEATABLE (42))
-  UNION ALL (SELECT key FROM (SELECT key FROM query_table(g) WHERE coalesce(len(refs), 0) > 1) USING SAMPLE reservoir(300 ROWS) REPEATABLE (42))
+  UNION ALL (SELECT key FROM (SELECT key FROM query_table(g) WHERE len(ids) > 1 AND coalesce(len(refs),
+    0) = 0) USING SAMPLE reservoir(300 ROWS) REPEATABLE (42))
+  UNION ALL (SELECT key FROM (SELECT key FROM query_table(g) WHERE coalesce(len(refs),
+    0) > 1) USING SAMPLE reservoir(300 ROWS) REPEATABLE (42))
   UNION ALL (SELECT key + 1 FROM query_table(g) USING SAMPLE reservoir(200 ROWS) REPEATABLE (42))
 )
 SELECT p.key, x.ids, x.refs,
@@ -45,7 +47,9 @@ SELECT p.key, x.ids, x.refs,
   (x.ids IS NOT NULL AND len(x.ids) > 1 AND coalesce(len(x.refs), 0) <> 1) AS expect_warning
 FROM (SELECT DISTINCT key FROM picks) p LEFT JOIN query_table(g) x USING (key);
 
-CREATE OR REPLACE TABLE g37 AS SELECT key, list(rsid ORDER BY ord) AS ids, list(rsid ORDER BY ord) FILTER (WHERE is_ref) AS refs FROM kp37 GROUP BY key;
+CREATE OR REPLACE TABLE g37 AS SELECT key, list(rsid ORDER BY ord) AS ids,
+  list(rsid ORDER BY ord) FILTER (WHERE is_ref) AS refs FROM kp37 GROUP BY key;
 COPY (SELECT * FROM expected_coords('g37')) TO 'dbsnp_dump/parity_pos37.json' (FORMAT json, ARRAY true);
-CREATE OR REPLACE TABLE g38 AS SELECT key, list(rsid ORDER BY ord) AS ids, list(rsid ORDER BY ord) FILTER (WHERE is_ref) AS refs FROM kp38 GROUP BY key;
+CREATE OR REPLACE TABLE g38 AS SELECT key, list(rsid ORDER BY ord) AS ids,
+  list(rsid ORDER BY ord) FILTER (WHERE is_ref) AS refs FROM kp38 GROUP BY key;
 COPY (SELECT * FROM expected_coords('g38')) TO 'dbsnp_dump/parity_pos38.json' (FORMAT json, ARRAY true);

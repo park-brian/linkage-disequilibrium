@@ -7,9 +7,13 @@ import { renderLocus, proxySpec, assocSpec } from "./views/locus.js";
 export const $ = (sel, el = document) => el.querySelector(sel);
 export const join = v => (Array.isArray(v) ? v.join("+") : v);
 export const show = nodes => $("#output").replaceChildren(...nodes);
-export function notice(msg, isError = false) { const d = document.createElement("div"); d.className = `notice${isError ? " error" : ""}`; d.textContent = msg; return d; }
-function card(title, ...children) { const c = document.createElement("div"); c.className = "card"; const h = document.createElement("h2"); h.textContent = title; c.append(h, ...children); return c; }
-function download(name, text, label = "Download") { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" })); a.download = name; a.click(); }; return b; }
+export function notice(msg, isError = false) { const d = document.createElement("div"); d.className = `notice${isError ? " error" : ""}`;
+  d.textContent = msg; return d; }
+function card(title, ...children) { const c = document.createElement("div"); c.className = "card"; const h = document.createElement("h2");
+  h.textContent = title; c.append(h, ...children); return c; }
+function download(name, text, label = "Download") { const b = document.createElement("button"); b.type = "button"; b.textContent = label;
+  b.onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  a.download = name; a.click(); }; return b; }
 function toolbar(...items) { const bar = document.createElement("div"); bar.className = "toolbar"; bar.append(...items); return bar; }
 /** rows of cells → table (the first row is the header) */
 function table(rows) {
@@ -18,7 +22,8 @@ function table(rows) {
   t.tHead.append(tr(head, "th")); for (const r of body) t.tBodies[0].append(tr(r, "td"));
   return t;
 }
-function tr(cells, tag) { const r = document.createElement("tr"); for (const c of cells) { const e = document.createElement(tag); e.textContent = c; r.append(e); } return r; }
+function tr(cells, tag) { const r = document.createElement("tr"); for (const c of cells) { const e = document.createElement(tag);
+  e.textContent = c; r.append(e); } return r; }
 
 /** LDlink's text outputs: tab-separated blocks (separated by blank lines / "###" rules) and free-text notes */
 export function showText(o) {
@@ -27,7 +32,8 @@ export function showText(o) {
   for (const b of o.text.split(/\n\s*\n|\n#{20,}\n/)) {
     const ls = b.split("\n").filter(l => l.length);
     if (!ls.length) continue;
-    if (ls.length > 1 && ls[0].includes("\t")) out.push(card("Result", toolbar(`${ls.length - 1} rows`, download("output.txt", o.text)), table(ls.map(l => l.split("\t")))));
+    if (ls.length > 1 && ls[0].includes("\t")) out.push(card("Result", toolbar(`${ls.length - 1} rows`, download("output.txt", o.text)),
+      table(ls.map(l => l.split("\t")))));
     else out.push(notice(ls.join("\n")));
   }
   if (o.warning) out.push(notice(o.warning));
@@ -40,10 +46,12 @@ export const moduleLink = (name, inputs) => `#${name}?${new URLSearchParams({ ..
 function linkMenu(e, links) {
   document.querySelector(".linkmenu")?.remove();
   const m = Object.assign(document.createElement("div"), { className: "linkmenu" });
-  for (const [text, href] of links) m.append(Object.assign(document.createElement("a"), { textContent: text, href, onclick: () => m.remove() }));
+  for (const [text, href] of links) m.append(Object.assign(document.createElement("a"), { textContent: text, href,
+    onclick: () => m.remove() }));
   m.style.left = `${e.clientX + 8}px`; m.style.top = `${e.clientY + 8}px`;
   document.body.append(m);
-  const close = ev => { if (ev.type === "keydown" ? ev.key === "Escape" : !m.contains(ev.target)) { m.remove(); removeEventListener("click", close, true); removeEventListener("keydown", close); } };
+  const close = ev => { if (ev.type === "keydown" ? ev.key === "Escape" : !m.contains(ev.target)) { m.remove(); removeEventListener("click",
+    close, true); removeEventListener("keydown", close); } };
   setTimeout(() => { addEventListener("click", close, true); addEventListener("keydown", close); });
 }
 
@@ -51,7 +59,8 @@ function linkMenu(e, links) {
  *  (proxySpec / assocSpec), title and the LDpair partner of a clicked point (the query or index variant) */
 async function showLocus(o, a, ctx, { spec, title, partner }) {
   if (o.error) return showText(o);
-  const p = o.plot, [genes, recomb] = await Promise.all([ctx.genes(a.build, p.chrom, p.lo, p.hi), ctx.recomb(a.build, p.chrom, p.lo, p.hi)]);
+  const p = o.plot, [genes, recomb] = await Promise.all([ctx.genes(a.build, p.chrom, p.lo, p.hi), ctx.recomb(a.build, p.chrom, p.lo,
+    p.hi)]);
   const holder = document.createElement("div"), pop = join(a.pop);
   showText(o);
   $("#output").prepend(card(`${title(p)} (${pop}, ${a.build})`, holder));
@@ -83,7 +92,8 @@ export function showPair(o) {
   const haps = table([["Haplotype", "Count", "Frequency"], ...Object.values(p.haplotypes).map(h => [h.alleles, h.count, h.frequency])]);
   const st = table([["D′", "R²", "χ²", "p"], [p.statistics.d_prime, p.statistics.r2, p.statistics.chisq, p.statistics.p]]);
   const notes = p.corr_alleles.map(x => Object.assign(document.createElement("p"), { textContent: x, className: "note" }));
-  show([card(`${s1.rsnum} (${s1.coord}) × ${s2.rsnum} (${s2.coord})`, grid), card("Haplotypes", haps), card("Statistics", st, ...notes), ...(p.warning ? [notice(p.warning)] : [])]);
+  show([card(`${s1.rsnum} (${s1.coord}) × ${s2.rsnum} (${s2.coord})`, grid), card("Haplotypes", haps), card("Statistics", st, ...notes),
+    ...(p.warning ? [notice(p.warning)] : [])]);
 }
 
 export function showPyramid(o, a) {
@@ -91,9 +101,11 @@ export function showPyramid(o, a) {
   window.__lastPyramid = o; // debugging aid: the last region result (grids, rows, timings)
   const bar = toolbar(`chr${o.chrom}:${o.lo.toLocaleString()}–${o.hi.toLocaleString()} · ${o.rows.length.toLocaleString()} variants · ${o.evaluated.toLocaleString()} pairs evaluated, ${o.pairs.toLocaleString()} ≥ ${a.threshold} · data ${o.tData} ms, LD + pixels ${o.ms.wall} ms on ${o.workers} worker${o.workers > 1 ? "s" : ""} (${o.backend}; slowest share ${o.ms.kernel} + ${o.ms.aggregate} ms), merge ${o.ms.merge} ms`);
   const holder = document.createElement("div");
-  show([card(`LD pyramid — ${a.r2_d === "r2" ? "r²" : "D′"}, ${join(a.pop)}, ${a.build} (each pixel: the strongest pair there)`, bar, holder)]);
+  show([card(`LD pyramid — ${a.r2_d === "r2" ? "r²" : "D′"}, ${join(a.pop)}, ${a.build} (each pixel: the strongest pair there)`, bar,
+    holder)]);
   const ctx = { pop: join(a.pop), build: a.build };
-  renderPyramid(holder, { ...o, stat: a.r2_d, onPair: (v1, v2, e) => linkMenu(e, [[`LDpair: ${v1} × ${v2}`, moduleLink("LDpair", { var1: v1, var2: v2, ...ctx })],
+  renderPyramid(holder, { ...o, stat: a.r2_d, onPair: (v1, v2, e) => linkMenu(e, [[`LDpair: ${v1} × ${v2}`, moduleLink("LDpair", { var1: v1,
+    var2: v2, ...ctx })],
     [`LDproxy: ${v1}`, moduleLink("LDproxy", { var: v1, ...ctx })], [`LDproxy: ${v2}`, moduleLink("LDproxy", { var: v2, ...ctx })]]) });
 }
 
@@ -106,7 +118,8 @@ export async function showMatrix(o, a, ctx) {
   const tsv = m => grid(m).map(r => r.join("\t")).join("\n") + "\n";
   const holder = document.createElement("div");
   show([card(`LDmatrix — D′ below the diagonal, r² above (${join(a.pop)}, ${a.build})`,
-    toolbar(`${o.ids.length} variants · chr${chrom}:${lo.toLocaleString()}–${hi.toLocaleString()}`, download("r2.txt", tsv(o.r2), "Download r²"), download("dprime.txt", tsv(o.d), "Download D′")), holder),
+    toolbar(`${o.ids.length} variants · chr${chrom}:${lo.toLocaleString()}–${hi.toLocaleString()}`, download("r2.txt", tsv(o.r2),
+      "Download r²"), download("dprime.txt", tsv(o.d), "Download D′")), holder),
     card("r²", table(grid(o.r2))), card("D′", table(grid(o.d)))]);
   renderMatrix(holder, { ids: o.ids, pos, chrom, r2: o.r2, d: o.d, genes, lo: lo - pad, hi: hi + pad });
 }

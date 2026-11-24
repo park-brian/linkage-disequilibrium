@@ -25,7 +25,8 @@ export function pyStr(x) {
   if (!Number.isFinite(x)) return Number.isNaN(x) ? "nan" : x > 0 ? "inf" : "-inf";
   if (Object.is(x, -0)) return "-0.0";
   const a = Math.abs(x);
-  if (a !== 0 && (a < 1e-4 || a >= 1e16)) { const [m, e] = x.toExponential().split("e"); return `${m}e${e[0]}${e.slice(1).padStart(2, "0")}`; }
+  if (a !== 0 && (a < 1e-4 || a >= 1e16)) { const [m, e] = x.toExponential().split("e"); return `${m}e${e[0]}${e.slice(1).padStart(2,
+    "0")}`; }
   const s = String(x); return s.includes(".") ? s : `${s}.0`;
 }
 /** str(round(x, nd)) */

@@ -18,22 +18,26 @@ export function createAnnotations(file) {
     return firstRows((await sortedLookup({ file: f, metadata, column, keys, columns, compressors })).rows, column);
   }
   /** FORGEdb find_one({snp_id}) per rsID digits → Map(id → score) */
-  const forge = async ids => new Map([...(await firstBy("annotations/forge_rsid.parquet", "rsid", [...new Set(ids)].map(BigInt), ["rsid", "score"]))].map(([k, r]) => [k, r.score]));
+  const forge = async ids => new Map([...(await firstBy("annotations/forge_rsid.parquet", "rsid", [...new Set(ids)].map(BigInt), ["rsid",
+    "score"]))].map(([k, r]) => [k, r.score]));
   /** FORGEdb by position: the per-build file holds each rsID once, at its first dbSNP doc's position → Map(pos → [{ rsid, score }]) */
   async function forgeAt(build, chrom, positions) {
     const out = new Map(positions.map(p => [p, []])); if (!positions.length) return out;
     const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/forge.parquet`);
-    for (const r of (await sortedLookup({ file: f, metadata, column: "key", keys: positions.map(p => gkey(chrom, p)), columns: ["key", "rsid", "score"], compressors })).rows) out.get(keyPos(r.key))?.push(r);
+    for (const r of (await sortedLookup({ file: f, metadata, column: "key", keys: positions.map(p => gkey(chrom, p)), columns: ["key",
+      "rsid", "score"], compressors })).rows) out.get(keyPos(r.key))?.push(r);
     return out;
   }
   /** RegulomeDB find_one({chromosome, position}) → Map(pos → score) */
   async function regulome(build, chrom, positions) {
-    const m = await firstBy(`annotations/${BUILDS[build].positions}/regulome.parquet`, "key", positions.map(p => gkey(chrom, p)), ["key", "score"]);
+    const m = await firstBy(`annotations/${BUILDS[build].positions}/regulome.parquet`, "key", positions.map(p => gkey(chrom, p)), ["key",
+      "score"]);
     return new Map(positions.map(p => [p, m.get(String(gkey(chrom, p)))?.score ?? null]));
   }
   /** db.platforms, in collection order: [{ platform, code }] */
   const platforms = once(async () => { const { file: f, metadata } = await need("annotations/platforms.parquet"); let r = [];
-    await parquetRead({ file: f, metadata, compressors, columns: ["platform", "code"], rowFormat: "object", onComplete: x => { r = x; } }); return r; });
+    await parquetRead({ file: f, metadata, compressors, columns: ["platform", "code"], rowFormat: "object", onComplete: x => { r = x; } });
+      return r; });
   /** LDlink's population sample lists (annotations/panels.parquet, read once): Map(pop → [sample IDs in file order]) */
   const panels = once(async () => { const { file: f, metadata } = await need("annotations/panels.parquet"); let r = [];
     await parquetRead({ file: f, metadata, compressors, columns: ["pop", "sample"], rowFormat: "object", onComplete: x => { r = x; } });
@@ -42,7 +46,8 @@ export function createAnnotations(file) {
   async function arrays(build, points) {
     const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/arrays.parquet`), out = new Map();
     const keys = points.map(([c, p]) => gkey(c, p)), names = new Map(points.map(([c, p]) => [String(gkey(c, p)), `${c}:${p}`]));
-    if (keys.length) for (const r of (await sortedLookup({ file: f, metadata, column: "key", keys, columns: ["key", "platforms"], compressors })).rows) {
+    if (keys.length) for (const r of (await sortedLookup({ file: f, metadata, column: "key", keys, columns: ["key", "platforms"],
+      compressors })).rows) {
       const k = names.get(String(r.key)); if (!out.has(k)) out.set(k, []); out.get(k).push(r.platforms ?? "");
     }
     return out;
@@ -57,37 +62,48 @@ export function createAnnotations(file) {
   /** the LDexpress $match → $lookup gtex_tissues → $lookup gtex_genes pipeline (both $unwind: inner joins) at one
    *  position, index order; → [{ gene_id, tissue, slope, pval_nominal, tissueSiteDetail, gene_name_v26, ncbi_id }] */
   const gtexRefs = once(async () => {
-    const read = async (path, columns) => { const { file: f, metadata } = await need(path); let r = []; await parquetRead({ file: f, metadata, compressors, columns, rowFormat: "object", onComplete: x => { r = x; } }); return r; };
+    const read = async (path, columns) => { const { file: f, metadata } = await need(path); let r = []; await parquetRead({ file: f,
+      metadata, compressors, columns, rowFormat: "object", onComplete: x => { r = x; } }); return r; };
     const tissues = new Map(), genes = new Map();
-    for (const t of await read("annotations/gtex_tissues.parquet", ["tissueSiteDetailId", "tissueSiteDetail"])) { if (!tissues.has(t.tissueSiteDetailId)) tissues.set(t.tissueSiteDetailId, []); tissues.get(t.tissueSiteDetailId).push(t); }
-    for (const g of await read("annotations/gtex_genes.parquet", ["gene_id_v26", "gene_name_v26", "ncbi_id"])) { if (!genes.has(g.gene_id_v26)) genes.set(g.gene_id_v26, []); genes.get(g.gene_id_v26).push(g); }
+    for (const t of await read("annotations/gtex_tissues.parquet", ["tissueSiteDetailId",
+      "tissueSiteDetail"])) { if (!tissues.has(t.tissueSiteDetailId)) tissues.set(t.tissueSiteDetailId, []);
+      tissues.get(t.tissueSiteDetailId).push(t); }
+    for (const g of await read("annotations/gtex_genes.parquet", ["gene_id_v26", "gene_name_v26",
+      "ncbi_id"])) { if (!genes.has(g.gene_id_v26)) genes.set(g.gene_id_v26, []); genes.get(g.gene_id_v26).push(g); }
     return { tissues, genes };
   });
   /** every eQTL in [lo, hi] for the tissues (a track: position, gene, tissue, slope, p), joined like LDexpress */
   async function eqtlRange(build, chrom, lo, hi, tissueIds) {
-    const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/gtex_eqtl.parquet`), { tissues, genes } = await gtexRefs(), want = new Set(tissueIds);
+    const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/gtex_eqtl.parquet`), { tissues,
+      genes } = await gtexRefs(), want = new Set(tissueIds);
     const out = [];
-    for (const r of await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "gene_id", "tissue", "slope", "pval_nominal"], compressors })) {
+    for (const r of await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key",
+      "gene_id", "tissue", "slope", "pval_nominal"], compressors })) {
       if (!want.has(r.tissue)) continue;
       const g = genes.get(r.gene_id)?.[0], t = tissues.get(r.tissue)?.[0];
-      out.push({ pos: keyPos(r.key), gene: g?.gene_name_v26 ?? r.gene_id, tissue: t?.tissueSiteDetail ?? r.tissue, slope: r.slope, p: r.pval_nominal });
+      out.push({ pos: keyPos(r.key), gene: g?.gene_name_v26 ?? r.gene_id, tissue: t?.tissueSiteDetail ?? r.tissue, slope: r.slope,
+        p: r.pval_nominal });
     }
     return out;
   }
   async function eqtl(build, chrom, positions, tissueIds) {
-    const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/gtex_eqtl.parquet`), { tissues, genes } = await gtexRefs(), want = new Set(tissueIds);
+    const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/gtex_eqtl.parquet`), { tissues,
+      genes } = await gtexRefs(), want = new Set(tissueIds);
     const keys = [...new Set(positions)].map(p => gkey(chrom, p)), out = new Map();
-    if (keys.length) for (const r of (await sortedLookup({ file: f, metadata, column: "key", keys, columns: ["key", "gene_id", "tissue", "slope", "pval_nominal"], compressors })).rows) {
+    if (keys.length) for (const r of (await sortedLookup({ file: f, metadata, column: "key", keys, columns: ["key", "gene_id", "tissue",
+      "slope", "pval_nominal"], compressors })).rows) {
       if (!want.has(r.tissue)) continue;
       const pos = keyPos(r.key); if (!out.has(pos)) out.set(pos, []);
       for (const t of tissues.get(r.tissue) ?? []) for (const g of genes.get(r.gene_id) ?? [])
-        out.get(pos).push({ gene_id: r.gene_id, slope: r.slope, pval_nominal: r.pval_nominal, tissueSiteDetail: t.tissueSiteDetail, gene_name_v26: g.gene_name_v26, ncbi_id: g.ncbi_id });
+        out.get(pos).push({ gene_id: r.gene_id, slope: r.slope, pval_nominal: r.pval_nominal, tissueSiteDetail: t.tissueSiteDetail,
+          gene_name_v26: g.gene_name_v26, ncbi_id: g.ncbi_id });
     }
     return out;
   }
   /** db.genes_name_coords.find_one({name}) → { chrom, begin, end } for the build (null fields = "NA"), or null */
   const geneNames = once(async () => { const { file: f, metadata } = await need("annotations/gene_names.parquet"); let r = [];
-      await parquetRead({ file: f, metadata, compressors, rowFormat: "object", onComplete: x => { r = x; } }); const m = new Map(); for (const g of r) if (!m.has(g.name)) m.set(g.name, g); return m; });
+      await parquetRead({ file: f, metadata, compressors, rowFormat: "object", onComplete: x => { r = x; } }); const m = new Map();
+        for (const g of r) if (!m.has(g.name)) m.set(g.name, g); return m; });
   async function gene(name, build) {
     const g = (await geneNames()).get(name), b = BUILDS[build].positions;
     return g ? { chrom: g[`chromosome_${b}`], begin: g[`begin_${b}`], end: g[`end_${b}`] } : null;
@@ -95,20 +111,23 @@ export function createAnnotations(file) {
   /** refGene transcripts overlapping [lo, hi] (keyed by txStart; the longest human transcripts are < 2.5 Mb) */
   async function genes(build, chrom, lo, hi) {
     const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/genes.parquet`);
-    const rows = await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, Math.max(0, lo - 2_500_000)), hi: gkey(chrom, hi), compressors,
+    const rows = await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, Math.max(0, lo - 2_500_000)), hi: gkey(chrom, hi),
+      compressors,
       columns: ["key", "txStart", "txEnd", "name", "name2", "strand", "cdsStart", "cdsEnd", "exonStarts", "exonEnds"] });
     return rows.filter(r => r.txEnd >= lo);
   }
   /** FORGEdb scores of the rsIDs whose first dbSNP doc lies in [lo, hi] (forge.parquet, file order) → [{ pos, rsid, score }] */
   async function forgeRange(build, chrom, lo, hi) {
     const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/forge.parquet`);
-    return (await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "rsid", "score"], compressors }))
+    return (await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "rsid", "score"],
+      compressors }))
       .map(r => ({ pos: keyPos(r.key), rsid: r.rsid, score: r.score }));
   }
   /** RegulomeDB ranks in [lo, hi]: the first row per position, as find_one({chromosome, position}) → [{ pos, score }] */
   async function regulomeRange(build, chrom, lo, hi) {
     const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/regulome.parquet`), seen = new Set(), out = [];
-    for (const r of await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "score"], compressors })) {
+    for (const r of await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "score"],
+      compressors })) {
       const pos = keyPos(r.key); if (!seen.has(pos)) { seen.add(pos); out.push({ pos, score: r.score }); }
     }
     return out;
@@ -116,7 +135,9 @@ export function createAnnotations(file) {
   /** recombination rate points (cM/Mb) at positions in [lo, hi] */
   async function recomb(build, chrom, lo, hi) {
     const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/recomb.parquet`);
-    return (await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "rate"], compressors })).map(r => ({ pos: keyPos(r.key), rate: r.rate }));
+    return (await rangeScan({ file: f, metadata, column: "key", lo: gkey(chrom, lo), hi: gkey(chrom, hi), columns: ["key", "rate"],
+      compressors })).map(r => ({ pos: keyPos(r.key), rate: r.rate }));
   }
-  return { genes, recomb, forge, forgeAt, forgeRange, regulome, regulomeRange, platforms, panels, arrays, gwas, eqtl, eqtlRange, gene, gtexTissueIds: async () => [...(await gtexRefs()).tissues.keys()] };
+  return { genes, recomb, forge, forgeAt, forgeRange, regulome, regulomeRange, platforms, panels, arrays, gwas, eqtl, eqtlRange, gene,
+    gtexTissueIds: async () => [...(await gtexRefs()).tissues.keys()] };
 }

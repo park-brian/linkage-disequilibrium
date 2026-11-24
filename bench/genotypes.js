@@ -25,25 +25,30 @@ async function pageStats(path) {
   const hapsIdx = metadata.row_groups[0].columns.findIndex(c => c.meta_data.path_in_schema[0] === "haps");
   const sizes = [], rows = [];
   for (const rg of metadata.row_groups) {
-    const c = rg.columns[hapsIdx]; if (!c.offset_index_length) continue; const buf = await file.slice(Number(c.offset_index_offset), Number(c.offset_index_offset) + c.offset_index_length);
+    const c = rg.columns[hapsIdx]; if (!c.offset_index_length) continue; const buf = await file.slice(Number(c.offset_index_offset),
+      Number(c.offset_index_offset) + c.offset_index_length);
     const locs = readOffsetIndex({ view: new DataView(buf), offset: 0 }).page_locations;
-    locs.forEach((l, i) => { sizes.push(l.compressed_page_size); rows.push((i + 1 < locs.length ? Number(locs[i + 1].first_row_index) : Number(rg.num_rows)) - Number(l.first_row_index)); });
+    locs.forEach((l, i) => { sizes.push(l.compressed_page_size);
+      rows.push((i + 1 < locs.length ? Number(locs[i + 1].first_row_index) : Number(rg.num_rows)) - Number(l.first_row_index)); });
   }
   if (!sizes.length) return { haps_pages: 0, note: "no offset index on haps" };
   sizes.sort((a, b) => a - b); rows.sort((a, b) => a - b);
-  return { haps_pages: sizes.length, haps_page_KB_median: +(sizes[sizes.length >> 1] / 1024).toFixed(1), rows_per_page_median: rows[rows.length >> 1] };
+  return { haps_pages: sizes.length, haps_page_KB_median: +(sizes[sizes.length >> 1] / 1024).toFixed(1),
+    rows_per_page_median: rows[rows.length >> 1] };
 }
 async function scan(path, lo, hi) {
   const { raw, file, metadata } = await open(path), t0 = performance.now();
   // pos is sorted: find row range from row-group stats, then read with rowStart/rowEnd using the page index via filter
   let n = 0;
-  await parquetRead({ file, metadata, compressors, utf8: false, columns: COLUMNS, rowFormat: "object", filter: { pos: { $gte: lo, $lte: hi } }, onComplete: r => { n = r.length; } });
+  await parquetRead({ file, metadata, compressors, utf8: false, columns: COLUMNS, rowFormat: "object", filter: { pos: { $gte: lo,
+    $lte: hi } }, onComplete: r => { n = r.length; } });
   return { rows: n, requests: raw.stats.requests, KB: Math.round(raw.stats.bytes / 1024), ms: Math.round(performance.now() - t0) };
 }
 async function points(path, keys) {
   const { raw, file, metadata } = await open(path), t0 = performance.now();
   const r = await sortedLookup({ file, metadata, column: "pos", keys, columns: COLUMNS, compressors,  });
-  return { found: r.rows.length, ranges: r.ranges, requests: raw.stats.requests, KB: Math.round(raw.stats.bytes / 1024), KB_per_point: +(raw.stats.bytes / 1024 / keys.length).toFixed(1), ms: Math.round(performance.now() - t0) };
+  return { found: r.rows.length, ranges: r.ranges, requests: raw.stats.requests, KB: Math.round(raw.stats.bytes / 1024),
+    KB_per_point: +(raw.stats.bytes / 1024 / keys.length).toFixed(1), ms: Math.round(performance.now() - t0) };
 }
 // positions to probe: sample real positions from each file so every probe hits
 async function allPositions(path) {

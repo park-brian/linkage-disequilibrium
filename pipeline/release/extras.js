@@ -20,9 +20,12 @@ const [root] = process.argv.slice(2);
 if (!root) { console.error("usage: node pipeline/release/extras.js <release>"); process.exit(2); }
 
 const pops = readdirSync(PANELS).filter(f => f.endsWith(".txt")).map(f => f.slice(0, -4)).sort(), pop = [], sample = [];
-for (const p of pops) for (const s of readFileSync(`${PANELS}/${p}.txt`, "utf8").split(/\s+/).filter(Boolean)) { pop.push(p); sample.push(s); }
-parquetWriteFile({ filename: `${root}/annotations/panels.parquet`, codec: "ZSTD", compressors: { ZSTD: zstdCompressSync }, rowGroupSize: pop.length,
-  columnData: [{ name: "pop", data: pop, type: "STRING", nullable: false }, { name: "sample", data: sample, type: "STRING", nullable: false }] });
+for (const p of pops) for (const s of readFileSync(`${PANELS}/${p}.txt`, "utf8").split(/\s+/).filter(Boolean)) { pop.push(p);
+  sample.push(s); }
+parquetWriteFile({ filename: `${root}/annotations/panels.parquet`, codec: "ZSTD", compressors: { ZSTD: zstdCompressSync },
+  rowGroupSize: pop.length,
+  columnData: [{ name: "pop", data: pop, type: "STRING", nullable: false }, { name: "sample", data: sample, type: "STRING",
+    nullable: false }] });
 
 const LDSCORE = data("ldscore_src/ldscore");
 const EXAMPLES = [
@@ -32,7 +35,8 @@ const EXAMPLES = [
 // ldsc's logged panel sizes; V8 caps a Set near 16.7 M entries, so the distinct IDs are counted in 16 shards
 const counts = { pop: [], rows: [] };
 for (const f of readdirSync(`${root}/ldscore`).filter(f => f.endsWith(".parquet") && !/^(w_hm3|ldsc_counts)/.test(f)).sort()) {
-  const file = await asyncBufferFromFile(`${root}/ldscore/${f}`), metadata = await parquetMetadataAsync(file), shards = Array.from({ length: 16 }, () => new Set());
+  const file = await asyncBufferFromFile(`${root}/ldscore/${f}`), metadata = await parquetMetadataAsync(file),
+    shards = Array.from({ length: 16 }, () => new Set());
   let rowStart = 0;
   for (const rg of metadata.row_groups) {
     const rowEnd = rowStart + Number(rg.num_rows);
@@ -46,9 +50,11 @@ for (const f of readdirSync(`${root}/ldscore`).filter(f => f.endsWith(".parquet"
   counts.pop.push(f.replace(/\.parquet$/, "")); counts.rows.push(BigInt(shards.reduce((a, s) => a + s.size, 0)));
 }
 parquetWriteFile({ filename: `${root}/ldscore/ldsc_counts.parquet`, codec: "ZSTD", compressors: { ZSTD: zstdCompressSync },
-  columnData: [{ name: "pop", data: counts.pop, type: "STRING", nullable: false }, { name: "rows", data: counts.rows, type: "INT64", nullable: false }] });
+  columnData: [{ name: "pop", data: counts.pop, type: "STRING", nullable: false }, { name: "rows", data: counts.rows, type: "INT64",
+    nullable: false }] });
 
 mkdirSync(`${root}/examples`, { recursive: true });
 for (const [from, name] of EXAMPLES) copyFileSync(from, `${root}/examples/${name}`);
-console.log(JSON.stringify({ ldscRows: Object.fromEntries(counts.pop.map((p, i) => [p, Number(counts.rows[i])])), pops: pops.length, samples: pop.length, panelsBytes: statSync(`${root}/annotations/panels.parquet`).size,
+console.log(JSON.stringify({ ldscRows: Object.fromEntries(counts.pop.map((p, i) => [p, Number(counts.rows[i])])), pops: pops.length,
+  samples: pop.length, panelsBytes: statSync(`${root}/annotations/panels.parquet`).size,
   examples: Object.fromEntries(EXAMPLES.map(([, n]) => [n, statSync(`${root}/examples/${n}`).size])) }));
