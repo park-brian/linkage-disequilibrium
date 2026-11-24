@@ -1,14 +1,16 @@
-// The locus lens: the set on its genomic axis. From the top: with one variant selected, every common variant's LD with
-// it (LDproxy's question, as a track); GWAS Catalog hits; recombination; genes; the set's variants as ticks on the axis;
-// and the LD pyramid of the window hanging from that axis (pairs at midpoint × half distance, each pixel the strongest
-// pair, computed in the worker pool as the region view does). A click on a tick or a point selects that variant; a
-// click in the pyramid selects that pixel's pair, whose two 45° rails are then drawn down to it.
+// The locus: what is held, on its genomic axis. From the top: every common variant's LD with the one held variant
+// (LDproxy's question as a track; its space is always there, so holding a variant never moves the figure); GWAS
+// Catalog hits; recombination; genes; the set's variants as ticks on the axis; and the LD pyramid of the window hanging
+// from that axis (pairs at midpoint × half distance, each pixel the strongest pair, computed in the worker pool as the
+// region view does). It is the answer for a region and the context beside every other answer. A click on a tick or a
+// point holds that variant (Shift or Ctrl click adds or removes it); a click in the pyramid holds that pixel's pair,
+// whose two 45° rails are drawn down to it.
 import { pyramid } from "../workers/pool.js";
 import { axisOf, gwasTrack, recombTrack, genesTrack, axisTrack, layout, drawTracks, hoverAt, pointer, canvas, tooltip,
   line } from "../views/tracks.js";
 import { h, ramp, INK, STAT, fix, mb } from "./dom.js";
 import { windowOf, MAX_REGION_ROWS } from "./set.js";
-import { clickSelect } from "./table.js";
+import { clickHold } from "./table.js";
 
 const MUTED = "#8a8f98", GRID = "#e9e7e1", DARK = "#16181d", MAX_DIST = 500_000, THRESHOLD = 0.05;
 
@@ -41,7 +43,7 @@ async function withAnchor(ctx, S, w, d, labels, g) {
 }
 
 function proxyTrack(points, ax, stat, anchor, memberPos) {
-  const H = 176, T = 20, y = (top, v) => top + T + (1 - v) * (H - T - 8), px = points.filter(p => !Number.isNaN(p.v));
+  const H = 132, T = 20, y = (top, v) => top + T + (1 - v) * (H - T - 8), px = points.filter(p => !Number.isNaN(p.v));
   const near = (gpos, my, top) => { let best = null, bd = 7;
     for (const p of px) { const d = Math.hypot(((p.pos - gpos) / ax.span) * ax.W, y(top, p.v) - my); if (d < bd) { bd = d; best = p; } }
     return best; };
@@ -64,6 +66,17 @@ function proxyTrack(points, ax, stat, anchor, memberPos) {
         + `${Math.abs(p.pos - anchor.pos).toLocaleString()} bp away`; },
     pick: (gpos, my, top) => near(gpos, my, top)?.label,
   };
+}
+
+/** the anchor track's place when no single variant is held: the same height, so the figure below never moves */
+function emptyTrack(ax, stat) {
+  const H = 132, T = 20, y = (top, v) => top + T + (1 - v) * (H - T - 8);
+  return { height: H, gap: 12, hover: () => null,
+    draw(g, top) {
+      g.fillStyle = MUTED; g.fillText(`${STAT[stat]} with one variant: click a variant to hold it`, 2, top);
+      for (const t of [0, 0.5, 1]) { g.strokeStyle = GRID; line(g, 0, y(top, t), ax.W, y(top, t)); g.fillText(String(t), ax.W - 18,
+        y(top, t) - 12); }
+    } };
 }
 
 function setTrack(members, ax, selPos) {
@@ -91,23 +104,24 @@ function setTrack(members, ax, selPos) {
 }
 
 export async function locus(env) {
-  const { ctx, S, set, sel } = env, first = set.ok.find(r => sel.includes(r.label));
-  // a set on several chromosomes: the locus of the selected variant's chromosome
+  // what the figure marks: the ticked variants, or a set of one or two itself
+  const { ctx, S, set } = env, marked = env.pick.length ? env.pick : env.labels.length <= 2 ? env.labels : [];
+  const first = set.ok.find(r => marked.includes(r.label));
+  // a set on several chromosomes: the locus of the held variant's chromosome
   let w = windowOf(set);
   if (w.error && first) w = windowOf({ kind: "list", ok: set.ok.filter(r => r.chrom === first.chrom) });
   if (w.error) return env.say(w.error);
   const d = await windowData(ctx, S.build, w), n = d.rows.length;
   if (n < 2) return env.say("Fewer than two common 1000 Genomes variants in this window.");
   if (n > MAX_REGION_ROWS) return env.say(`${n.toLocaleString()} common variants in this window: narrow the set.`);
-  const W = Math.max(520, Math.min(1280, env.figure.clientWidth)), ids = await ctx.popIds(S.pop);
+  const W = Math.max(env.compact ? 380 : 520, Math.min(1280, env.figure.clientWidth)), ids = await ctx.popIds(S.pop);
   const labels = d.rows.map(r => (r.rsid != null ? `rs${r.rsid}` : `chr${w.chrom}:${r.pos}`));
   // label → position: the window's labels, then the set's own (a list's dbSNP label wins over the panel's)
   const posOf = new Map(labels.map((l, i) => [l, d.rows[i].pos])),
     rowOf = new Map(labels.map((l, i) => [l, { ...d.rows[i], chrom: w.chrom }]));
   for (const r of set.ok) if (r.chrom === w.chrom) { posOf.set(r.label, r.pos); rowOf.set(r.label, r.g); }
   known.clear(); for (const [l, r] of rowOf) known.set(l, r);
-  const members = set.ok.filter(r => r.chrom === w.chrom && r.pos >= w.lo && r.pos <= w.hi), chosen = sel.filter(l => posOf.has(l)),
-    picked = chosen.length || set.ok.length !== 1 ? chosen : [set.ok[0].label]; // a set of one variant is its own anchor
+  const members = set.ok.filter(r => r.chrom === w.chrom && r.pos >= w.lo && r.pos <= w.hi), picked = marked.filter(l => posOf.has(l));
   const anchor = picked.length === 1 ? { label: picked[0], pos: posOf.get(picked[0]) } : null;
   const [res, points] = await Promise.all([inTurn(() => (env.stale() ? null : pyramid(d.rows.map(r => ({ pos: r.pos, haps: r.haps,
     missing: r.missing, male_haploid: r.male_haploid })), { samples: d.smp.ids.length, haploidMales: [...d.smp.haploidMales],
@@ -117,7 +131,8 @@ export async function locus(env) {
   if (!res || env.stale()) return;
 
   const ax = axisOf(w.lo, w.hi, W), selPos = new Set(picked.map(l => posOf.get(l))), memberPos = new Set(members.map(m => m.pos));
-  const tracks = [...(anchor ? [proxyTrack(points, ax, S.stat, anchor, memberPos)] : []), ...(d.gwas.length ? [gwasTrack(d.gwas, ax)] : []),
+  const tracks = [anchor ? proxyTrack(points, ax, S.stat, anchor, memberPos) : emptyTrack(ax, S.stat),
+    ...(d.gwas.length ? [gwasTrack(d.gwas, ax)] : []),
     recombTrack(d.recomb, ax), genesTrack(d.genes, ax), setTrack(members, ax, selPos), axisTrack(ax)];
   const lay = layout(tracks), Y0 = lay.end, { H, grid, bi, bj } = res, { cv, g, dpr } = canvas(W, Y0 + H);
   g.font = "11px system-ui"; g.textBaseline = "top";
@@ -132,7 +147,8 @@ export async function locus(env) {
   g.putImageData(img, 0, Y0 * dpr);
   // the selection: a hairline up through the tracks, and the 45° rails pairs of that variant lie on; two meet at the pair
   g.save(); g.beginPath(); g.rect(0, 0, W, Y0 + H); g.clip(); g.strokeStyle = "rgba(22,24,29,.45)";
-  for (const p of selPos) { const X = ax.x(p); line(g, X, 0, X, Y0); line(g, X, Y0, X + H, Y0 + H); line(g, X, Y0, X - H, Y0 + H); }
+  for (const p of selPos) { const X = ax.x(p); line(g, X, 0, X, Y0);
+    if (selPos.size <= 2) { line(g, X, Y0, X + H, Y0 + H); line(g, X, Y0, X - H, Y0 + H); } }
   if (selPos.size === 2) { const [a, b] = [...selPos].sort((x, y) => x - y), X = ax.x((a + b) / 2), Y = Y0 + ((b - a) / 2 / ax.span) * W;
     g.strokeStyle = DARK; g.lineWidth = 1.5; g.beginPath(); g.arc(X, Y, 5, 0, 7); g.stroke(); }
   g.restore();
@@ -149,11 +165,12 @@ export async function locus(env) {
   });
   cv.addEventListener("click", e => {
     const [mx, my] = pointer(cv, e), o = at(mx, my);
-    if (o >= 0) return env.select([labels[bi[o]], labels[bj[o]]]);
+    if (o >= 0) return env.hold([labels[bi[o]], labels[bj[o]]]);
     const label = my < Y0 ? pickAt(mx, my) : null;
-    if (label) env.select(clickSelect(sel, label, e.ctrlKey || e.metaKey || e.shiftKey).slice(-2));
+    if (label) env.hold(clickHold(env.pick, label, e.ctrlKey || e.metaKey || e.shiftKey));
   });
   env.headline(`Chromosome ${w.chrom}, ${mb(w.lo)} to ${mb(w.hi)}`);
+  env.image(cv, "locus.png");
   env.show(cv, tip);
   const swatch = h("span.ramp", { style: `background:linear-gradient(90deg,${ramp(S.stat, 0)},${ramp(S.stat, 1)})` });
   env.caption(h("span", { title: `${res.evaluated.toLocaleString()} pairs evaluated, `
@@ -162,14 +179,4 @@ export async function locus(env) {
   `${STAT[S.stat]} 0 `, swatch, ` 1 among the ${n.toLocaleString()} common variants (MAF ≥ 5%) `
     + `of this window in ${S.pop.replaceAll("+", " + ")}. `
     + `Each pixel is the strongest pair at that midpoint and separation, up to ${Math.min(MAX_DIST, w.hi - w.lo) / 1000} kb apart.`));
-  // what the selection says, under the figure
-  if (picked.length === 2) { // from the two genotype rows themselves, as the pyramid's pixels are (the pair lens asks LDlink's port)
-    const e = await ctx.withPrepared(S.build, picked.map(l => rowOf.get(l)), S.pop, p => ctx.kernel.exact(p, [0], [1]));
-    if (env.stale()) return;
-    env.strip(h("b", `${picked[0]} × ${picked[1]}`), ` r² ${fix(e.r2[0], 4)} · D′ ${fix(e.dprime[0], 4)} · `
-      + `${Math.abs(posOf.get(picked[0]) - posOf.get(picked[1])).toLocaleString()} bp apart `,
-    h("a", { href: "#", onclick: ev => { ev.preventDefault(); env.update({ lens: "pair" }); } }, "Open the pair"));
-  } else if (anchor) env.strip(h("b", anchor.label), ` is the anchor: the upper track is every variant's ${STAT[S.stat]} with it. `,
-    h("a", { href: "#", onclick: e => { e.preventDefault(); env.update({ lens: "proxies" }); } }, "List its proxies"));
-  else env.strip("Click a variant to anchor on it, or the pyramid to pick a pair.");
 }

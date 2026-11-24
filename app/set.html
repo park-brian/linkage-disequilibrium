@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LD — a variant set and its lenses</title>
+<title>LD — what you hold decides what you see</title>
 <link rel="stylesheet" href="./set.css">
 <script type="importmap">
 { "imports": {
@@ -20,23 +20,24 @@
   <a class="mark" href="./set.html" title="Linkage disequilibrium in 1000 Genomes">LD</a>
   <div class="ask">
     <textarea id="q" rows="1" spellcheck="false" aria-label="Variants or a region"
-      placeholder="rs3 · chr22:30,000,000-31,000,000 · or paste a list"></textarea>
+      placeholder="rs4442975 · two or more rsIDs · chr22:30,000,000-31,000,000"></textarea>
     <div id="examples" class="hint"></div>
   </div>
   <div id="context" class="context"></div>
 </header>
 <main>
-  <section id="set" aria-label="The variant set"></section>
-  <section id="lens" aria-label="Lens">
-    <nav id="lenses" aria-label="Lenses"></nav>
-    <div id="head" class="head"></div>
-    <div id="figure" class="figure"></div>
-    <div id="foot" class="foot"></div>
-  </section>
+  <div class="col">
+    <section id="setbox" aria-label="The variant set"></section>
+    <div id="held" class="held" aria-live="polite"></div>
+    <nav id="views" aria-label="Views of what is held"></nav>
+    <section id="answer" aria-label="The answer"></section>
+  </div>
+  <aside id="side" aria-label="The locus, as context"></aside>
 </main>
 <footer>
   <span id="status" role="status"></span>
-  <span>1000 Genomes · dbSNP 155 · numbers match LDlink exactly · <a href="./index.html">the LDlink modules</a></span>
+  <span><span id="link"></span> 1000 Genomes · dbSNP 155 · each result downloads as LDlink's exact output ·
+    <a href="./index.html">the LDlink modules</a></span>
 </footer>
 </body>
 </html>

@@ -1,5 +1,6 @@
-// The context bar: populations, genome build and statistic, set once for every lens (LDlink asks for them on each
-// module's form). Populations open as a panel grouped by 1000 Genomes super-population; choosing a super-population
+// The context bar: populations, genome build and statistic, set once for every answer (LDlink asks for them on each
+// module's form), and an optional second population every answer is then shown in as well.
+// Populations open as a panel grouped by 1000 Genomes super-population; choosing a super-population
 // replaces its populations and "All" replaces everything, so the choice always reads as a short union ("CEU + YRI").
 import { h } from "./dom.js";
 
@@ -33,27 +34,38 @@ function segmented(label, options, value, onPick) {
     "aria-pressed": String(v === value), onclick: () => onPick(v) }, text)));
 }
 
-/** draw the bar into `el`; S = the page state ({ pop: "CEU+YRI", build, stat }), update(patch) applies a change */
-export function contextBar(el, S, update) {
-  const pops = S.pop.split("+"), on = p => pops.includes(p) || pops.includes("ALL") || pops.includes(superOf(p));
-  const pick = code => update({ pop: togglePop(pops, code).join("+") });
-  const chip = (code, title, cls = "") => h(`button.pop${cls}`, { type: "button", title, "aria-pressed": String(on(code)),
-    onclick: () => pick(code) }, code);
+const keep = {}, closers = {};
+/** a population button and its panel. `empty`: the choice may be cleared (the comparison), and is one population or group */
+function picker(key, pops, text, title, onPick, empty) {
+  const on = p => pops.includes(p) || pops.includes("ALL") || pops.includes(superOf(p));
+  const next = code => (empty ? (pops.length === 1 && pops[0] === code ? [] : [code]) : togglePop(pops, code));
+  const chip = (code, tip, cls = "") => h(`button.pop${cls}`, { type: "button", title: tip, "aria-pressed": String(on(code)),
+    onclick: () => onPick(next(code)) }, code);
   const panel = h("div.panel", { hidden: true },
-    h("div.all", chip("ALL", "All 26 populations (2,504 people)"),
-      h("span.hint", "Choose any mix; lenses use the union of their samples.")),
+    h("div.all", chip("ALL", "All 26 populations (2,504 people)"), h("span.hint", empty
+      ? "Show every answer a second time, in this population. Click it again to stop comparing."
+      : "Choose any mix; the answers use the union of their samples.")),
     h("div.groups", Object.entries(GROUPS).map(([g, [name, subs]]) => h("div.group", chip(g, `${name}: every population below`, ".super"),
-      h("span.gname", name), Object.entries(subs).map(([code, title]) => chip(code, title))))));
-  const button = h("button.pick", { type: "button", "aria-expanded": "false", title: "Populations",
-    onclick: e => { e.stopPropagation(); panel.hidden = !panel.hidden; button.setAttribute("aria-expanded", String(!panel.hidden)); } },
-  pops.join(" + "));
+      h("span.gname", name), Object.entries(subs).map(([code, tip]) => chip(code, tip))))));
+  const button = h(`button.pick${empty && !pops.length ? ".quiet" : ""}`, { type: "button", "aria-expanded": "false", title,
+    onclick: e => { e.stopPropagation();
+      panel.hidden = !panel.hidden; button.setAttribute("aria-expanded", String(!panel.hidden)); } }, text);
   // a click inside the panel redraws the bar (the choice changed): `keep` reopens the new panel and stops the click that
   // is still bubbling from closing it
-  const close = e => { if (!contextBar.keep && !panel.hidden && !panel.contains(e.target)) { panel.hidden = true;
+  const close = e => { if (!keep[key] && !panel.hidden && !panel.contains(e.target)) { panel.hidden = true;
     button.setAttribute("aria-expanded", "false"); } };
-  document.removeEventListener("click", contextBar.close); document.addEventListener("click", contextBar.close = close);
-  if (contextBar.keep) { panel.hidden = false; button.setAttribute("aria-expanded", "true"); }
-  panel.addEventListener("click", () => { contextBar.keep = true; setTimeout(() => { contextBar.keep = false; }); }, true);
-  el.replaceChildren(h("div.popwrap", button, panel), segmented("Genome build", BUILDS, S.build, v => update({ build: v })),
+  document.removeEventListener("click", closers[key]); document.addEventListener("click", closers[key] = close);
+  if (keep[key]) { panel.hidden = false; button.setAttribute("aria-expanded", "true"); }
+  panel.addEventListener("click", () => { keep[key] = true; setTimeout(() => { keep[key] = false; }); }, true);
+  return h("div.popwrap", button, panel);
+}
+
+/** draw the bar into `el`; S = the page state ({ pop: "CEU+YRI", pop2, build, stat }), update(patch) applies a change */
+export function contextBar(el, S, update) {
+  const pops = S.pop.split("+"), other = S.pop2 ? [S.pop2] : [];
+  el.replaceChildren(picker("pop", pops, pops.join(" + "), "Populations", next => update({ pop: next.join("+") })),
+    picker("pop2", other, other.length ? `vs ${other[0]}` : "compare", "Compare with a second population",
+      next => update({ pop2: next[0] ?? "" }), true),
+    segmented("Genome build", BUILDS, S.build, v => update({ build: v })),
     segmented("Statistic", [["r2", "r²"], ["d", "D′"]], S.stat, v => update({ stat: v })));
 }
