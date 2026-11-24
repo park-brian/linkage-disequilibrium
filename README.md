@@ -12,11 +12,13 @@ NCI's [LDlink](https://ldlink.nih.gov), rebuilt as a **browser-only** app.
 ## Layout
 
 ```
-src/        the runtime core: browser + Node, no build step   → docs/ARCHITECTURE.md
-  ld/         LD kernel: kernel.c → kernel.wasm, kernel_js.js, one API in kernel.js
-  ldlink/     the thirteen LDlink module ports + shared context → docs/PARITY.md
-  ldsc/       LD score regression, munging, LD scores
-app/        the browser UI (forms, render, region view, LDmatrix plot, pyramid + tracks, worker pool, parity check page)
+src/        the runtime: browser + Node, no build step   → docs/ARCHITECTURE.md
+  core/       format-agnostic reads (source, parquet, collect), haps, the LD kernel (ld/: kernel.c → kernel.wasm,
+              kernel_js.js, one API in kernel.js), numerics (stats)
+  parity/     everything LDlink-shaped: the thirteen module ports + context (ldlink/), Python number formatting
+              (pyfmt), ldsc's log and pandas emulation (ldsc/)   → docs/PARITY.md
+  (top)       genome, dbsnp, genotypes, annotations, planner, ldsc/: core reads with LDlink's choices still inside
+app/        the browser UI (forms, render, region view, LDmatrix plot, pyramid + tracks, worker pool)
 pipeline/   offline release build: dbsnp, ncbi, genotypes, annotations, ldscore, release
 verify/     data verifiers (data/), ldsc checks (ldsc/), LDlink comparisons (ldlink/), run.sh
 test/       unit tests and fixtures
@@ -41,7 +43,7 @@ See `tools/config.js` for every path and its environment variable.
 | `npm run coverage` | line coverage of `src/` from the unit tests (`coverage:snapshot`: from the parity snapshot, about 92%; `tools/coverage.js`) |
 | `npm run verify:ldlink` | the thirteen module comparisons against a local LDlink (about 1.5 h; `tools/ldlink-local/README.md`) |
 | `npm run bench` | WASM vs JS kernel benchmark (`bench/` has the others) |
-| `npm run build:kernel` | rebuild `src/ld/kernel.wasm` (`CLANG=<emsdk>/upstream/bin/clang`) |
+| `npm run build:kernel` | rebuild `src/core/ld/kernel.wasm` (`CLANG=<emsdk>/upstream/bin/clang`) |
 
 The pipeline stages are run per directory (`pipeline/<stage>/`). Each script's header has its usage, and every
 script runs with its working directory at `$LD_DATA`.

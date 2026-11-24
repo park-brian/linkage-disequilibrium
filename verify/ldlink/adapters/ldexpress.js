@@ -1,6 +1,6 @@
 // LDexpress: the API text (POST /ldexpress) over five tissues (all 54 in one case), chunks of every LDmatrix list,
 // known hits under variants, and input edges.
-import { ldexpress } from "../../../src/ldlink/ldexpress.js";
+import { ldexpress } from "../../../src/parity/ldlink/ldexpress.js";
 import { matrixCases, clean, post, asText } from "../lib.js";
 
 const TISSUES = "Adipose_Subcutaneous+Whole_Blood+Testis+Lung+Brain_Cerebellum";

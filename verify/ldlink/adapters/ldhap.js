@@ -1,5 +1,5 @@
 // LDhap: calculate_hap's full JSON (warnings included) and the API's text, from LDlink's Python in the container.
-import { ldhap, ldhapText } from "../../../src/ldlink/ldhap.js";
+import { ldhap, ldhapText } from "../../../src/parity/ldlink/ldhap.js";
 import { matrixCases, clean, drive, canon } from "../lib.js";
 
 export function cases() {

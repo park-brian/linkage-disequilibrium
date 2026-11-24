@@ -1,6 +1,6 @@
 // LDpair: the API JSON per pair (GET /ldpair, json_out). LDlink orders tied haplotype counts by a hash-randomized
 // sample order, so a difference only in that order is "tie_order", not "differ".
-import { ldpair } from "../../../src/ldlink/ldpair.js";
+import { ldpair } from "../../../src/parity/ldlink/ldpair.js";
 import { matrixCases, get, canon } from "../lib.js";
 
 /** consecutive inputs of every LDmatrix case, plus error and edge cases (shared with LDpop) */

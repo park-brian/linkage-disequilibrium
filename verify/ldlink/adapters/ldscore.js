@@ -1,7 +1,7 @@
 // LDscore: the REST text (GET /LDlinkRest/ldscore) on LDlink's example PLINK fileset (22.bed/bim/fam, isExample=true):
 // cM and kb windows, Python int() edge cases of ldwindow, units, and file-list errors. The two time lines are masked
 // (ldherit.js); errors compare on `error`.
-import { ldscore } from "../../../src/ldlink/ldscore.js";
+import { ldscore } from "../../../src/parity/ldlink/ldscore.js";
 import { get, asText, example } from "../lib.js";
 import { verdict } from "./ldherit.js";
 

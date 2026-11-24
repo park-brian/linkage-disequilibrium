@@ -5,10 +5,10 @@
 //                                    first `id == ref_id` doc (warning if several), else first doc
 // Index files (see build_dbsnp_v2.js): <root>/dbsnp/rsid/part-<rsid>>26>.parquet, <root>/dbsnp/grch<37|38>/chr<N>.parquet
 import { compressors } from "hyparquet-compressors";
-import { sortedLookup } from "./parquet.js";
+import { sortedLookup } from "./core/parquet.js";
 import { BUILDS, chromName, firstToken, parseCoord, key as gkey, keyPos } from "./genome.js";
-import { createSource, once } from "./source.js";
-import { firstRows, groupBy } from "./collect.js";
+import { createSource, once } from "./core/source.js";
+import { firstRows, groupBy } from "./core/collect.js";
 
 /**
  * createResolver(source) or createResolver(root, openFile, { exists }): source = { file(rel) → { file, metadata } | null }

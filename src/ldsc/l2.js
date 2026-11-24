@@ -5,7 +5,7 @@
 // LDlink runs: ldsc.py --bfile <x> --l2 --ld-wind-cm|--ld-wind-kb <int> --out <x>  (server/ldscore ldsc_utils.py)
 //
 // usage (CLI): node ldsc/ldscore_l2.js <bfile prefix> <cm|kb> <window> <out prefix>
-import { pyRoundStr } from "../pyfmt.js";
+import { pyRoundStr } from "../parity/pyfmt.js";
 export function readBim(text) {
   return text.split(/\r?\n/).filter(l => l.trim()).map(l => {
     const t = l.trim().split(/\s+/);

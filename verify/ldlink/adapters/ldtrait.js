@@ -1,5 +1,5 @@
 // LDtrait: the API text (POST /ldtrait): chunks of every LDmatrix list, known GWAS hits under variants, and edges.
-import { ldtrait } from "../../../src/ldlink/ldtrait.js";
+import { ldtrait } from "../../../src/parity/ldlink/ldtrait.js";
 import { matrixCases, clean, post, asText } from "../lib.js";
 
 export function cases() {

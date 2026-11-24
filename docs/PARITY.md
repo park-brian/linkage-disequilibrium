@@ -1,6 +1,6 @@
 # Parity with LDlink: what the ports reproduce
 
-Every module in `src/ldlink/` returns LDlink's own output, byte for byte, including the behaviours that are bugs.
+Every module in `src/parity/ldlink/` returns LDlink's own output, byte for byte, including the behaviours that are bugs.
 
 **How this was established:** each module was run against a local LDlink (`tools/ldlink-local/`), built from NCI's
 source (`../nci-webtools-dceg-linkage/server`), on all three builds (`npm run verify:ldlink`; current totals in

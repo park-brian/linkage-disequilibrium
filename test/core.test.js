@@ -5,14 +5,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { loadKernel, jsKernel, KERNEL_WASM } from "../src/ld/kernel.js";
+import { loadKernel, jsKernel, KERNEL_WASM } from "../src/core/ld/kernel.js";
 import { makeLabeler, minimalForm, variantClass, TYPES } from "../pipeline/genotypes/rsid_label.js";
 import { mungeSumstats } from "../src/ldsc/munge.js";
 import { getSeparators } from "../src/ldsc/regress.js";
 import { pyFixed3 } from "../src/ldsc/l2.js";
 import { parseCoord } from "../src/genome.js";
-import { isNotFound, memo, once, required } from "../src/source.js";
-import { cached } from "../src/parquet.js";
+import { isNotFound, memo, once, required } from "../src/core/source.js";
+import { cached } from "../src/core/parquet.js";
 import { overlapping, overlaps, posRange } from "../src/genotypes.js";
 import { RELEASE, PANELS } from "../tools/config.js";
 
@@ -132,7 +132,7 @@ test("readers return binary haps/missing as bytes, not UTF-8 strings (sparse tie
   haveRelease();
   const { asyncBufferFromFile, parquetMetadataAsync } = await import("hyparquet");
   const { compressors } = await import("hyparquet-compressors");
-  const { sortedLookup, rangeScan } = await import("../src/parquet.js");
+  const { sortedLookup, rangeScan } = await import("../src/core/parquet.js");
   const p = rare, file = await asyncBufferFromFile(p), metadata = await parquetMetadataAsync(file);
   const scan = await rangeScan({ file, metadata, column: "pos", lo: 16050000, hi: 16060000, columns: ["pos", "haps", "missing"], compressors });
   assert.ok(scan.length > 0);
@@ -144,7 +144,7 @@ test("readers return binary haps/missing as bytes, not UTF-8 strings (sparse tie
 
 // ---------- K1: kernel doubles == LDlink's LD_calcs, thresholds on doubles, Python round(x, 3) ----------
 test("K1: exact() is bit-identical to Python; band thresholds compare doubles (>= / strict >); pyRound = round()", async () => {
-  const { pyRound } = await import("../src/pyfmt.js");
+  const { pyRound } = await import("../src/parity/pyfmt.js");
   for (const k of [await loadKernel(readFileSync(KERNEL_WASM)), jsKernel()]) { // both backends: same results
   const cases = JSON.parse(readFileSync(fixture("ld_counts.json"), "utf8"));
   const hex = h => { const m = /^(-?)0x([01])\.([0-9a-f]+)p([+-]\d+)$/.exec(h); if (!m) return parseFloat(h); return (m[1] ? -1 : 1) * (parseInt(m[2], 16) + parseInt(m[3], 16) / 16 ** m[3].length) * 2 ** +m[4]; };
@@ -223,7 +223,7 @@ test("P6: sortedLookup matches keys even when columns omit the key column", need
   haveRelease();
   const { asyncBufferFromFile, parquetMetadataAsync } = await import("hyparquet");
   const { compressors } = await import("hyparquet-compressors");
-  const { sortedLookup, rangeScan } = await import("../src/parquet.js");
+  const { sortedLookup, rangeScan } = await import("../src/core/parquet.js");
   const p = rare, file = await asyncBufferFromFile(p), metadata = await parquetMetadataAsync(file);
   const some = (await rangeScan({ file, metadata, column: "pos", lo: 16050000, hi: 16060000, columns: ["pos"], compressors })).slice(0, 5).map(r => r.pos);
   const got = await sortedLookup({ file, metadata, column: "pos", keys: some, columns: ["ref"], compressors });
@@ -265,7 +265,7 @@ test("L6: more jackknife blocks than data points is an error (jackknife.py:104)"
   assert.doesNotThrow(() => hsq(chisq, ld, ld, N, 1e6, { nBlocks: 100, twostep: 30 }));
 });
 test("L7: erfc(±inf), and chi2.isf(P, 1) matches scipy down to the smallest normal P", async () => {
-  const { erfc } = await import("../src/ldsc/stats.js");
+  const { erfc } = await import("../src/core/stats.js");
   const { chi2Isf1 } = await import("../src/ldsc/munge.js");
   assert.equal(erfc(Infinity), 0); assert.equal(erfc(-Infinity), 2); assert.ok(Number.isNaN(erfc(NaN)));
   const cases = JSON.parse(readFileSync(fixture("chi2isf.json"), "utf8"));
@@ -357,7 +357,7 @@ test("K5: masked rows with identical masks (one popcount) match the general path
 
 test("D1: the release's population panels equal LDlink's <POP>.txt lists (createContext's default readPanel)", needData, async () => {
   haveRelease();
-  const { createContext } = await import("../src/ldlink/context.js");
+  const { createContext } = await import("../src/parity/ldlink/context.js");
   const { asyncBufferFromFile, cachedAsyncBuffer } = await import("hyparquet");
   const { readdirSync } = await import("node:fs");
   const ctx = await createContext({ root: RELEASE, open: async p => cachedAsyncBuffer(await asyncBufferFromFile(p)), kernel: jsKernel() });
@@ -370,7 +370,7 @@ test("D1: the release's population panels equal LDlink's <POP>.txt lists (create
 });
 
 test("F1: npStr4 = numpy's str() of a float under ldsc's precision=4 (1,852 cases from numpy 2.4.3, ties included)", async () => {
-  const { npStr4 } = await import("../src/pyfmt.js");
+  const { npStr4 } = await import("../src/parity/pyfmt.js");
   const j = JSON.parse(readFileSync(new URL("./fixtures/numpy_s4.json", import.meta.url), "utf8"));
   const num = v => Number(v.replace("nan", "NaN").replace("inf", "Infinity"));
   const bad = j.cases.filter(([v, want]) => npStr4(num(v)) !== want);

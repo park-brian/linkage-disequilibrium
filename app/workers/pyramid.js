@@ -3,7 +3,7 @@
 // Pair (i, j) sits at x = midpoint, y = half the distance (a 45° pyramid on the genomic axis); a pixel shows the
 // strongest pair that lands on it, splatted to `radius` pixels when variants are sparse so cells touch.
 // Imports only the kernel (dependency-free chain), so it needs no import map.
-import { loadKernel, KERNEL_WASM } from "../../src/ld/kernel.js";
+import { loadKernel, KERNEL_WASM } from "../../src/core/ld/kernel.js";
 
 let kernel;
 self.onmessage = async ({ data: q }) => {

@@ -1,5 +1,5 @@
 // SNPchip: the API's details text (POST /snpchip) for four platform sets, dense lists on two builds, and edges.
-import { snpchip } from "../../../src/ldlink/snpchip.js";
+import { snpchip } from "../../../src/parity/ldlink/snpchip.js";
 import { matrixCases, post, asText } from "../lib.js";
 import { denseIds } from "./snpclip.js";
 

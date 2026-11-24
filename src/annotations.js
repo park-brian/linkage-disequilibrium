@@ -3,10 +3,10 @@
 // annotations/<grch37|grch38>/{regulome,arrays,gwas,gtex_eqtl}.parquet (build_annotations.js), keyed by genome key.
 import { parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { rangeScan, sortedLookup } from "./parquet.js";
+import { rangeScan, sortedLookup } from "./core/parquet.js";
 import { BUILDS, key as gkey, keyPos } from "./genome.js";
-import { once, required } from "./source.js";
-import { firstRows, groupBy } from "./collect.js";
+import { once, required } from "./core/source.js";
+import { firstRows, groupBy } from "./core/collect.js";
 
 /** over a source's file(rel) → { file, metadata } (e.g. planner.file) */
 export function createAnnotations(file) {

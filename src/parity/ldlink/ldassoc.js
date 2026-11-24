@@ -13,9 +13,9 @@
 //  - Correlated_Alleles is written proxy-first, with the allele indexes crossed (allele_n[q] = allele[p], sic)
 //  - a coordinate origin raises KeyError in LDlink (var_coord has 'position', not 'position_grchNN')
 import { pyRound, pyStr } from "../pyfmt.js";
-import { decodeHaps } from "../haps.js";
-import { overlapping } from "../genotypes.js";
-import { TITLE, BUILDS, CHROMS } from "../genome.js";
+import { decodeHaps } from "../../core/haps.js";
+import { overlapping } from "../../genotypes.js";
+import { TITLE, BUILDS, CHROMS } from "../../genome.js";
 import { chrYMessage, vcfAlleles, vcfId, rsAnnotations, cells, table2x2, check } from "./common.js";
 
 const INTERNAL = { error: "Internal server error. Please contact LDlink admin." };

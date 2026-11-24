@@ -19,35 +19,40 @@ page.
  local LDlink (tools/ldlink-local) ◄── verify/ldlink compares every module, byte for byte
 ```
 
-## src/: the core (browser-safe, no build step)
+## src/: the runtime (browser-safe, no build step)
 
-Dependencies flow one way:
+Two layers (REVIEW.md §4): `core/` reads and computes without LDlink's choices; `parity/` holds everything
+LDlink-shaped (the ports, their messages and Python's number formatting). The files still at the top of `src/` are
+core reads with LDlink's choices inside them (first or last match, coordinate parsing); they split in the next step.
+Dependencies flow one way, core never importing parity:
 
 ```
-genome ─► source ─► parquet ─► dbsnp, genotypes, annotations ─► planner ─► ldlink/* (context, common, modules)
-haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regress, munge; l2)
+core/source ─► core/parquet ─► dbsnp, genotypes, annotations ─► planner ─► parity/ldlink/* (context, common, modules)
+genome ─────────────────────────┘           core/haps ─► core/ld/kernel (no other imports: workers load it by path)
+core/stats ─► ldsc/regress, ldsc/munge; ldsc/l2 ◄─ parity/pyfmt, parity/ldsc/{log,pandas}
 ```
 
 | module | one line |
 |---|---|
 | `genome.js` | chromosome codes and names, genome keys, the `BUILDS` table, LDlink's `firstToken` / `parseCoord` |
-| `source.js` | the one cached `{ file, metadata }` per path (sizes and footer lengths from the manifest: no size probe, one exact footer read); `isNotFound`, `kv` |
-| `parquet.js` | page-index reads: `sortedLookup` (point keys), `rangeScan` (key range), `pool`; `coalesce` (reads issued together share Range requests) |
+| `core/source.js` | the one cached `{ file, metadata }` per path (sizes and footer lengths from the manifest: no size probe, one exact footer read); `isNotFound`, `kv` |
+| `core/parquet.js` | page-index reads: `sortedLookup` (point keys), `rangeScan` (key range), `pool`; `coalesce` (reads issued together share Range requests) |
+| `core/collect.js` | `groupBy`, `firstRows` (the first row per key: the row a Mongo `find_one` returns) |
 | `dbsnp.js` | LDlink-parity resolution: `resolveRsids`, `resolveCoords`, `resolveInputs`; the `find_one` forms `findAt`, `findAllAt`, `findById`; `duplicated` |
-| `haps.js` | `decodeHaps`: bitset or sparse → bitset (no dependencies, so the kernel stays worker-safe) |
+| `core/haps.js` | `decodeHaps`: bitset or sparse → bitset (no dependencies, so the kernel stays worker-safe) |
 | `genotypes.js` | parity / allele-aware row selection (`pickParity`, `pickAllele`, `candidateRows`); tier-row reads (`row`, `windowRows`, `samples`) |
 | `annotations.js` | genes, recombination, RegulomeDB, FORGEdb (by rsID and by position), arrays, GWAS, GTEx eQTL, gene coordinates |
 | `planner.js` | the query planner: resolve inputs (hybrid rsID strategy), price scan vs point reads from the manifest, fetch rows; owns the shared file cache (`planner.file`) |
-| `pyfmt.js` | Python-exact formatting: `round`, `'%.nf'`, `str(float)`, `nextafter`; C `%g` |
-| `ld/kernel.js` | one LD API: `prepare`, `band` (row ranges, masked or unmasked), `tile`, `counts`, `exact`. Backends: `kernel.wasm` (C, scalar popcount) and `kernel_js.js`, with identical results. Masked rows carry a mask class: pairs with identical masks take one popcount |
-| `ldsc/` | LD score regression (`regress`), sumstats munging (`munge`), LD score estimation (`l2`), shared numerics (`stats`); ldsc's log text (`log`), pandas' layouts and numbers (`pandas`), the release's panels (`panels`) |
-| `ldlink/context.js` | composes planner, genotypes, annotations, dbSNP, panels (from the release unless the caller passes `readPanel`) and kernel for the module ports |
-| `ldlink/common.js` | LDlink's shared pieces: populations, the input `gate`, `validsnp`'s `dedupeLists`, the chrY message, `set_alleles`, kernel counts → 2×2 (`cells`, `table2x2`, `ldStats`), the chunked window (`chunkWindow`, `chunkedWindow`, `countsAgainst`), `get_query_variant_c`, positional annotation lookups |
-| `ldlink/<module>.js` | LDmatrix, LDpair, LDpop, LDhap, LDproxy, SNPclip, SNPchip, LDtrait, LDexpress, LDassoc, LDherit, LDcorrelation, LDscore: each returns LDlink's own output (text / JSON / error), byte for byte, including LDlink's bugs ([PARITY.md](PARITY.md)) |
+| `parity/pyfmt.js` | Python-exact formatting: `round`, `'%.nf'`, `str(float)`, `nextafter`; C `%g` |
+| `core/ld/kernel.js` | one LD API: `prepare`, `band` (row ranges, masked or unmasked), `tile`, `counts`, `exact`. Backends: `kernel.wasm` (C, scalar popcount) and `kernel_js.js`, with identical results. Masked rows carry a mask class: pairs with identical masks take one popcount |
+| `ldsc/` | LD score regression (`regress`), sumstats munging (`munge`), LD score estimation (`l2`), the release's panels (`panels`); the shared numerics are `core/stats.js`, ldsc's log text and pandas' layouts `parity/ldsc/log.js` and `pandas.js` |
+| `parity/ldlink/context.js` | composes planner, genotypes, annotations, dbSNP, panels (from the release unless the caller passes `readPanel`) and kernel for the module ports |
+| `parity/ldlink/common.js` | LDlink's shared pieces: populations, the input `gate`, `validsnp`'s `dedupeLists`, the chrY message, `set_alleles`, kernel counts → 2×2 (`cells`, `table2x2`, `ldStats`), the chunked window (`chunkWindow`, `chunkedWindow`, `countsAgainst`), `get_query_variant_c`, positional annotation lookups |
+| `parity/ldlink/<module>.js` | LDmatrix, LDpair, LDpop, LDhap, LDproxy, SNPclip, SNPchip, LDtrait, LDexpress, LDassoc, LDherit, LDcorrelation, LDscore: each returns LDlink's own output (text / JSON / error), byte for byte, including LDlink's bugs ([PARITY.md](PARITY.md)) |
 
 **Rules:**
 - **No Node imports in `src/`.** The only bare imports are `hyparquet` and `hyparquet-compressors`.
-- **The kernel chain** (`ld/kernel.js`, `kernel_js.js`, `haps.js`, `pyfmt.js`) has no package imports, so
+- **The kernel chain** (`core/ld/kernel.js`, `kernel_js.js`, `core/haps.js`) has no package imports, so
   `app/workers/` can load it without an import map.
 - **Data access goes through a caller-supplied `open(path, byteLength?)`** (local files in Node, Range requests in the
   browser; `byteLength` comes from the manifest, so the browser skips its HEAD request). The browser also passes the

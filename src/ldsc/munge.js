@@ -1,8 +1,8 @@
 // munge_sumstats.py port (CBIIT/ldsc@ldsc313), for LDlink's call: --sumstats <file> --merge-alleles w_hm3.snplist
 // (all other options at their defaults: --info-min 0.9, --maf-min 0.01, no --N/--signed-sumstats/--a1-inc/--ignore).
 // Produces the same .sumstats text (before gzip) and the same log counts.
-import { pyRound, pyRoundStr } from "../pyfmt.js";
-import { VALID_SNPS, MATCH_ALLELES, erfc, normIsf, normPdf, median } from "./stats.js";
+import { pyRound, pyRoundStr } from "../parity/pyfmt.js";
+import { VALID_SNPS, MATCH_ALLELES, erfc, normIsf, normPdf, median } from "../core/stats.js";
 
 const DEFAULT_CNAMES = {
   SNP: "SNP", MARKERNAME: "SNP", SNPID: "SNP", RS: "SNP", RSID: "SNP", RS_NUMBER: "SNP", RS_NUMBERS: "SNP",

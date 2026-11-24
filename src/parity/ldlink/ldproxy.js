@@ -8,8 +8,8 @@
 //    db.dbsnp.find_one by that ID / position; FORGEdb by RS (empty → "NA"); RegulomeDB at the VCF position
 //  - MAF is the proxy's minor allele frequency over haplotypes called in both variants
 import { pyRoundRepr as r } from "../pyfmt.js";
-import { decodeHaps } from "../haps.js";
-import { TITLE } from "../genome.js";
+import { decodeHaps } from "../../core/haps.js";
+import { TITLE } from "../../genome.js";
 import { chrYMessage, vcfAlleles, vcfId, rsAnnotations, table2x2, chunkedWindow, countsAgainst, check, failFirst, resolveOne, labelOf } from "./common.js";
 
 /**

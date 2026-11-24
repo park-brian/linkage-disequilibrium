@@ -24,7 +24,7 @@ trusted when it can show it agrees.
 
 ## One LD kernel API, WASM + plain-JS backends (2026-11-22)
 
-**What:** `src/ld/kernel.js` exposes one API; `kernel.wasm` (C, scalar popcount, blocked) and `kernel_js.js` give
+**What:** `src/core/ld/kernel.js` exposes one API; `kernel.wasm` (C, scalar popcount, blocked) and `kernel_js.js` give
 identical results.
 
 **Why:** WASM is 3.5–5.3× faster on large unthresholded bands and 1.7–3.1× with pruning; at module sizes both take
@@ -66,7 +66,7 @@ rsID with several dump docs (`duplicated_rsids`) falls back to the exact `find_o
 
 ## Our page-index lookups, not hyparquet's (2026-11-23)
 
-**What:** `src/parquet.js` `sortedLookup` stays. hyparquet 1.33's own pruning (`parquetScan` with a `$in`
+**What:** `src/core/parquet.js` `sortedLookup` stays. hyparquet 1.33's own pruning (`parquetScan` with a `$in`
 `pruningFilter` and `usePageIndex: true`) returned identical rows in every case of bench/pruning.js (since deleted; in
 git history), but it did not
 win on every measure (cold reads, local release; `$LD_DATA/bench/results/pruning.json`):
@@ -90,7 +90,7 @@ the follow-up.
 follow-up above lands and a re-run favours either side.
 
 **Follow-up (2026-11-23, cleanup slice 6):** done. `sortedLookup` and `rangeScan` share one read path
-(`src/parquet.js` `matchRows`): the key column alone over its candidate pages gives the exact matched rows, and every
+(`src/core/parquet.js` `matchRows`): the key column alone over its candidate pages gives the exact matched rows, and every
 other column is read on its own pages (its offset index) holding those rows. A range keeps one read of all columns
 over the key pages, because a range's rows are contiguous and every column's pages there are needed anyway
 (per-column reads measured 3 → 11 reads for a 1 Mb genotype window). Measured as the app reads, one cached

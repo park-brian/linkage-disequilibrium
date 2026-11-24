@@ -1,6 +1,6 @@
 // Pieces several LDlink modules share (server/LDcommon.py and the per-module copies of the same code).
-import { erfc } from "../ldsc/stats.js";
-import { TITLE } from "../genome.js";
+import { erfc } from "../../core/stats.js";
+import { TITLE } from "../../genome.js";
 
 // LDcommon.get_population: the populations LDlink accepts
 export const POPS = ["ALL", "AFR", "AMR", "EAS", "EUR", "SAS", "ACB", "ASW", "BEB", "CDX", "CEU", "CHB", "CHS", "CLM", "ESN", "FIN", "GBR", "GIH", "GWD", "IBS", "ITU", "JPT", "KHV", "LWK", "MSL", "MXL", "PEL", "PJL", "PUR", "STU", "TSI", "YRI"];

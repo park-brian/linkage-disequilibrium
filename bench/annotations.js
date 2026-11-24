@@ -2,7 +2,7 @@
 import { openSync, readSync, fstatSync, writeFileSync, mkdirSync } from "node:fs";
 import { parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { rangeScan } from "../src/parquet.js";
+import { rangeScan } from "../src/core/parquet.js";
 import { useDataCwd, repo } from "../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 

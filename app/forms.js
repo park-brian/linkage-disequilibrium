@@ -1,19 +1,19 @@
-// The module table: each module's form fields, how a submitted form calls its src/ldlink port, and how the result
+// The module table: each module's form fields, how a submitted form calls its src/parity/ldlink port, and how the result
 // is shown. buildForm(name) draws one module's form into #form.
-import { ldmatrix } from "../src/ldlink/ldmatrix.js";
-import { ldpair } from "../src/ldlink/ldpair.js";
-import { ldpop } from "../src/ldlink/ldpop.js";
-import { ldhap, ldhapText } from "../src/ldlink/ldhap.js";
-import { ldproxy } from "../src/ldlink/ldproxy.js";
-import { snpclip } from "../src/ldlink/snpclip.js";
-import { snpchip } from "../src/ldlink/snpchip.js";
-import { ldtrait } from "../src/ldlink/ldtrait.js";
-import { ldexpress } from "../src/ldlink/ldexpress.js";
-import { ldassoc } from "../src/ldlink/ldassoc.js";
-import { POPS } from "../src/ldlink/common.js";
-import { ldherit } from "../src/ldlink/ldherit.js";
-import { ldcorrelation } from "../src/ldlink/ldcorrelation.js";
-import { ldscore } from "../src/ldlink/ldscore.js";
+import { ldmatrix } from "../src/parity/ldlink/ldmatrix.js";
+import { ldpair } from "../src/parity/ldlink/ldpair.js";
+import { ldpop } from "../src/parity/ldlink/ldpop.js";
+import { ldhap, ldhapText } from "../src/parity/ldlink/ldhap.js";
+import { ldproxy } from "../src/parity/ldlink/ldproxy.js";
+import { snpclip } from "../src/parity/ldlink/snpclip.js";
+import { snpchip } from "../src/parity/ldlink/snpchip.js";
+import { ldtrait } from "../src/parity/ldlink/ldtrait.js";
+import { ldexpress } from "../src/parity/ldlink/ldexpress.js";
+import { ldassoc } from "../src/parity/ldlink/ldassoc.js";
+import { POPS } from "../src/parity/ldlink/common.js";
+import { ldherit } from "../src/parity/ldlink/ldherit.js";
+import { ldcorrelation } from "../src/parity/ldlink/ldcorrelation.js";
+import { ldscore } from "../src/parity/ldlink/ldscore.js";
 import { region } from "./region.js";
 import { $, join, show, notice, showText, showPair, showPyramid, showMatrix, showProxy, showAssoc, showLog } from "./render.js";
 

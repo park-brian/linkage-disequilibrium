@@ -6,8 +6,8 @@
 // elapsed"); they are written as ldsc would write them now, and the comparer masks them.
 // Errors come back as { error } (LDlink's JSON), with details? for the 422 an ldsc failure produces.
 import { cFormatG, pyRound, pyStr, npStr4 } from "../pyfmt.js";
-import { mungeSumstats } from "../ldsc/munge.js";
-import { estimateH2, h2ObsToLiab, parseSumstats } from "../ldsc/regress.js";
+import { mungeSumstats } from "../../ldsc/munge.js";
+import { estimateH2, h2ObsToLiab, parseSumstats } from "../../ldsc/regress.js";
 import { MASTHEAD, callHeader, ctime, secToStr, pyDictRepr } from "../ldsc/log.js";
 
 const LDSC_POP = /^[A-Za-z0-9_+-]{1,64}$/;

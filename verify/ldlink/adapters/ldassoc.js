@@ -1,6 +1,6 @@
 // LDassoc: calculate_assoc in the container (the web route is its only entry point; no API) on LDlink's bundled
 // prostate example: the table text, plus the JSON's error and warning.
-import { ldassoc } from "../../../src/ldlink/ldassoc.js";
+import { ldassoc } from "../../../src/parity/ldlink/ldassoc.js";
 import { drive, example } from "../lib.js";
 
 const FILE = { grch37: "prostate_example_grch37.txt", grch38: "prostate_example_grch38.txt", grch38_high_coverage: "prostate_example_grch38.txt" };

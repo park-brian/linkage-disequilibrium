@@ -3,7 +3,7 @@
 import { openSync, readSync, fstatSync, readdirSync, writeFileSync } from "node:fs";
 import { parquetMetadataAsync, parquetRead, cachedAsyncBuffer, readOffsetIndex } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { sortedLookup } from "../src/parquet.js";
+import { sortedLookup } from "../src/core/parquet.js";
 import { useDataCwd } from "../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 

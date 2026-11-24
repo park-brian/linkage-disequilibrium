@@ -11,8 +11,8 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { loadKernel, jsKernel, KERNEL_WASM } from "../../src/ld/kernel.js";
-import { sortedLookup } from "../../src/parquet.js";
+import { loadKernel, jsKernel, KERNEL_WASM } from "../../src/core/ld/kernel.js";
+import { sortedLookup } from "../../src/core/parquet.js";
 import * as CONFIG from "../../tools/config.js";
 import { useDataCwd, repo } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)

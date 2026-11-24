@@ -1,5 +1,5 @@
 // Python number formatting/rounding, bit-for-bit (LDlink and ldsc print and threshold with these).
-//   pyRoundStr(x, nd) = '%.{nd}f' % x     pyRound(x, nd) = round(x, nd)     nextUp(x) = math.nextafter(x, inf)
+//   pyRoundStr(x, nd) = '%.{nd}f' % x     pyRound(x, nd) = round(x, nd)     (math.nextafter: src/core/ld/kernel.js nextUp)
 // Both '%.nf' and round(x, n) round the double's EXACT binary value to n decimals, ties to even, and keep the sign of
 // values that round to zero. The decision is made on the exact decimal expansion: toFixed(100) is exact for
 // |x| < 1e21 whenever the double has ≤ 100 fractional digits (every double ≥ 2^-46 in magnitude), and smaller ones
@@ -19,14 +19,6 @@ export function pyRoundStr(x, nd) {
 /** round(x, nd) for nd >= 0: the double nearest the correctly rounded decimal (Python returns exactly that) */
 export const pyRound = (x, nd) => Number(pyRoundStr(x, nd));
 
-const f64 = new Float64Array(1), u64 = new BigUint64Array(f64.buffer);
-/** math.nextafter(x, inf): the next double above x */
-export function nextUp(x) {
-  if (Number.isNaN(x) || x === Infinity) return x;
-  if (x === 0) return Number.MIN_VALUE;
-  f64[0] = x; u64[0] += x > 0 ? 1n : -1n;
-  return f64[0];
-}
 
 /** str(x) / repr(x) for a Python float: shortest round-trip digits, exponent form below 1e-4 and from 1e16 */
 export function pyStr(x) {

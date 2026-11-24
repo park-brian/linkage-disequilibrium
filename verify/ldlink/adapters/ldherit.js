@@ -2,7 +2,7 @@
 // LDlink offers, the liability scale, and bad inputs. Four lines carry the time (munge's "Conversion finished at",
 // ldsc's "Beginning analysis at" / "Analysis finished at", "Total time elapsed"): both sides are masked there.
 // Errors compare on `error` (the 422 for an ldsc failure also carries a Python traceback in `details`).
-import { ldherit } from "../../../src/ldlink/ldherit.js";
+import { ldherit } from "../../../src/parity/ldlink/ldherit.js";
 import { get, asText, example } from "../lib.js";
 
 const POPS = ["EUR", "EAS", "AFR", "AMR", "ASJ", "EST", "FIN", "NFE", "NWE", "SEU"];

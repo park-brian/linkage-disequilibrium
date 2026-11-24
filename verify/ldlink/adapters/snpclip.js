@@ -1,7 +1,7 @@
 // SNPclip: the API's details text (POST /snpclip): every LDmatrix list at three threshold settings, a dense list, edges.
 import { parquetMetadataAsync, parquetRead, asyncBufferFromFile } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { snpclip } from "../../../src/ldlink/snpclip.js";
+import { snpclip } from "../../../src/parity/ldlink/snpclip.js";
 import { matrixCases, post, asText, CONFIG } from "../lib.js";
 
 /** labelled rsIDs of GRCh37 chr22 rows in [lo, hi], in file order (tiers in turn) */

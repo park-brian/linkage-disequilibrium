@@ -1,7 +1,7 @@
 // Build the static site for GitHub Pages: the app and the browser code it imports, nothing else from the repo.
 //   dist/index.html      → redirects to app/
 //   dist/app/            the app
-//   dist/src/            the browser core (src/ is browser code by rule; workers resolve src/ld/* relative to app/)
+//   dist/src/            the browser core (src/ is browser code by rule; workers resolve src/core/ld/* relative to app/)
 //   dist/vendor/<pkg>/   hyparquet, hyparquet-compressors, fzstd, hysnappy (their browser files + LICENSE); the import
 //                        maps in app/*.html are rewritten from ../node_modules/ to ../vendor/
 //   dist/.nojekyll       Pages serves files as they are

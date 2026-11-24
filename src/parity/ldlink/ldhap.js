@@ -2,8 +2,8 @@
 // Haplotypes are whole phased chromosomes over the kept SNPs; one containing a haploid or uncalled allele is dropped
 // (chrX males lose their second haplotype). Order: count descending, ties by haplotype string — deterministic.
 import { pyRound, pyStr } from "../pyfmt.js";
-import { decodeHaps } from "../haps.js";
-import { TITLE, BUILDS } from "../genome.js";
+import { decodeHaps } from "../../core/haps.js";
+import { TITLE, BUILDS } from "../../genome.js";
 import { chrYMessage, dedupeLists, vcfAlleles, check, failFirst, screen, WARNED, sameChromError } from "./common.js";
 
 const pad = (i, n) => String(i).padStart(String(n).length, "0");

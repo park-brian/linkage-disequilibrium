@@ -15,9 +15,17 @@
 //   k.reset()                   WASM: frees every prepared set (WASM memory is a bump arena). JS: no-op.
 // Thresholds compare the unrounded DOUBLE r²/D′ (LDlink's LD_calcs / LDproxy / LDassoc / SNPclip); stats() is
 // bit-identical to Python. strict: true keeps stat > threshold (compares against nextUp(threshold)).
-import { nextUp } from "../pyfmt.js";
 import * as js from "./kernel_js.js";
 import { decodeHaps } from "../haps.js";
+
+const f64 = new Float64Array(1), u64 = new BigUint64Array(f64.buffer);
+/** math.nextafter(x, inf): the next double above x (strict thresholds; here so the kernel chain needs no pyfmt) */
+export function nextUp(x) {
+  if (Number.isNaN(x) || x === Infinity) return x;
+  if (x === 0) return Number.MIN_VALUE;
+  f64[0] = x; u64[0] += x > 0 ? 1n : -1n;
+  return f64[0];
+}
 
 /** the WASM binary next to this module (node: readFileSync(KERNEL_WASM); browser: fetch(KERNEL_WASM)) */
 export const KERNEL_WASM = new URL("./kernel.wasm", import.meta.url);

@@ -56,7 +56,7 @@ Built by `pipeline/release/manifest.js`.
 **Column semantics:**
 - **`haps`:** one bit per haplotype. In `common`/`low` it is a fixed-length bitset (2 × samples bits, 626 bytes for
   2,504 samples). In `rare` it is a sparse varint list: byte 0 is `listRef`, then index deltas
-  (`src/haps.js` `decodeHaps`).
+  (`src/core/haps.js` `decodeHaps`).
 - **`missing`:** only true `.` calls.
 - **`male_haploid` + `male_haploid_samples`:** they mark which samples' second haplotype is absent (chrX
   non-PAR, chrY).

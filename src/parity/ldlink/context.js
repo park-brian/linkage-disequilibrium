@@ -2,11 +2,11 @@
 // genotype rows, dbSNP find_one lookups, annotation tracks, population panels and kernel preparation.
 // Browser-ready apart from `open`, which the caller supplies (node: local files; browser: Range requests). Population
 // panels come from the release (annotations/panels.parquet) unless the caller passes `readPanel`.
-import { openPlanner } from "../planner.js";
-import { createGenotypes } from "../genotypes.js";
-import { createAnnotations } from "../annotations.js";
-import { ldscPanel, ldscCounts, mergeAlleles } from "../ldsc/panels.js";
-import { memo } from "../source.js";
+import { openPlanner } from "../../planner.js";
+import { createGenotypes } from "../../genotypes.js";
+import { createAnnotations } from "../../annotations.js";
+import { ldscPanel, ldscCounts, mergeAlleles } from "../../ldsc/panels.js";
+import { memo } from "../../core/source.js";
 
 /**
  * @param {{ root: string, open: (path: string, byteLength?: number) => Promise<AsyncBuffer>, readPanel?: (pop: string) => Promise<string[]>,

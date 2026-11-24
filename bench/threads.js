@@ -4,7 +4,7 @@
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { loadKernel, KERNEL_WASM } from "../src/ld/kernel.js";
+import { loadKernel, KERNEL_WASM } from "../src/core/ld/kernel.js";
 import { useDataCwd } from "../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 

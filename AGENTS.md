@@ -14,13 +14,13 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 
 ## Invariants
 
-1. **Parity first.** `src/ldlink/*` must keep producing LDlink's exact output, bugs included. Change module behaviour
+1. **Parity first.** `src/parity/ldlink/*` must keep producing LDlink's exact output, bugs included. Change module behaviour
    only with the LDlink source open (`../nci-webtools-dceg-linkage/server`; cite `file:line` in comments), then run
    that module's comparison.
 2. **`src/` is browser code.**
    - No Node imports; the only bare imports are `hyparquet` and `hyparquet-compressors`.
    - Data access goes through a caller-supplied `open(path, byteLength?)`.
-3. **The kernel chain stays dependency-free.** `src/ld/kernel.js`, `kernel_js.js`, `haps.js` and `pyfmt.js`
+3. **The kernel chain stays dependency-free.** `src/core/ld/kernel.js`, `kernel_js.js` and `src/core/haps.js`
    import nothing else, because `app/workers/` loads them without an import map.
 4. **WASM and JS backends give identical results.**
    - Change `kernel.c` and `kernel_js.js` together.
@@ -37,10 +37,10 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 | you changed | run |
 |---|---|
 | anything | `npm test` |
-| `src/parquet.js`, `dbsnp.js`, `genotypes.js`, `planner.js`, `annotations.js` | `npm run verify` (planner, parity, annotations, select) |
-| `src/ld/*` | `npm test` (K tests, both backends) + `npm run verify` (kernel chr1 + chrX) |
+| `src/core/parquet.js`, `dbsnp.js`, `genotypes.js`, `planner.js`, `annotations.js` | `npm run verify` (planner, parity, annotations, select) |
+| `src/core/ld/*` | `npm test` (K tests, both backends) + `npm run verify` (kernel chr1 + chrX) |
 | `src/ldsc/*` | `npm run verify` (ldsc steps) |
-| `src/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.js <module>`) |
+| `src/parity/ldlink/*` | `npm run verify:ldlink` (or one module: `node verify/ldlink/compare.js <module>`) |
 | `app/*` | `npm run verify:app` (every view in Chromium), and a look at the views you touched |
 | `pipeline/*` | the stage on one chromosome, then `node pipeline/release/check.js <root>` |
 

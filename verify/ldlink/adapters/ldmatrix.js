@@ -1,5 +1,5 @@
 // LDmatrix: the r² and D′ matrices (GET /ldmatrix, text), cell by cell; each case × statistic is one comparison.
-import { ldmatrix } from "../../../src/ldlink/ldmatrix.js";
+import { ldmatrix } from "../../../src/parity/ldlink/ldmatrix.js";
 import { matrixCases, get } from "../lib.js";
 
 export const cases = () => matrixCases().flatMap(c => ["r2", "d"].map(stat => ({ ...c, name: `${c.name} [${stat}]`, stat })));

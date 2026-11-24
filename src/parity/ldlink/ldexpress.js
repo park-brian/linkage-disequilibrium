@@ -11,8 +11,8 @@
 //  - a query not in 1000G deletes the request's population file (get_query_variant_c cleanup), so every later query
 //    returns nothing; a multi-allelic query is computed on its GT digits ("0|2": only 0/1 haplotypes count)
 import { pyRound, pyStr, cFormatG } from "../pyfmt.js";
-import { decodeHaps } from "../haps.js";
-import { TITLE } from "../genome.js";
+import { decodeHaps } from "../../core/haps.js";
+import { TITLE } from "../../genome.js";
 import { dedupeLists, vcfAlleles, vcfId, addWarning, check, failFirst, screen, WARNED, table2x2, chunkedWindow, countsAgainst } from "./common.js";
 
 /**

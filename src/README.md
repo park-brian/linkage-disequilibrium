@@ -12,7 +12,7 @@
 **Using a module port:**
 
 ```js
-import { loadKernel, KERNEL_WASM } from "./ld/kernel.js";
+import { loadKernel, KERNEL_WASM } from "./core/ld/kernel.js";
 import { createContext } from "./ldlink/context.js";
 import { ldpair } from "./ldlink/ldpair.js";
 const kernel = await loadKernel(new Uint8Array(await (await fetch(KERNEL_WASM)).arrayBuffer()));

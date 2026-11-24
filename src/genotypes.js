@@ -6,10 +6,10 @@
 //            Reports when no 1000G row carries the rsID's alleles instead of returning a different variant.
 // Rows must have pos, ref, vcf_order (+ rsid, allele_is_label, allele_rsids for allele mode), and cover [p - max_ref_len + 1, p] (file
 // key-value metadata `max_ref_len`), across all tiers, for a complete candidate set.
-import { rangeScan, pool } from "./parquet.js";
+import { rangeScan, pool } from "./core/parquet.js";
 import { tierPath } from "./genome.js";
-import { kv, required } from "./source.js";
-export { decodeHaps } from "./haps.js";
+import { kv, required } from "./core/source.js";
+export { decodeHaps } from "./core/haps.js";
 import { parquetMetadataAsync } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 

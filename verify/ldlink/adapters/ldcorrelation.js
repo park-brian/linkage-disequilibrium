@@ -1,7 +1,7 @@
 // LDcorrelation: the REST text (GET /LDlinkRest/ldcorrelation) on LDlink's example sumstats (isExample=true): the pair in
 // both orders and the same file twice, for each population LDlink offers; the liability scale; bad inputs. The time
 // lines are masked (ldherit.js); errors compare on `error`.
-import { ldcorrelation } from "../../../src/ldlink/ldcorrelation.js";
+import { ldcorrelation } from "../../../src/parity/ldlink/ldcorrelation.js";
 import { get, asText, example } from "../lib.js";
 import { verdict as textVerdict } from "./ldherit.js";
 

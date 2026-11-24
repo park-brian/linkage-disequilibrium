@@ -3,8 +3,8 @@
 // LDpop's own quirks, reproduced: allele frequencies count a haploid call ("0" → "0|.") as one REF *and* one ALT allele
 // over 2 alleles, and SNP2's frequencies divide by SNP1's allele total.
 import { pyRoundRepr as r } from "../pyfmt.js";
-import { decodeHaps } from "../haps.js";
-import { TITLE } from "../genome.js";
+import { decodeHaps } from "../../core/haps.js";
+import { TITLE } from "../../genome.js";
 import { chrYMessage, ldStats, cells, queryVariant, check, failFirst, resolveOne, labelOf } from "./common.js";
 
 const GROUPS = { AFR: ["YRI", "LWK", "GWD", "MSL", "ESN", "ASW", "ACB"], AMR: ["MXL", "PUR", "CLM", "PEL"], EAS: ["CHB", "JPT", "CHS", "CDX", "KHV"], EUR: ["CEU", "TSI", "FIN", "GBR", "IBS"], SAS: ["GIH", "PJL", "BEB", "STU", "ITU"] };

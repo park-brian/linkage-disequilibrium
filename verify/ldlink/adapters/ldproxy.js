@@ -1,6 +1,6 @@
 // LDproxy: the API text plus the warning from LDlink's proxy<ref>.json (GET /ldproxy with our own reference).
 import { randomUUID } from "node:crypto";
-import { ldproxy } from "../../../src/ldlink/ldproxy.js";
+import { ldproxy } from "../../../src/parity/ldlink/ldproxy.js";
 import { matrixCases, clean, get, proxyJson } from "../lib.js";
 
 export function cases() {

@@ -11,12 +11,12 @@
 //   row each variant uses — LDlink's last overlapping row, or the allele-aware match (select_rows.js)
 import { parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { sortedLookup, pool } from "./parquet.js";
+import { sortedLookup, pool } from "./core/parquet.js";
 import { createResolver } from "./dbsnp.js";
-import { createSource, required } from "./source.js";
+import { createSource, required } from "./core/source.js";
 import { parseCoord, firstToken, tierPath, key } from "./genome.js";
 import { candidateRows, pickParity, pickAllele, posRange } from "./genotypes.js";
-import { groupBy } from "./collect.js";
+import { groupBy } from "./core/collect.js";
 
 const ROW_COLUMNS = ["pos", "rsid", "haps", "missing", "male_haploid", "multiallelic_source"];
 const LABEL_COLS = ["pos", "rsid", "rsid_source", "rsid_pos_delta"];

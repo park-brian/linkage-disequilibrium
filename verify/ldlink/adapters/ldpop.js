@@ -1,5 +1,5 @@
 // LDpop: the API's text table per pair (GET /ldpop); LDpair's pairs, plus every fourth pair again with pop=ALL.
-import { ldpop } from "../../../src/ldlink/ldpop.js";
+import { ldpop } from "../../../src/parity/ldlink/ldpop.js";
 import { get, asText } from "../lib.js";
 import { pairCases, pairQuery } from "./ldpair.js";
 

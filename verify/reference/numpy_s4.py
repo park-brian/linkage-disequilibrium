@@ -1,4 +1,4 @@
-# Fixture for src/pyfmt.js npStr4: numpy's str() of floats under ldsc's np.set_printoptions(precision=4), run in the LDlink
+# Fixture for src/parity/pyfmt.js npStr4: numpy's str() of floats under ldsc's np.set_printoptions(precision=4), run in the LDlink
 # oracle container (numpy 2.4.3).  usage (tools/ldlink-local): docker compose exec -T backend /usr/bin/python3.13 - \
 #   < verify/reference/numpy_s4.py > test/fixtures/numpy_s4.json
 import json, sys, random

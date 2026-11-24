@@ -1,9 +1,9 @@
 // The browser app: every LDlink module, run in the page on the src/ core against a release served over HTTP
 // (Range requests). forms.js = the module table, render.js = outputs, region.js = the pyramid view's data.
 import { asyncBufferFromUrl } from "hyparquet";
-import { loadKernel, KERNEL_WASM } from "../src/ld/kernel.js";
-import { createContext } from "../src/ldlink/context.js";
-import { cached, coalesce } from "../src/parquet.js";
+import { loadKernel, KERNEL_WASM } from "../src/core/ld/kernel.js";
+import { createContext } from "../src/parity/ldlink/context.js";
+import { cached, coalesce } from "../src/core/parquet.js";
 import { MODULES, buildForm } from "./forms.js";
 import { $, show, notice } from "./render.js";
 import { releaseUrl, readManifest } from "./site.js";

@@ -3,9 +3,9 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { asyncBufferFromFile, asyncBufferFromUrl, cachedAsyncBuffer } from "hyparquet";
-import { cached, coalesce } from "../../src/parquet.js";
-import { loadKernel, KERNEL_WASM } from "../../src/ld/kernel.js";
-import { createContext } from "../../src/ldlink/context.js";
+import { cached, coalesce } from "../../src/core/parquet.js";
+import { loadKernel, KERNEL_WASM } from "../../src/core/ld/kernel.js";
+import { createContext } from "../../src/parity/ldlink/context.js";
 import * as CONFIG from "../../tools/config.js";
 
 export { CONFIG };

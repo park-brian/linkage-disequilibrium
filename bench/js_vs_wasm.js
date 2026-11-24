@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
-import { loadKernel, jsKernel, KERNEL_WASM } from "../src/ld/kernel.js";
+import { loadKernel, jsKernel, KERNEL_WASM } from "../src/core/ld/kernel.js";
 import { useDataCwd } from "../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
