@@ -28,6 +28,7 @@
 | G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 419/429 + 10 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 · LDherit 29/29 · LDcorrelation 19/20 + 1 degenerate_z (rg = 1, se ≈ 1e-7) · LDscore 19/19 | 2026-11-23 (cleanup slice 10, `25c749b`; slice 9 after it only inserts line breaks) |
 | G3s | `npm run verify:snapshot` | 1,440 / 1,440 hashes after every slice of the cleanup; over HTTP (`--http`, dev server): LDmatrix, LDassoc, LDscore, LDherit 99 / 99 | 2026-11-23 (final code) |
 | G4 | `npm run verify:app` | 14 / 14 views in headless Chromium, no page or console errors, every figure's pixels unchanged through the cleanup, a run abandoned by a module switch shows nothing, back returns to the inputs; coverage `app/` 94.9%, `src/` 87% (snapshot: 92%); the built site ran LDproxy on the local release | 2026-11-23 (final code) |
+| CI | `.github/workflows/checks.yml` (every pull request and push; Pages deploys only after it) | unit tests without data; the parity snapshot over CloudFront, 1,440 / 1,440 (20 min, 1.1 GB); every view against CloudFront, 14 / 14. A one-word change to an LDpair message turns it red | 2026-11-24 |
 
 ## Speed (cold, browser, local dev server)
 

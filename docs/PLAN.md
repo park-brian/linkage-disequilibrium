@@ -52,6 +52,13 @@ leaves fewer concepts, not just fewer lines; a check that can't run on every pus
    - First measure what one snapshot run reads over HTTP (bytes × CloudFront's price per GB). If a full run is
      too costly, run a fixed subset on pushes and the full set weekly.
    - The Pages deploy then waits for it. Gates: a green run, and a deliberately broken port turning it red.
+   - **Done** (`5536f66`): `checks.yml` (unit, parity, app jobs), called by `pages.yml` before every deploy. A full
+     snapshot over CloudFront reads 1.1 GB in 7,400 requests (about $0.09 at list price; CloudFront's free tier is
+     1 TB a month), so the full set runs on every push. On GitHub: unit under a minute, parity 20 minutes
+     1,440 / 1,440, app 14 / 14; a one-word change to an LDpair message failed parity on its one case. Also:
+     Node reads over HTTP cap at 64 in flight (`verify/ldlink/lib.js` `httpFetch`); SNPclip's and SNPchip's dense
+     cases read through the context, so the snapshot needs no local data; `verify:app --data <url>`. Figure hashes
+     stay a local check (Linux Chromium draws text differently).
 4. **A linter for what tests miss** (adds `eslint` as a dev dependency: your OK). A flat config with only
    correctness rules (`no-undef`, `no-unused-vars`, `no-unreachable`, `no-dupe-keys`, `no-self-assign`,
    `no-constant-condition`), no style rules (the code's density is deliberate), in `npm test`. The cleanup found

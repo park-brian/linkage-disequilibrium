@@ -46,6 +46,10 @@ Dated narratives in `docs/history/` are background only. Don't treat them as the
 
 Reports land in `$LD_DATA/verify/`; `summary.txt` has one line per step.
 
+CI (`.github/workflows/checks.yml`) runs `npm test` without data, the snapshot over the hosted release and
+`verify:app` against it on every pull request and push, and Pages deploys only after them. It cannot run
+`verify` or `verify:ldlink` (the local release and oracle): run those yourself where the table says so.
+
 ## Don'ts
 
 - **Don't** push, upload to buckets, or call external services without the user's OK.
