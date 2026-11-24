@@ -5,7 +5,7 @@
 //     0..rows-1 (every source row exactly once)
 //   - every row's maf_max lies in its tier (common >= 0.05 > low >= 0.01 > rare)
 //   - rsid_pos_delta is set exactly when rsid is set; allele_is_label implies an rsid
-// usage: node check_release.js <root> [out.json]
+// usage: node pipeline/release/check.js <root> [out.json]
 import { readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead } from "hyparquet";
 import { compressors } from "hyparquet-compressors";

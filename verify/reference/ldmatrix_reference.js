@@ -1,6 +1,6 @@
 // Faithful port of LDlink's LDmatrix LD math (server/LDmatrix.py:191-372, LDcommon.py:486-499)
 // used ONLY to produce reference test vectors from local 1000G VCF + tabix index. Read-only.
-// usage: node ldmatrix_reference.js <node_modules dir with @gmod/tabix> <vcf.gz> <pop file>... -- chr:pos:rsid ...
+// usage: node verify/reference/ldmatrix_reference.js <node_modules dir with @gmod/tabix> <vcf.gz> <pop file>... -- chr:pos:rsid ...
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

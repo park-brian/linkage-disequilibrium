@@ -1,5 +1,5 @@
 # Call LDlink's module functions directly inside the backend container (full JSON, warnings included).
-# usage: docker compose exec -T backend python3.13 - /data/tmp/<cases>.json [out.jsonl] < drive.py
+# usage: docker compose exec -T backend python3.13 - /data/tmp/<cases>.json [out.jsonl] < tools/ldlink-local/drive.py
 #   → one JSON line per case, on stdout or (when the modules print, e.g. LDassoc) into out.jsonl
 # case: {"module": "ldhap", "snps": [...], "pop": "CEU", "build": "grch37"}
 import json, sys, uuid, os

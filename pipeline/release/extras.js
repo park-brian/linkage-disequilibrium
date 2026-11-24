@@ -17,7 +17,7 @@ import { useDataCwd, PANELS, LDASSOC_EXAMPLES, data } from "../../tools/config.j
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
 const [root] = process.argv.slice(2);
-if (!root) { console.error("usage: extras.js <release>"); process.exit(2); }
+if (!root) { console.error("usage: node pipeline/release/extras.js <release>"); process.exit(2); }
 
 const pops = readdirSync(PANELS).filter(f => f.endsWith(".txt")).map(f => f.slice(0, -4)).sort(), pop = [], sample = [];
 for (const p of pops) for (const s of readFileSync(`${PANELS}/${p}.txt`, "utf8").split(/\s+/).filter(Boolean)) { pop.push(p); sample.push(s); }

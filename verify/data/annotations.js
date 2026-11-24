@@ -1,5 +1,5 @@
 // Verify the annotation Parquet files reproduce LDlink's query answers (expected values from parity_annotations.sql,
-// computed on the raw dump tables). usage: node verify_annotations.js <releaseRoot>
+// computed on the raw dump tables). usage: node verify/data/annotations.js <releaseRoot>
 import { readFileSync, writeFileSync } from "node:fs";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";

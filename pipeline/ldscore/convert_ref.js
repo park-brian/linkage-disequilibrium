@@ -7,7 +7,7 @@
 //   - drop_duplicates(SNP, keep first) is applied by the reader (all rows are kept in the file)
 //   - M_5_50 / M per chromosome go into key-value metadata (ldsc sums the first line's floats)
 // Also converts w_hm3.snplist (SNP A1 A2) for munge_sumstats --merge-alleles.
-// usage: node ldsc/convert_ldscore_ref.js <ldscore dir> <releaseRoot>
+// usage: node pipeline/ldscore/convert_ref.js <ldscore dir> <releaseRoot>
 import { readdirSync, readFileSync, existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { gunzipSync, zstdCompressSync, constants } from "node:zlib";
 import { ParquetWriter } from "hyparquet-writer";

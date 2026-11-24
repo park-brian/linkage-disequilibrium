@@ -1,4 +1,4 @@
-// Window cost of each annotation track (cold, local file byte counting). usage: node bench_annotations.js <releaseRoot>
+// Window cost of each annotation track (cold, local file byte counting). usage: node bench/annotations.js <releaseRoot>
 import { openSync, readSync, fstatSync, writeFileSync, mkdirSync } from "node:fs";
 import { parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";

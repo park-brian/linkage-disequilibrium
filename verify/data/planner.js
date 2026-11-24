@@ -2,7 +2,7 @@
 // (2) predicted bytes track measured bytes, (3) the chosen strategy is the cheaper one when measured.
 // (4) select (parity / allele) picks the same rows as select_rows.js on a full-chromosome read, (5) non-canonical
 // inputs resolve like the direct resolver. Every scenario runs cold (new planner, empty caches).
-// usage: node verify_planner.js <releaseRoot>
+// usage: node verify/data/planner.js <releaseRoot>
 import { openSync, readSync, fstatSync, writeFileSync, existsSync } from "node:fs";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetRead, cachedAsyncBuffer } from "hyparquet";
 import { compressors } from "hyparquet-compressors";

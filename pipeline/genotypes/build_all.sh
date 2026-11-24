@@ -3,6 +3,7 @@
 # (the release layouts, NCBI b155 allele labels). Resumable: a chromosome whose build_report.json exists is skipped.
 # Jobs run largest-first, P at a time; each job's log and exit status go to $LD_DATA/phaseB/geno/<build>/chr<N>.log.
 # usage: pipeline/genotypes/build_all.sh [P=3] [build ...]      builds: grch37 grch38 grch38_high_coverage
+#   CHROMS="22 X" limits the chromosomes; OUT=<dir> builds elsewhere (default phaseB/geno).
 set -uo pipefail
 . "$(dirname "$0")/../../tools/config.sh"; cd "$LD_DATA"
 P=${1:-3}; shift || true
@@ -21,6 +22,7 @@ vcf() { # build chrom → VCF path
 jobs=()
 for b in "${BUILDS[@]}"; do
   chroms="$(seq 1 22) X"; [ "$b" = grch37 ] && chroms="$chroms Y"
+  [ -n "${CHROMS:-}" ] && chroms=$(for c in $chroms; do for k in $CHROMS; do [ "$c" = "$k" ] && echo "$c"; done; done)
   a=$([ "$b" = grch37 ] && echo 37 || echo 38)
   for c in $chroms; do
     v=$(vcf $b $c); [ -f "$v" ] || { echo "missing VCF $v"; exit 1; }

@@ -1,5 +1,5 @@
 // Write the annotation Parquet files with hyparquet-writer from the DuckDB intermediates (annotations.sql).
-// usage: node build_annotations.js <releaseRoot> [name...]
+// usage: node pipeline/annotations/build.js <releaseRoot> [name...]
 // Every file keeps the intermediate's row order — (key, dump order) — and is checked for it and for its row count.
 import { mkdirSync, statSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";

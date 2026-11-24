@@ -1,6 +1,6 @@
 # Make an LDlink server copy read 1000G VCFs from /data instead of S3 (the dev bucket has no .tbi indexes).
 # Mechanical: "s3://%s/%s" % (aws_info[...bucket...], <path>)  ->  "/data/%s" % (<path>), and checkS3File() is a no-op.
-# Everything else is LDlink's code unchanged. usage: python patch_local_vcf.py <server dir>
+# Everything else is LDlink's code unchanged. usage: python tools/ldlink-local/patch_local_vcf.py <server dir>
 import re, sys, pathlib
 root = pathlib.Path(sys.argv[1]); total = 0
 pat = re.compile(r'"s3://%s/%s"\s*%\s*\(\s*aws_info\[[\'"]bucket[\'"]\]\s*,\s*([^)]+?)\s*\)')

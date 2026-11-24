@@ -1,7 +1,7 @@
 // Stream a mongoexport --jsonArray file (stdin) → TSV on stdout (ord + requested fields), without loading it all.
 // Handles pretty-printed arrays and MongoDB extended JSON scalars ({"$numberInt": "5"}, {"$numberLong": ...},
 // {"$numberDouble": ...}, {"$oid": ...}). Tabs/newlines inside values become spaces.
-// usage: aws s3 cp s3://.../LDLink.gwas_catalog20251024.json - | node json_array_stream.js F1 F2 ... > gwas.tsv
+// usage: aws s3 cp s3://.../LDLink.gwas_catalog20251024.json - | node pipeline/dbsnp/json_array_stream.js F1 F2 ... > gwas.tsv
 const FIELDS = process.argv.slice(2);
 // Type fidelity (ROADMAP B5): LDlink's Mongo queries are type-sensitive — numeric range queries ($gte/$lte on
 // position fields) never match a string, even "12345". A string that looks numeric is counted as "numeric_string",

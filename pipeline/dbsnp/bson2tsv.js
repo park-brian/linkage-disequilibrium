@@ -2,7 +2,8 @@
 // Columns: ord, id, ref_id, chromosome, position_grch37, position_grch38, type, function  (raw strings as stored)
 // `ord` is the 0-based document order in the dump: Mongo returns equal-key matches in this order after a
 // mongorestore, which LDlink's find_one / find rely on (parity). Stats go to stderr every 50M docs and at the end.
-// usage: aws s3 cp s3://nci-cbiit-dceg-data-nonprod/ldlink/deploy/mongodb/dbsnp.bson.gz - | node dbsnp_bson2tsv.js > dbsnp_dump.tsv
+// usage: aws s3 cp s3://nci-cbiit-dceg-data-nonprod/ldlink/deploy/mongodb/dbsnp.bson.gz - \
+//          | node pipeline/dbsnp/bson2tsv.js > dbsnp_dump/dbsnp_dump.tsv
 import { createGunzip } from "node:zlib";
 import { writeFileSync } from "node:fs";
 import { useDataCwd } from "../../tools/config.js";

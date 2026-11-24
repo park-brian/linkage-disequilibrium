@@ -2,7 +2,7 @@
 // Columns: ord, chrom code (1-22, X=23, Y=24, MT=25), pos, rsid (no "rs"), ref, alt (comma list), n_alt,
 //   vc (INFO VC), fx (INFO function flags in fixed order, comma list), start (LDlink-style position: POS+1 when REF
 //   is longer than 1 base and every ALT shares REF's first base, i.e. the VCF carries an anchor base; else POS).
-// usage: node ncbi_vcf2tsv.js <vcf.gz> <out.tsv> [maxRecords]      (stats JSON on stdout)
+// usage: node pipeline/ncbi/vcf2tsv.js <vcf.gz> <out.tsv> [maxRecords]      (stats JSON on stdout)
 // Reads and decompresses in-process and splits lines on raw buffers (readline over a pipe was ~30 MB/s on Windows).
 import { createReadStream, openSync, writeSync, closeSync } from "node:fs";
 import { createGunzip } from "node:zlib";

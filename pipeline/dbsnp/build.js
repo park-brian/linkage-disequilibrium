@@ -1,5 +1,5 @@
-// Write the final dbSNP index files with hyparquet-writer from the DuckDB-sorted intermediates (dbsnp_sort.sql).
-// usage: node build_dbsnp_v2.js <rsid|pos37|pos38> <outRoot> [partition...]
+// Write the final dbSNP index files with hyparquet-writer from the DuckDB-sorted intermediates (pipeline/dbsnp/sort.sql).
+// usage: node pipeline/dbsnp/build.js <rsid|pos37|pos38> <outRoot> [partition...]
 //   rsid  → <outRoot>/dbsnp/rsid/part-<K>.parquet       rsid · ref_rsid (null unless merged) · chrom · key37 · key38
 //   pos37 → <outRoot>/dbsnp/grch37/chr<N>.parquet        key · rsid · is_ref · type · function
 //   pos38 → <outRoot>/dbsnp/grch38/chr<N>.parquet

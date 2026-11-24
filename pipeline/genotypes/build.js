@@ -1,6 +1,6 @@
 // v2 genotype builder (PLAN_REVIEW.md step 1). One pass over a 1000G VCF.gz → MAF-tiered Parquet files.
 //
-// usage: node --max-old-space-size=16000 build_genotypes_v2.js <vcf.gz> <outDir> <panelDir> <dbsnpPos.parquet> <chromCode>
+// usage: node --max-old-space-size=16000 pipeline/genotypes/build.js <vcf.gz> <outDir> <panelDir> <dbsnpPos.parquet> <chromCode>
 //   dbsnpPos.parquet: DuckDB export sorted by (key, rsid) with columns key37|key38, rsid, ref_rsid, type, function
 //                     (e.g. dbsnp_src/pos37_chr22.parquet); key = chromCode * 1e9 + pos
 //

@@ -1,5 +1,5 @@
 // Verify the Parquet parity resolver (resolve.js) against answers computed from the dump with Mongo semantics
-// (parity_expected.sql), plus the reference test-vector SNPs. usage: node verify_parity.js <releaseRoot>
+// (parity_expected.sql), plus the reference test-vector SNPs. usage: node verify/data/parity.js <releaseRoot>
 import { readFileSync, writeFileSync } from "node:fs";
 import { asyncBufferFromFile, cachedAsyncBuffer } from "hyparquet";
 import { createResolver } from "../../src/dbsnp.js";

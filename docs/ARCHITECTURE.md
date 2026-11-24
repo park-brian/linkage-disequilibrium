@@ -75,15 +75,18 @@ haps (no deps) ─► ld/kernel  ◄─ pyfmt          ldsc/* (stats ─► regr
 
 ## pipeline/: building a release (offline)
 
+`pipeline/build.sh <release> [stage ...]` runs every stage below in order and skips a stage whose output exists
+(its header lists each stage's output). SQL files run through `tools/run_sql.py`, whose `@for` blocks expand the
+per-chromosome and per-partition statements.
+
 | stage | scripts | produces |
 |---|---|---|
-| `dbsnp/` | `bson_stream`, `bson2tsv`, `sort.sql`, `build`, `dup_rsids` | `dbsnp/` |
-| `ncbi/` | `fetch.sh`, `vcf2tsv`, `merged2tsv.py` | NCBI b155 allele slices (the `allele_rsids` input); the one-off comparisons are in `docs/history/ncbi_analysis/` |
-| `genotypes/` | `slices.sql`, `build_all.sh` → `build.js` (uses `rsid_label`, `vcf_gt`) | `genotypes/` |
+| `dbsnp/` | `bson_stream`, `bson2tsv`, `sort.sql`, `dup_ids.sql`, `build`, `dup_rsids` | `dbsnp/` |
+| `ncbi/` | `fetch.sh`, `vcf2tsv`, `vcf2parquet.sql`, `merged2tsv.py` | NCBI b155 allele slices (the `allele_rsids` input); the one-off comparisons are in `docs/history/ncbi_analysis/` |
+| `genotypes/` | `slices.sql`, `build_all.sh` → `build.js` (uses `rsid_label`, `vcf_gt`), `to_release.sh` | `genotypes/` |
 | `annotations/` | `fetch.sh`, `annotations.sql`, `build.js` | `annotations/` |
 | `ldscore/` | `convert_ref`, `l2_cli` | `ldscore/` |
 | `release/` | `manifest`, `extras`, `check` | `manifest.json`, panels, examples, ldsc counts; the integrity report |
-| `profile/` | one-off profiling scripts and their results | — |
 
 **Working directory:** every script runs with it set to `$LD_DATA` (`tools/config.js` `useDataCwd()`, or
 `tools/config.sh` + `cd`). Data paths in JS, SQL and Python are therefore data-relative, and repo files resolve from

@@ -4,7 +4,7 @@
 //  - plan point reads vs scans from page-index locations (PLAN_REVIEW.md findings 2 and 7).
 // Version 2: row groups stored column-wise, and per-column sizes only for the genotype columns the planner prices
 // (src/planner.js PRICED_COLUMNS): 1.9 MB instead of 7.2 MB for release_v4. src/planner.js expandManifest reads both.
-// usage: node build_manifest.js <releaseRoot>     → <releaseRoot>/manifest.json
+// usage: node pipeline/release/manifest.js <releaseRoot>     → <releaseRoot>/manifest.json
 import { readdirSync, statSync, writeFileSync } from "node:fs";
 import { parquetMetadataAsync, asyncBufferFromFile } from "hyparquet";
 import { useDataCwd } from "../../tools/config.js";

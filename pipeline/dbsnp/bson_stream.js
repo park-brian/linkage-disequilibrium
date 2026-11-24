@@ -1,5 +1,5 @@
 // Stream any LDlink mongodump collection (.bson.gz on stdin) → TSV on stdout, keeping dump order.
-// usage: aws s3 cp s3://.../<coll>.bson.gz - | node bson_stream.js field1 field2 ... > <coll>.tsv
+// usage: aws s3 cp s3://.../<coll>.bson.gz - | node pipeline/dbsnp/bson_stream.js field1 field2 ... > <coll>.tsv
 // Output columns: ord, then the requested fields. Values are written as stored (strings stay strings; numbers are
 // printed with JS formatting). Arrays of sub-documents become '|'-joined values of their single field
 // (e.g. snp_col.data: [{platform: "..."}, ...] → "A|B|C"). Tabs/newlines inside values become spaces.

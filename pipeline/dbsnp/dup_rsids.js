@@ -1,6 +1,6 @@
 // dbsnp/duplicated_rsids.parquet: rsIDs that have more than one doc in LDlink's dump (296,308). For these, LDlink's
 // answer depends on which doc comes first in dump order, so the planner always resolves them through the rsID index.
-// usage: node build_dup_rsids.js <releaseRoot>
+// usage: node pipeline/dbsnp/dup_rsids.js <releaseRoot>
 import { statSync } from "node:fs";
 import { zstdCompressSync } from "node:zlib";
 import { asyncBufferFromFile, parquetMetadataAsync, parquetReadObjects } from "hyparquet";

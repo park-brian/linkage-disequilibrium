@@ -8,7 +8,9 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { nodeContext, canon, textDiff, CONFIG, MODULES } from "./lib.js";
 
 const arg = process.argv[2];
-if (!arg || (arg !== "all" && !MODULES.includes(arg))) { console.error(`usage: compare.js <${MODULES.join("|")}|all>`); process.exit(2); }
+if (!arg || (arg !== "all" && !MODULES.includes(arg))) {
+  console.error(`usage: node verify/ldlink/compare.js <${MODULES.join("|")}|all>`); process.exit(2);
+}
 
 const ctx = await nodeContext(), out = CONFIG.data("verify/ldlink"), all = {};
 mkdirSync(out, { recursive: true });

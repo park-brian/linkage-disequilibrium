@@ -6,7 +6,7 @@ import { useDataCwd } from "../../tools/config.js";
 useDataCwd(); // data paths below are relative to LD_DATA (tools/config.js)
 
 const [prefix, unit, win, out] = process.argv.slice(2);
-if (!prefix) { console.error("usage: node ldsc/ldscore_l2.js <bfilePrefix> <cm|kb> <window> <outPrefix>"); process.exit(1); }
+if (!prefix) { console.error("usage: node pipeline/ldscore/l2_cli.js <bfilePrefix> <cm|kb> <window> <outPrefix>"); process.exit(1); }
 const t0 = performance.now();
 const bim = readBim(readFileSync(`${prefix}.bim`, "utf8")), n = readFamCount(readFileSync(`${prefix}.fam`, "utf8"));
 const res = ldscoreL2(new Uint8Array(readFileSync(`${prefix}.bed`)), bim, n, unit === "kb" ? { windKb: +win } : { windCm: +win });
