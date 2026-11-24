@@ -19,6 +19,24 @@ export function pointer(cv, e) {
   const rc = cv.getBoundingClientRect(), k = parseFloat(cv.style.width) / rc.width;
   return [(e.clientX - rc.left) * k, (e.clientY - rc.top) * k];
 }
+/** a canvas of W × H CSS pixels drawn at the device pixel ratio → { cv, g (scaled to CSS pixels), dpr } */
+export function canvas(W, H) {
+  const dpr = window.devicePixelRatio || 1, cv = document.createElement("canvas");
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  return { cv, g, dpr };
+}
+/** a tooltip that follows the pointer over cv: textAt(mx, my) in drawing coordinates → text, or null to hide → the tip */
+export function tooltip(cv, textAt) {
+  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true;
+  cv.addEventListener("mousemove", e => {
+    const text = textAt(...pointer(cv, e));
+    if (!text) { tip.hidden = true; return; }
+    tip.textContent = text; tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; tip.hidden = false;
+  });
+  cv.addEventListener("mouseleave", () => { tip.hidden = true; });
+  return tip;
+}
 export function line(g, a, b, c, d) { g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }
 export function nearest(list, p, at, tol) { let best = null, bd = tol; for (const o of list) { const d = Math.abs(at(o) - p); if (d <= bd) { bd = d; best = o; } } return best; }
 export const niceStep = s => { const p = 10 ** Math.floor(Math.log10(s)), m = s / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };

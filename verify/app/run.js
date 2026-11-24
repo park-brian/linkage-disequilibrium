@@ -2,14 +2,17 @@
 // server, the pointer moved over each figure, then the switch-mid-run and back-button paths. Fails on an uncaught page
 // error, a console error, a view that reports "error", or a figure that is missing. Prints line coverage of app/
 // and src/ as the page ran them (tools/coverage.js; module workers such as app/workers/pyramid.js are not measured).
-// usage: node verify/app/run.js [--port 8099] [--headed] [view...]      (npm run verify:app)
+// Each figure's pixels are hashed (before the pointer moves); --save writes them to $LD_DATA/verify/app_figures.json,
+// and later runs fail on a changed figure (a refactor of app/views must not change a pixel).
+// usage: node verify/app/run.js [--port 8099] [--headed] [--save] [view...]      (npm run verify:app)
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync, mkdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
-import { REPO } from "../../tools/config.js";
+import { REPO, DATA } from "../../tools/config.js";
 
 const args = process.argv.slice(2), port = args.includes("--port") ? +args[args.indexOf("--port") + 1] : 8099;
 const pick = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--port");
@@ -40,7 +43,8 @@ try {
     await page.waitForFunction(done, name, { timeout: 600_000 });
     await page.waitForFunction(() => document.querySelector("#output").children.length > 0, null, { timeout: 60_000 }).catch(() => {});
     await page.waitForTimeout(300); // show() may still await annotation tracks
-    const status = await page.textContent("#status"), canvases = await page.$$("#output canvas");
+    const status = await page.textContent("#status"), canvases = await page.$$("#output canvas"), figures = [];
+    for (const cv of canvases) figures.push(createHash("sha256").update(await cv.evaluate(c => c.toDataURL())).digest("hex").slice(0, 16));
     for (const cv of canvases) { // hover over the figure (tooltips, track lookups)
       const b = await cv.boundingBox();
       const at = [[0.2, 0.3], [0.5, 0.5], [0.8, 0.7], [0.5, 0.95]];
@@ -49,7 +53,7 @@ try {
     await page.mouse.move(0, 0);
     if (status === "error") problems.push(`${name}: ${(await page.textContent("#output")).slice(0, 200)}`);
     if (FIGURE.has(name) && !canvases.length) problems.push(`${name}: no figure`);
-    results.push({ view: name, status, canvases: canvases.length, seconds: Math.round((Date.now() - t0) / 100) / 10 });
+    results.push({ view: name, status, figures, seconds: Math.round((Date.now() - t0) / 100) / 10 });
     console.log(JSON.stringify(results.at(-1)));
   };
   for (const [name, extra] of Object.entries(VIEWS)) if (!pick.length || pick.includes(name)) await run(name, extra);
@@ -85,6 +89,16 @@ try {
 } finally {
   await browser.close();
   server.kill();
+}
+// figures against the saved hashes
+const FIG = join(DATA, "verify/app_figures.json"), saved = existsSync(FIG) ? JSON.parse(readFileSync(FIG, "utf8")) : null;
+if (args.includes("--save")) {
+  mkdirSync(join(DATA, "verify"), { recursive: true });
+  writeFileSync(FIG, `${JSON.stringify({ ...saved, ...Object.fromEntries(results.map(r => [r.view, r.figures])) }, null, 1)}\n`);
+  console.log(`wrote ${FIG}`);
+} else if (saved) {
+  for (const r of results) if (saved[r.view] && JSON.stringify(saved[r.view]) !== JSON.stringify(r.figures))
+    problems.push(`${r.view}: figure changed (${JSON.stringify(saved[r.view])} -> ${JSON.stringify(r.figures)})`);
 }
 for (const p of problems) console.log(`PROBLEM ${p}`);
 console.log(JSON.stringify({ views: results.length, problems: problems.length }));

@@ -47,16 +47,23 @@ function linkMenu(e, links) {
   setTimeout(() => { addEventListener("click", close, true); addEventListener("keydown", close); });
 }
 
-/** LDproxy: LDlink's figure (locus.js) above the table */
-export async function showProxy(o, a, ctx) {
+/** a locus figure (locus.js) above the module's table: genes and recombination for the plot window, then the spec
+ *  (proxySpec / assocSpec), title and the LDpair partner of a clicked point (the query or index variant) */
+async function showLocus(o, a, ctx, { spec, title, partner }) {
   if (o.error) return showText(o);
   const p = o.plot, [genes, recomb] = await Promise.all([ctx.genes(a.build, p.chrom, p.lo, p.hi), ctx.recomb(a.build, p.chrom, p.lo, p.hi)]);
-  const holder = document.createElement("div");
+  const holder = document.createElement("div"), pop = join(a.pop);
   showText(o);
-  $("#output").prepend(card(`LDproxy — ${p.rows.length.toLocaleString()} variants with R² > 0.01 (${join(a.pop)}, ${a.build})`, holder));
-  renderLocus(holder, { ...proxySpec(p, { pop: join(a.pop), annotate: a.annotate, genes, recomb, collapsed: a.collapse !== "no" }),
-    onPoint: pt => { location.hash = moduleLink("LDpair", { var1: p.query.rs, var2: pt.row.rs, pop: join(a.pop), build: a.build }); } });
+  $("#output").prepend(card(`${title(p)} (${pop}, ${a.build})`, holder));
+  renderLocus(holder, { ...spec(p, { pop, annotate: a.annotate, genes, recomb, collapsed: a.collapse !== "no" }),
+    onPoint: pt => { if (pt.row) location.hash = moduleLink("LDpair", { var1: partner(p), var2: pt.row.rs, pop, build: a.build }); } });
 }
+/** LDproxy: LDlink's figure above the table */
+export const showProxy = (o, a, ctx) => showLocus(o, a, ctx, { spec: proxySpec, partner: p => p.query.rs,
+  title: p => `LDproxy — ${p.rows.length.toLocaleString()} variants with R² > 0.01` });
+/** LDassoc: LDlink's figure above the table */
+export const showAssoc = (o, a, ctx) => showLocus(o, a, ctx, { spec: assocSpec, partner: p => p.index.rs,
+  title: p => `LDassoc — ${p.rows.length.toLocaleString()} variants in 1000G, ${p.missing.length.toLocaleString()} not` });
 
 /** LDherit / LDcorrelation / LDscore: ldsc's log text as LDlink returns it, or the error */
 export function showLog(o, a) {
@@ -65,16 +72,6 @@ export function showLog(o, a) {
   show([card("Result", toolbar(download("result.txt", o)), pre)]);
 }
 
-/** LDassoc: LDlink's figure (locus.js) above the table */
-export async function showAssoc(o, a, ctx) {
-  if (o.error) return showText(o);
-  const p = o.plot, [genes, recomb] = await Promise.all([ctx.genes(a.build, p.chrom, p.lo, p.hi), ctx.recomb(a.build, p.chrom, p.lo, p.hi)]);
-  const holder = document.createElement("div");
-  showText(o);
-  $("#output").prepend(card(`LDassoc — ${p.rows.length.toLocaleString()} variants in 1000G, ${p.missing.length.toLocaleString()} not (${join(a.pop)}, ${a.build})`, holder));
-  renderLocus(holder, { ...assocSpec(p, { pop: join(a.pop), annotate: a.annotate, genes, recomb, collapsed: a.collapse !== "no" }),
-    onPoint: pt => { if (pt.row) location.hash = moduleLink("LDpair", { var1: p.index.rs, var2: pt.row.rs, pop: join(a.pop), build: a.build }); } });
-}
 
 export function showPair(o) {
   if (!Array.isArray(o)) return show([notice(o.error, true)]);

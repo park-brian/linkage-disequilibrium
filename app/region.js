@@ -13,7 +13,7 @@ export async function region(ctx, a, width) {
   else {
     const v = (await ctx.planner.query({ build: a.build, inputs: [a.region.trim()] })).variants[0];
     if (!v?.found || v.pos == null) return { error: `${a.region} is not a region (chr:start-end) or a variant in dbSNP 155.` };
-    chrom = v.chrom; lo = Math.max(0, v.pos - Math.round(+a.width / 2)); hi = v.pos + Math.round(+a.width / 2);
+    chrom = v.chrom; lo = Math.max(0, v.pos - Math.round(a.width / 2)); hi = v.pos + Math.round(a.width / 2);
   }
   if (!(hi > lo)) return { error: "The region's end must be after its start." };
   if (hi - lo > MAX_SPAN) return { error: "Regions up to 5 Mb, please." };
@@ -29,8 +29,8 @@ export async function region(ctx, a, width) {
   const tData = Math.round(performance.now() - t0), W = Math.min(1100, Math.max(600, width - 40));
   const res = await pyramid(use.map(r => ({ pos: r.pos, haps: r.haps, missing: r.missing, male_haploid: r.male_haploid })), {
     samples: smp.ids.length, haploidMales: [...smp.haploidMales], hapIndexes: smp.ids.flatMap((s, i) => (ids.has(s) ? [2 * i, 2 * i + 1] : [])),
-    maxDist: Math.min(+a.maxDist, hi - lo), threshold: +a.threshold, stat: a.r2_d, W, lo, hi, radius: Math.max(0, Math.min(6, Math.floor(W / use.length / 2))),
-  }, +a.workers > 0 ? { size: +a.workers } : {});
+    maxDist: Math.min(a.maxDist, hi - lo), threshold: a.threshold, stat: a.r2_d, W, lo, hi, radius: Math.max(0, Math.min(6, Math.floor(W / use.length / 2))),
+  }, a.workers > 0 ? { size: a.workers } : {});
   return { ...res, chrom, lo, hi, rows: use, labels: use.map(r => (r.rsid != null ? `rs${r.rsid}` : `${chrom}:${r.pos}`)), genes, recomb, gwas: gwas.map(r => ({ ...r })), forge, regulome,
     eqtl: { rows: eqtl, tissues: a.tissues.length ? a.tissues.join(", ") : "none chosen" }, tData };
 }

@@ -1,7 +1,7 @@
 // LDmatrix plot (REQUIREMENTS.md §2, LDmatrix.py's Bokeh figure): D′ below the diagonal (blue, opacity = D′), r² above
 // (red, opacity = r²), the diagonal purple, NA gray; a connector from the evenly spaced columns to the variants' real
 // positions; a position rug in Mb; and the refGene track (transcripts packed into rows, exons as boxes).
-import { pointer } from "./tracks.js";
+import { canvas, tooltip, niceStep } from "./tracks.js";
 const COLORS = { r2: [205, 40, 40], d: [36, 87, 197], diag: [120, 60, 170], na: [190, 190, 190] };
 
 export function renderMatrix(holder, { ids, pos, r2, d, genes, lo, hi }) {
@@ -14,9 +14,7 @@ export function renderMatrix(holder, { ids, pos, r2, d, genes, lo, hi }) {
     rows[r] = Math.max(rows[r], g.txEnd); placed.push({ g, r });
   }
   const H_MATRIX = W, H_CONN = 46, H_RUG = 26, ROW = 22, H_GENES = Math.max(1, rows.length) * ROW + 10, H = H_MATRIX + H_CONN + H_RUG + H_GENES;
-  const dpr = window.devicePixelRatio || 1, cv = document.createElement("canvas");
-  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
-  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  const { cv, g } = canvas(W, H);
   const fill = ([r, gg, b], a) => `rgba(${r},${gg},${b},${a})`;
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
     const v = i === j ? null : i > j ? d[i][j] : r2[i][j];
@@ -50,14 +48,10 @@ export function renderMatrix(holder, { ids, pos, r2, d, genes, lo, hi }) {
   }
   if (!genes.length) { g.fillStyle = "#888"; g.fillText("no RefSeq genes in this region", 4, gy + 4); }
   // hover: the pair and its values
-  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true;
-  cv.addEventListener("mousemove", e => {
-    const [mx, my] = pointer(cv, e);
-    if (my >= W || mx >= W) { tip.hidden = true; return; }
+  const tip = tooltip(cv, (mx, my) => {
+    if (my >= W || mx >= W) return null;
     const i = Math.floor(my / cell), j = Math.floor(mx / cell);
-    tip.textContent = `${ids[i]} × ${ids[j]}\nr² ${r2[i][j]}   D′ ${d[i][j]}`; tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; tip.hidden = false;
+    return `${ids[i]} × ${ids[j]}\nr² ${r2[i][j]}   D′ ${d[i][j]}`;
   });
-  cv.addEventListener("mouseleave", () => { tip.hidden = true; });
   holder.replaceChildren(cv, tip);
 }
-const niceStep = s => { const p = 10 ** Math.floor(Math.log10(s)), m = s / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };

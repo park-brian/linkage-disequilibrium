@@ -4,7 +4,7 @@
 // (tracks.js). Each module maps its rows to points; this file only draws them.
 //   spec = { title, xlo, xhi, yLabel, y0, y1, points: [{ pos, y, color, alpha, size, stroke?, label?, hover }],
 //            recomb: [{ pos, rate }], recombY: rate → y, hline?: y, genes, collapsed, onPoint?(point) }
-import { axisOf, genesTrack, axisTrack, layout, drawTracks, hoverAt, line, pointer } from "./tracks.js";
+import { axisOf, genesTrack, axisTrack, layout, drawTracks, hoverAt, line, pointer, canvas, tooltip, niceStep } from "./tracks.js";
 
 const PLOT = 300, RUG = 22, PAD = { left: 46, right: 46, top: 22 };
 
@@ -13,10 +13,8 @@ export function renderLocus(holder, spec) {
   const ax = axisOf(spec.xlo, spec.xhi, inner), X = p => PAD.left + ax.x(p);
   const Y = v => PAD.top + PLOT - ((v - spec.y0) / (spec.y1 - spec.y0)) * PLOT;
   const tracks = [genesTrack(spec.genes, ax, { collapsed: spec.collapsed }), axisTrack(ax)];
-  const lay = layout(tracks, PAD.top + PLOT + 8 + RUG + 8), H = lay.end + 4, dpr = window.devicePixelRatio || 1;
-  const cv = document.createElement("canvas");
-  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = `${W}px`; cv.style.height = `${H}px`;
-  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.font = "11px system-ui"; g.textBaseline = "top";
+  const lay = layout(tracks, PAD.top + PLOT + 8 + RUG + 8), H = lay.end + 4, { cv, g } = canvas(W, H);
+  g.font = "11px system-ui"; g.textBaseline = "top";
   // title and frame
   g.fillStyle = "#1d2330"; g.font = "600 12px system-ui"; g.textAlign = "center"; g.fillText(spec.title, W / 2, 2); g.textAlign = "left"; g.font = "11px system-ui";
   g.strokeStyle = "#c9ced6"; g.strokeRect(PAD.left, PAD.top, inner, PLOT);
@@ -46,28 +44,23 @@ export function renderLocus(holder, spec) {
   // gene track and axis (shifted right by the left padding)
   g.save(); g.translate(PAD.left, 0); drawTracks(g, tracks, lay.tops); g.restore();
 
-  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true;
   const hit = (mx, my) => {
     let best = null, bd = Infinity;
     for (const p of spec.points) { const d = Math.hypot(X(p.pos) - mx, Y(p.y) - my); if (d <= Math.max(4, p.size / 2) && d < bd) { bd = d; best = p; } }
     return best;
   };
-  cv.addEventListener("mousemove", e => {
-    const [mx, my] = pointer(cv, e);
+  const tip = tooltip(cv, (mx, my) => {
     let text = null;
     if (my < PAD.top + PLOT) text = hit(mx, my)?.hover ?? null;
     else if (my >= lay.tops[0]) text = hoverAt(tracks, lay, ax.lo + ((mx - PAD.left) / inner) * ax.span, my);
     cv.style.cursor = text && my < PAD.top + PLOT && spec.onPoint ? "pointer" : "default";
-    if (!text) { tip.hidden = true; return; }
-    tip.textContent = text; tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; tip.hidden = false;
+    return text;
   });
-  cv.addEventListener("mouseleave", () => { tip.hidden = true; });
   if (spec.onPoint) cv.addEventListener("click", e => { const p = hit(...pointer(cv, e)); if (p) spec.onPoint(p); });
   holder.replaceChildren(cv, tip);
 }
 
-function ticks(a, b, n) { const step = nice((b - a) / n), out = []; for (let t = Math.ceil(a / step) * step; t <= b + 1e-9; t += step) out.push(+t.toFixed(10)); return out; }
-const nice = s => { const p = 10 ** Math.floor(Math.log10(s)), m = s / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
+function ticks(a, b, n) { const step = niceStep((b - a) / n), out = []; for (let t = Math.ceil(a / step) * step; t <= b + 1e-9; t += step) out.push(+t.toFixed(10)); return out; }
 const fmt = t => (Math.abs(t) < 1e-9 ? "0" : String(+t.toFixed(2)));
 
 /** LDlink's LDproxy figure from ldproxy(…, { plot: true }).plot */

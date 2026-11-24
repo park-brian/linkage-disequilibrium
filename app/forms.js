@@ -64,11 +64,11 @@ export const MODULES = {
   },
   LDproxy: {
     fields: [f.text("var", "Variant", "rs3"), f.pop(), f.build(), f.stat(), f.num("window", "Window (bp)", 500000), f.annotate(), f.transcripts()], show: showProxy,
-    run: (ctx, a) => ldproxy(ctx, { var: a.var, pop: join(a.pop), build: a.build, r2_d: a.r2_d, window: +a.window }, { plot: true }),
+    run: (ctx, a) => ldproxy(ctx, { var: a.var, pop: join(a.pop), build: a.build, r2_d: a.r2_d, window: a.window }, { plot: true }),
   },
   SNPclip: {
     fields: [f.snps(), f.pop(), f.build(), f.num("r2_threshold", "r² threshold", 0.1), f.num("maf_threshold", "MAF threshold", 0.01)], show: showText,
-    run: (ctx, a) => snpclip(ctx, { ...a, pop: join(a.pop), r2_threshold: +a.r2_threshold, maf_threshold: +a.maf_threshold }),
+    run: (ctx, a) => snpclip(ctx, { ...a, pop: join(a.pop), r2_threshold: a.r2_threshold, maf_threshold: a.maf_threshold }),
   },
   SNPchip: {
     fields: [f.snps(), f.build(), { name: "platforms", type: "select", label: "Arrays", options: [], multiple: true, value: "all", source: "platforms" }], show: showText,
@@ -76,11 +76,11 @@ export const MODULES = {
   },
   LDtrait: {
     fields: [f.snps(), f.pop(), f.build(), f.stat(), f.num("r2_d_threshold", "Threshold", 0.1), f.num("window", "Window (bp)", 500000)], show: showText,
-    run: (ctx, a) => ldtrait(ctx, { ...a, pop: join(a.pop), r2_d_threshold: +a.r2_d_threshold, window: +a.window }),
+    run: (ctx, a) => ldtrait(ctx, { ...a, pop: join(a.pop), r2_d_threshold: a.r2_d_threshold, window: a.window }),
   },
   LDexpress: {
     fields: [f.snps("snps", "rs3\nrs12465506"), f.pop(), f.build(), f.tissues(), f.stat(), f.num("r2_d_threshold", "LD threshold", 0.1), f.num("p_threshold", "p threshold", 0.1), f.num("window", "Window (bp)", 500000)], show: showText,
-    run: (ctx, a) => ldexpress(ctx, { ...a, pop: join(a.pop), tissues: join(a.tissues), r2_d_threshold: +a.r2_d_threshold, p_threshold: +a.p_threshold, window: +a.window }),
+    run: (ctx, a) => ldexpress(ctx, { ...a, pop: join(a.pop), tissues: join(a.tissues), r2_d_threshold: a.r2_d_threshold, p_threshold: a.p_threshold, window: a.window }),
   },
   LDassoc: {
     fields: [{ name: "file", type: "file", label: "Association file" },
@@ -96,7 +96,7 @@ export const MODULES = {
       const ex = `prostate_example_${a.build === "grch37" ? "grch37" : "grch38"}.txt`;
       const text = a.file ? await a.file.text() : await (await example(ctx, ex)).text();
       return ldassoc(ctx, { text, columns: a.columns.split(",").map(s => s.trim()), region: a.region, origin: a.origin || undefined, name: a.name, start: a.start, end: a.end,
-        window: a.region === "region" ? undefined : +a.window, pop: join(a.pop), build: a.build }, { plot: true, stat: a.r2_d });
+        window: a.region === "region" ? undefined : a.window, pop: join(a.pop), build: a.build }, { plot: true, stat: a.r2_d });
     },
   },
   LDherit: {
@@ -121,7 +121,7 @@ export const MODULES = {
   },
   LDscore: {
     fields: [{ name: "files", type: "file", multiple: true, label: "PLINK .bed, .bim, .fam (blank: LDlink's chromosome 22 example)" },
-      f.num("ldwindow", "Window", 1), { name: "windUnit", type: "select", label: "Window unit", options: [["cm", "cM"], ["kb", "kb"]], value: ["cm"] }],
+      { ...f.num("ldwindow", "Window", 1), asText: true }, { name: "windUnit", type: "select", label: "Window unit", options: [["cm", "cM"], ["kb", "kb"]], value: ["cm"] }],
     show: showLog,
     run: async (ctx, a) => {
       const picked = a.files?.length ? a.files : null, names = picked ? picked.map(f => f.name) : ["22.bed", "22.bim", "22.fam"], files = {};
@@ -152,7 +152,10 @@ function field(fd, context, given, loading) {
   el.name = fd.name;
   return el;
 }
-const value = (fd, el) => (fd.type === "select" ? (fd.multiple ? [...el.selectedOptions].map(o => o.value) : el.value) : fd.type === "file" ? (fd.multiple ? [...el.files] : el.files[0]) : el.value);
+/** a field's value: selections as arrays (multiple) or strings, files as File(s), number fields as numbers (unless
+ *  asText: the port parses the text itself, as LDlink does) */
+const value = (fd, el) => (fd.type === "select" ? (fd.multiple ? [...el.selectedOptions].map(o => o.value) : el.value)
+  : fd.type === "file" ? (fd.multiple ? [...el.files] : el.files[0]) : fd.type === "number" && !fd.asText ? +el.value : el.value);
 
 /** a module's inputs as the hash query: every field but files, selections joined with "+" */
 export const toQuery = (name, a) => new URLSearchParams(Object.entries(a).filter(([k]) => MODULES[name].fields.some(fd => fd.name === k && fd.type !== "file"))

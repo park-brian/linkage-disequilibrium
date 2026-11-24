@@ -1,6 +1,6 @@
 // Region view: annotation tracks (tracks.js) over a shared genomic axis, and the LD pyramid below them (pairs at
 // midpoint × half distance, pixels = the strongest pair). Hover anywhere for the underlying record.
-import { axisOf, gwasTrack, eqtlTrack, scoresTrack, recombTrack, genesTrack, axisTrack, layout, drawTracks, hoverAt, pointer } from "./tracks.js";
+import { axisOf, gwasTrack, eqtlTrack, scoresTrack, recombTrack, genesTrack, axisTrack, layout, drawTracks, hoverAt, pointer, canvas, tooltip } from "./tracks.js";
 
 const RAMP = { r2: [205, 40, 40], d: [36, 87, 197] };
 
@@ -8,9 +8,8 @@ export function renderPyramid(holder, v) {
   const { W, H, grid, bi, bj, rows, labels, lo, hi, stat, genes, recomb, gwas, eqtl, forge, regulome } = v;
   const ax = axisOf(lo, hi, W);
   const tracks = [gwasTrack(gwas, ax), eqtlTrack(eqtl, ax), ...(forge ? [scoresTrack(forge, regulome, ax)] : []), recombTrack(recomb, ax), genesTrack(genes, ax), axisTrack(ax)];
-  const lay = layout(tracks), Y0 = lay.end, Htot = Y0 + H, dpr = window.devicePixelRatio || 1, cv = document.createElement("canvas");
-  cv.width = W * dpr; cv.height = Htot * dpr; cv.style.width = `${W}px`; cv.style.height = `${Htot}px`;
-  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.font = "11px system-ui"; g.textBaseline = "top";
+  const lay = layout(tracks), Y0 = lay.end, { cv, g, dpr } = canvas(W, Y0 + H);
+  g.font = "11px system-ui"; g.textBaseline = "top";
   drawTracks(g, tracks, lay.tops);
   // pyramid
   const img = g.createImageData(W * dpr, H * dpr), [cr, cg, cb] = RAMP[stat];
@@ -21,18 +20,13 @@ export function renderPyramid(holder, v) {
   }
   g.putImageData(img, 0, Y0 * dpr);
   // hover
-  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true;
-  cv.addEventListener("mousemove", e => {
-    const [mx, my] = pointer(cv, e), gpos = lo + (mx / W) * ax.span;
-    let text = null;
-    if (my >= Y0) {
-      const o = Math.floor(my - Y0) * W + Math.floor(mx);
-      if (grid[o] >= 0) { const i = bi[o], j = bj[o]; text = `${labels[i]} × ${labels[j]}\n${stat === "r2" ? "r²" : "D′"} ${grid[o].toFixed(3)}   distance ${(rows[j].pos - rows[i].pos).toLocaleString()} bp`; }
-    } else text = hoverAt(tracks, lay, gpos, my);
-    if (!text) { tip.hidden = true; return; }
-    tip.textContent = text; tip.style.left = `${e.clientX + 12}px`; tip.style.top = `${e.clientY + 12}px`; tip.hidden = false;
+  const tip = tooltip(cv, (mx, my) => {
+    if (my < Y0) return hoverAt(tracks, lay, lo + (mx / W) * ax.span, my);
+    const o = Math.floor(my - Y0) * W + Math.floor(mx);
+    if (!(grid[o] >= 0)) return null;
+    const i = bi[o], j = bj[o];
+    return `${labels[i]} × ${labels[j]}\n${stat === "r2" ? "r²" : "D′"} ${grid[o].toFixed(3)}   distance ${(rows[j].pos - rows[i].pos).toLocaleString()} bp`;
   });
-  cv.addEventListener("mouseleave", () => { tip.hidden = true; });
   if (v.onPair) cv.addEventListener("click", e => { // a pixel → its strongest pair
     const [mx, my] = pointer(cv, e), o = Math.floor(my - Y0) * W + Math.floor(mx);
     if (my >= Y0 && grid[o] >= 0) v.onPair(labels[bi[o]], labels[bj[o]], e);
