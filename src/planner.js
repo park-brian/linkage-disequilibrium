@@ -16,6 +16,7 @@ import { createResolver } from "./dbsnp.js";
 import { createSource, required } from "./source.js";
 import { parseCoord, firstToken, tierPath, key } from "./genome.js";
 import { candidateRows, pickParity, pickAllele, posRange } from "./genotypes.js";
+import { groupBy } from "./collect.js";
 
 const ROW_COLUMNS = ["pos", "rsid", "haps", "missing", "male_haploid", "multiallelic_source"];
 const LABEL_COLS = ["pos", "rsid", "rsid_source", "rsid_pos_delta"];
@@ -115,8 +116,8 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
   // Direct rsID lookups: per partition file touched, its footer; per row group touched, the offset indexes of the
   // 5 read columns (~keyIndex offset-index length x 5) plus the key column index; per key, one page of each column.
   function directRsidBytes(ids) {
-    const parts = new Map();
-    for (const id of ids) { if (id === null) continue; const p = Number(id >> 26n); if (!parts.has(p)) parts.set(p, []); parts.get(p).push(Number(id)); }
+    const parts = groupBy(ids.filter(id => id !== null).map(id => [Number(id >> 26n), Number(id)]), ([p]) => p);
+    for (const [p, xs] of parts) parts.set(p, xs.map(([, n]) => n));
     let b = 0;
     for (const [p, keys] of parts) {
       const f = manifest.files[`dbsnp/rsid/part-${String(p).padStart(2, "0")}.parquet`]; if (!f) continue;
@@ -142,7 +143,7 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
   }
   async function readPoints(path, keys, columns) {
     const { file, metadata } = await need(path);
-    return (await sortedLookup({ file, metadata, column: "pos", keys, columns, compressors, payloadColumn: "haps" })).rows;
+    return (await sortedLookup({ file, metadata, column: "pos", keys, columns, compressors })).rows;
   }
 
   /** rsIDs → positions with LDlink parity; large clustered lists via region scans of the genotype rsid labels */
@@ -191,18 +192,18 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     return out;
   }
 
-  async function query({ build, inputs = [], regions = [], tiers = ["common", "low", "rare"], force, forceRsid, select }) {
-    const plan = { build, tiers, fetch: [] };
-    // LDlink's input chain (resolve.js resolveInputs): first token; coordinates → rsID (replace_coord_rsid); then
-    // every rsID → find_one position — through the hybrid/direct rsID resolution below
-    const toks = inputs.map(firstToken);
+  // query = resolve (LDlink parity: which variant each input names) → regions → fetch (cost-based reads, no parity
+  // choices) → select (the parity choice of each variant's row) → predicted bytes
+  /** LDlink's input chain (resolve.js resolveInputs): first token; coordinates → rsID (replace_coord_rsid); then every
+   *  rsID → find_one position, through the hybrid/direct rsID resolution → one variant per input */
+  async function resolveInputs(build, inputs, tiers, plan, forceRsid) {
+    const toks = inputs.map(firstToken), asRs = [...toks], warn = new Map();
     const coIdx = toks.map((t, i) => (t && t.slice(0, 2) !== "rs" ? i : -1)).filter(i => i >= 0);
-    const asRs = [...toks], warn = new Map();
     if (coIdx.length) {
       // predicted cost of LDlink-parity resolution through the dbSNP position index
-      const byC = new Map();
-      for (const i of coIdx) { const p = parseCoord(toks[i]); if (p?.key == null) continue; if (!byC.has(p.chro)) byC.set(p.chro, []); byC.get(p.chro).push(Number(p.pos)); }
-      plan.coords = { n: coIdx.length, predicted: Math.round([...byC].reduce((a, [c, ps]) => a + clusters(ps).reduce((b, k) => b + coordBytes(build, c, k.lo, k.hi, k.points.length), 0), 0)) };
+      const byC = groupBy(coIdx.map(i => parseCoord(toks[i])).filter(p => p?.key != null), p => p.chro);
+      const bytes = [...byC].reduce((a, [c, ps]) => a + clusters(ps.map(p => Number(p.pos))).reduce((b, k) => b + coordBytes(build, c, k.lo, k.hi, k.points.length), 0), 0);
+      plan.coords = { n: coIdx.length, predicted: Math.round(bytes) };
       const co = await resolver.resolveCoords(coIdx.map(i => toks[i]), build);
       coIdx.forEach((i, k) => { if (co[k].rsid) asRs[i] = co[k].rsid; if (co[k].warning) warn.set(i, co[k].warning); });
     }
@@ -211,67 +212,81 @@ export async function openPlanner(root, openFile, { manifest } = {}) {
     const variants = inputs.map((input, i) => ({ found: false, input, token: toks[i], rsid: null, ref_rsid: null, chrom: null, pos: null }));
     rsIdx.forEach((i, k) => { variants[i] = { ...rs.get(k), input: inputs[i], token: toks[i] }; });
     for (const [i, w] of warn) variants[i].warning = w;
-    // per chromosome: region scans + point clusters, each choosing scan vs points by estimated bytes
-    const want = new Map(); // chrom → { points:Set, regions:[] }
-    const get = c => { if (!want.has(c)) want.set(c, { points: new Set(), regions: [] }); return want.get(c); };
-    for (const v of variants) if (v?.pos != null && v.chrom) get(v.chrom).points.add(v.pos);
-    // regions: chromosome names normalized like LDlink's (chr prefix, case, X/Y, 23/24); overlapping or adjacent
-    // regions merged per chromosome so no row is fetched twice; invalid regions reported, not silently dropped
+    return variants;
+  }
+  /** regions → Map(chrom → merged [lo, hi] intervals): chromosome names normalized like LDlink's (chr prefix, case,
+   *  X/Y, 23/24), overlapping or adjacent regions merged so no row is fetched twice; invalid ones go to plan.invalidRegions */
+  function normalizeRegions(regions, plan) {
     const CHR = c => { const t = String(c ?? "").trim().replace(/^chr/i, "").toUpperCase(); return t === "23" ? "X" : t === "24" ? "Y" : /^([1-9]|1\d|2[0-2]|X|Y)$/.test(t) ? t : null; };
-    const merged = new Map(); plan.invalidRegions = [];
+    const valid = [];
+    plan.invalidRegions = [];
     for (const g of regions) {
       const c = CHR(g.chrom), lo = Number(g.start), hi = Number(g.end);
-      if (!c || !Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) { plan.invalidRegions.push(g); continue; }
-      if (!merged.has(c)) merged.set(c, []); merged.get(c).push([lo, hi]);
+      if (!c || !Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) plan.invalidRegions.push(g); else valid.push({ c, iv: [lo, hi] });
     }
-    for (const [c, iv] of merged) {
-      iv.sort((a, b) => a[0] - b[0]);
-      const out = []; for (const [lo, hi] of iv) { const last = out.at(-1); if (last && lo <= last[1] + 1) last[1] = Math.max(last[1], hi); else out.push([lo, hi]); }
-      get(c).regions.push(...out);
+    const merged = new Map();
+    for (const [c, xs] of groupBy(valid, x => x.c)) {
+      const out = [];
+      for (const [lo, hi] of xs.map(x => x.iv).sort((a, b) => a[0] - b[0])) { const last = out.at(-1); if (last && lo <= last[1] + 1) last[1] = Math.max(last[1], hi); else out.push([lo, hi]); }
+      merged.set(c, out);
     }
-    const rows = [];
-    const tasks = [];
+    return merged;
+  }
+  /** the genotype rows for the variants' positions and the regions, per chromosome: region scans, and point clusters
+   *  each read as a scan or as page-level points, whichever the manifest prices lower → rows sorted by pos */
+  async function fetchRows(build, variants, merged, tiers, force, plan) {
+    const want = new Map(), get = c => { if (!want.has(c)) want.set(c, { points: new Set(), regions: [] }); return want.get(c); };
+    for (const v of variants) if (v?.pos != null && v.chrom) get(v.chrom).points.add(v.pos); // chromosomes in this order
+    for (const [c, iv] of merged) get(c).regions.push(...iv);
+    const rows = [], tasks = [], add = (got, f) => { const t = f.split(".").at(-2); for (const r of got) rows.push({ ...r, tier: t }); }; // no spread: results can be large
     for (const [chrom, w] of want) {
       for (const [lo, hi] of w.regions) for (const f of tierFiles(build, chrom, tiers)) {
         plan.fetch.push({ file: f, kind: "scan", lo, hi, predicted: Math.round(scanBytes(f, lo, hi, ROW_COLUMNS)) });
-        tasks.push(async () => { const t = f.split(".").at(-2); for (const r of await readRange(f, lo, hi, ROW_COLUMNS)) rows.push({ ...r, tier: t }); });
+        tasks.push(async () => add(await readRange(f, lo, hi, ROW_COLUMNS), f));
       }
       const inRegion = p => w.regions.some(([lo, hi]) => p >= lo && p <= hi);
       for (const c of clusters([...w.points].filter(p => !inRegion(p)))) for (const f of tierFiles(build, chrom, tiers)) {
-        const s = scanBytes(f, c.lo, c.hi, ROW_COLUMNS), pt = pointBytes(f, c.lo, c.hi, c.points.length);
-        const kind = force ?? (s <= pt ? "scan" : "points");
+        const s = scanBytes(f, c.lo, c.hi, ROW_COLUMNS), pt = pointBytes(f, c.lo, c.hi, c.points.length), kind = force ?? (s <= pt ? "scan" : "points");
         plan.fetch.push({ file: f, kind, lo: c.lo, hi: c.hi, points: c.points.length, predicted: Math.round(Math.min(s, pt)), scanPredicted: Math.round(s), pointsPredicted: Math.round(pt) });
         tasks.push(async () => {
           const pts = new Set(c.points);
-          const got = kind === "scan" ? (await readRange(f, c.lo, c.hi, ROW_COLUMNS)).filter(r => pts.has(r.pos)) : await readPoints(f, c.points, ROW_COLUMNS);
-          const t = f.split(".").at(-2); for (const r of got) rows.push({ ...r, tier: t }); // no spread: results can be large
+          add(kind === "scan" ? (await readRange(f, c.lo, c.hi, ROW_COLUMNS)).filter(r => pts.has(r.pos)) : await readPoints(f, c.points, ROW_COLUMNS), f);
         });
       }
     }
     await pool(tasks, 8, t => t());
-    rows.sort((a, b) => a.pos - b.pos);
-    if (select) { // per-variant row choice over the overlap window [pos - max_ref_len + 1, pos], all tiers
-      plan.select = { mode: select, windows: 0 };
-      const SEL = ["pos", "rsid", "ref", "alt", "vcf_order", "multiallelic_source", ...(select === "allele" ? ["allele_is_label", "allele_rsids"] : [])];
-      const byChrom = new Map();
-      for (const v of variants) if (v?.pos != null && v.chrom) { if (!byChrom.has(v.chrom)) byChrom.set(v.chrom, []); byChrom.get(v.chrom).push(v); }
-      for (const [chrom, vs] of byChrom) {
-        const files = await Promise.all(tierFiles(build, chrom, tiers).map(async f => ({ tier: f.split(".").at(-2), ...(await need(f)) })));
-        const { rows: cand, reach } = await candidateRows(files, vs.map(v => v.pos), { columns: SEL });
-        plan.select.windows += vs.length;
-        const range = posRange(cand);
-        for (const v of vs) {
-          const w = range(v.pos - reach + 1, v.pos);
-          v.selected = select === "allele" ? pickAllele(w, v.pos, v.ref_rsid ?? v.rsid ?? "") : pickParity(w, v.pos);
-        }
+    return rows.sort((a, b) => a.pos - b.pos);
+  }
+  /** the parity layer's choice: per variant, the row it uses from the overlap window [pos - max_ref_len + 1, pos] over
+   *  all tiers (LDlink's last overlapping row, or the allele-aware match) → variants[i].selected */
+  async function selectRows(build, variants, tiers, select, plan) {
+    plan.select = { mode: select, windows: 0 };
+    const SEL = ["pos", "rsid", "ref", "alt", "vcf_order", "multiallelic_source", ...(select === "allele" ? ["allele_is_label", "allele_rsids"] : [])];
+    for (const [chrom, vs] of groupBy(variants.filter(v => v?.pos != null && v.chrom), v => v.chrom)) {
+      const files = await Promise.all(tierFiles(build, chrom, tiers).map(async f => ({ tier: f.split(".").at(-2), ...(await need(f)) })));
+      const { rows: cand, reach } = await candidateRows(files, vs.map(v => v.pos), { columns: SEL }), range = posRange(cand);
+      plan.select.windows += vs.length;
+      for (const v of vs) {
+        const w = range(v.pos - reach + 1, v.pos);
+        v.selected = select === "allele" ? pickAllele(w, v.pos, v.ref_rsid ?? v.rsid ?? "") : pickParity(w, v.pos);
       }
     }
+  }
+  function predict(plan) {
+    const r = plan.rsid;
     plan.predicted = {
-      genotypes: plan.fetch.reduce((a, f) => a + f.predicted, 0) + (plan.rsid?.strategy === "hybrid" ? plan.rsid.scanPredicted : 0),
-      rsids: plan.rsid?.strategy === "hybrid" ? plan.rsid.fixedPredicted + plan.rsid.leftoverPredicted : plan.rsid?.strategy === "direct" ? (plan.rsid.directPredicted ?? plan.rsid.predicted ?? 0) : 0,
+      genotypes: plan.fetch.reduce((a, f) => a + f.predicted, 0) + (r?.strategy === "hybrid" ? r.scanPredicted : 0),
+      rsids: r?.strategy === "hybrid" ? r.fixedPredicted + r.leftoverPredicted : r?.strategy === "direct" ? (r.directPredicted ?? r.predicted ?? 0) : 0,
       coords: plan.coords?.predicted ?? 0,
     };
     plan.predictedBytes = plan.predicted.genotypes + plan.predicted.rsids + plan.predicted.coords;
+  }
+  async function query({ build, inputs = [], regions = [], tiers = ["common", "low", "rare"], force, forceRsid, select }) {
+    const plan = { build, tiers, fetch: [] };
+    const variants = await resolveInputs(build, inputs, tiers, plan, forceRsid);
+    const rows = await fetchRows(build, variants, normalizeRegions(regions, plan), tiers, force, plan);
+    if (select) await selectRows(build, variants, tiers, select, plan);
+    predict(plan);
     return { rows, variants, plan };
   }
   // file(rel) → { file, metadata } (cached; footer length from the manifest) and the resolver, shared with callers

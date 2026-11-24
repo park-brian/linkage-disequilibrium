@@ -1,6 +1,6 @@
-// Batched point lookup on a Parquet file sorted by `column`, using row-group stats + page index
-// (ColumnIndex min/max + OffsetIndex) to read only the pages that can contain the keys.
-// This is the access pattern the browser app needs for rsID → position and position-list queries.
+// Reads on Parquet files sorted by a key column: point lookups (sortedLookup) and ranges (rangeScan) through one read
+// path (matchRows: row-group statistics, the key column's page index, then each column on its own pages), plus the
+// AsyncBuffer wrappers the app reads the release through (cached, coalesce).
 import { parquetRead, readColumnIndex, readOffsetIndex } from "hyparquet";
 import { memo } from "./source.js";
 
@@ -19,146 +19,125 @@ const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 // first index i with keys[i] >= lo
 function lowerBound(keys, lo) { let a = 0, b = keys.length; while (a < b) { const m = (a + b) >> 1; if (keys[m] < lo) a = m + 1; else b = m; } return a; }
 const anyInRange = (keys, lo, hi) => { const i = lowerBound(keys, lo); return i < keys.length && keys[i] <= hi; };
+const columnAt = (metadata, name) => metadata.row_groups[0].columns.findIndex(c => c.meta_data.path_in_schema.join(".") === name);
+const view = async (file, start, length) => new DataView(await file.slice(start, start + length));
+/** push row span [s, e) onto spans, merged with the last one when within gap rows */
+const addSpan = (spans, s, e, gap) => {
+  const l = spans.at(-1);
+  if (l && s - l[1] <= gap) l[1] = Math.max(l[1], e); else spans.push([s, e]);
+};
 
 /**
- * @param {{file, metadata, column: string, keys: (number|bigint)[], columns: string[], compressors?: object, maxGapRows?: number}} o
- * keys need not be sorted or unique. Returns matching rows (objects) for keys found.
+ * The read path under sortedLookup and rangeScan, on a file sorted by `column`:
+ *   1. row groups whose key-column statistics may hold a match (`may(min, max)`);
+ *   2. their key-column page indexes (column + offset index, all groups' fetched together) → the key pages that may;
+ *   3. the key column alone over those pages → the exact matching rows (`match(value)`), every one, file order;
+ *   4. every other requested column on its OWN pages (its offset index): column pages are sized in bytes, so a key
+ *      page can span thousands of rows of a wide column, and only the pages holding matched rows are read; or, with
+ *      whole (a range, whose rows are contiguous), all columns at once over the key pages.
+ * → { rows: [{ ...columns in the requested order, [ROW] }] in file order, reads: row spans read, rowsRead }
  */
-// utf8 = false: hyparquet decodes BYTE_ARRAY columns WITHOUT a UTF8/STRING annotation as text by default, which corrupts
-// binary columns (genotype `haps` in the sparse tier, `missing` bitsets). Annotated string columns stay strings.
-export async function sortedLookup({ file, metadata, column, keys, columns, compressors, maxGapRows = 0, payloadColumn, concurrency = 16, utf8 = false }) {
-  if (!columns.includes(column)) columns = [column, ...columns]; // matching needs the key column (rangeScan does the same)
-  keys = [...new Set(keys)].sort(cmp);
-  const colIdx = metadata.row_groups[0].columns.findIndex(c => c.meta_data.path_in_schema.join(".") === column);
-  const schemaEl = metadata.schema.find(s => s.name === column);
-  // 1) row-group pruning with chunk statistics
-  let groupStart = 0; const groups = [];
+async function matchRows(o) {
+  const { file, metadata, column, compressors, may, match, whole = false, maxGapRows = 0, concurrency = 16, utf8 = false } = o;
+  let { columns } = o;
+  columns = columns.includes(column) ? columns : [column, ...columns];
+  const k = columnAt(metadata, column), schemaEl = metadata.schema.find(s => s.name === column), groups = [];
+  let start = 0;
   for (const rg of metadata.row_groups) {
-    const st = rg.columns[colIdx].meta_data.statistics;
-    const lo = st.min_value ?? st.min, hi = st.max_value ?? st.max;
-    if (anyInRange(keys, lo, hi)) groups.push({ rg, groupStart });
-    groupStart += Number(rg.num_rows);
+    const st = rg.columns[k].meta_data.statistics, n = Number(rg.num_rows);
+    if (may(st.min_value ?? st.min, st.max_value ?? st.max)) groups.push({ rg, start, n });
+    start += n;
   }
-  if (!groups.length) return { rows: [], ranges: 0, pagesRows: 0 };
-  // 2) fetch column + offset index of the key column for each surviving group (indexes may sit next to each
-  //    row group's data, so never coalesce across groups); groups without a column index are read whole
+  if (!groups.length) return { rows: [], reads: 0, rowsRead: 0 };
   const indexes = await pool(groups, concurrency, async ({ rg }) => {
-    const c = rg.columns[colIdx];
-    if (!c.column_index_length || !c.offset_index_length) return null;
+    const c = rg.columns[k];
+    if (!c.column_index_length || !c.offset_index_length) return null; // read the group whole
     const ciStart = Number(c.column_index_offset), oiStart = Number(c.offset_index_offset);
     const ciEnd = ciStart + c.column_index_length, oiEnd = oiStart + c.offset_index_length;
-    // Writers store all column indexes, then all offset indexes, at the end of the file: the two can be far
-    // apart, so only fetch them as one span when the gap is small.
+    // writers store all column indexes, then all offset indexes: one span only when the two are close
     if (Math.max(ciStart, oiStart) - Math.min(ciEnd, oiEnd) <= 64 << 10) {
-      const lo = Math.min(ciStart, oiStart), view = new DataView(await file.slice(lo, Math.max(ciEnd, oiEnd)));
-      return { ci: readColumnIndex({ view, offset: ciStart - lo }, schemaEl), oi: readOffsetIndex({ view, offset: oiStart - lo }) };
+      const lo = Math.min(ciStart, oiStart), v = await view(file, lo, Math.max(ciEnd, oiEnd) - lo);
+      return { ci: readColumnIndex({ view: v, offset: ciStart - lo }, schemaEl), oi: readOffsetIndex({ view: v, offset: oiStart - lo }) };
     }
-    const [ciBuf, oiBuf] = await Promise.all([file.slice(ciStart, ciEnd), file.slice(oiStart, oiEnd)]);
-    return { ci: readColumnIndex({ view: new DataView(ciBuf), offset: 0 }, schemaEl), oi: readOffsetIndex({ view: new DataView(oiBuf), offset: 0 }) };
+    const [ci, oi] = await Promise.all([view(file, ciStart, c.column_index_length), view(file, oiStart, c.offset_index_length)]);
+    return { ci: readColumnIndex({ view: ci, offset: 0 }, schemaEl), oi: readOffsetIndex({ view: oi, offset: 0 }) };
   });
-  // 3) page pruning → absolute row ranges
-  const ranges = [];
-  for (let g = 0; g < groups.length; g++) {
-    const { rg, groupStart } = groups[g], n = Number(rg.num_rows);
-    if (!indexes[g]) { ranges.push([groupStart, groupStart + n]); continue; }
-    const { ci, oi } = indexes[g];
-    const locs = oi.page_locations;
+  const spans = [];
+  groups.forEach(({ start, n }, g) => {
+    if (!indexes[g]) return addSpan(spans, start, start + n, maxGapRows);
+    const { ci, oi } = indexes[g], locs = oi.page_locations;
     for (let p = 0; p < locs.length; p++) {
-      if (!anyInRange(keys, ci.min_values[p], ci.max_values[p])) continue;
-      const s = groupStart + Number(locs[p].first_row_index), e = groupStart + (p + 1 < locs.length ? Number(locs[p + 1].first_row_index) : n);
-      const last = ranges.at(-1);
-      if (last && s - last[1] <= maxGapRows) last[1] = e; else ranges.push([s, e]);
+      if (!may(ci.min_values[p], ci.max_values[p])) continue;
+      const end = p + 1 < locs.length ? Number(locs[p + 1].first_row_index) : n;
+      addSpan(spans, start + Number(locs[p].first_row_index), start + end, maxGapRows);
     }
+  });
+  if (whole) { // a range: its rows are contiguous, so every column's pages over the key pages are needed anyway
+    const out = [];
+    await pool(spans, concurrency, ([rowStart, rowEnd]) => parquetRead({ file, metadata, columns, compressors, rowStart, rowEnd,
+      rowFormat: "object", useOffsetIndex: true, utf8,
+      onComplete: rows => rows.forEach((r, i) => { if (match(r[column])) out.push({ ...r, [ROW]: rowStart + i }); }) }));
+    return { rows: out.sort((a, b) => a[ROW] - b[ROW]), reads: spans.length, rowsRead: spans.reduce((a, [s, e]) => a + e - s, 0) };
   }
-  const want = new Set(keys.map(String));
-  const out = [];
-  if (!payloadColumn) {
-    // 4) read only those rows (offset index lets hyparquet fetch just the pages), concurrently
-    await pool(ranges, concurrency, ([rowStart, rowEnd]) => parquetRead({
-      file, metadata, columns, compressors, rowStart, rowEnd, rowFormat: "object", useOffsetIndex: true, utf8,
-      onComplete: rows => rows.forEach((r, i) => { if (want.has(String(r[column]))) out.push({ ...r, [ROW]: rowStart + i }); }),
+  // one column over [rowStart, rowEnd) as decoded arrays (onChunk: no row objects); a chunk may run past the range
+  const read = (c, [rowStart, rowEnd], each) => parquetRead({ file, metadata, columns: [c], compressors, rowStart, rowEnd,
+    useOffsetIndex: true, utf8, onChunk: ({ columnData, rowStart: s }) => {
+      for (let i = Math.max(0, rowStart - s), end = Math.min(columnData.length, rowEnd - s); i < end; i++) each(s + i, columnData[i]);
+    } });
+  const hits = new Map(); // row → { column: value, … }
+  await pool(spans, concurrency, sp => read(column, sp, (row, v) => { if (match(v)) hits.set(row, { [column]: v }); }));
+  const rowNums = [...hits.keys()].sort((a, b) => a - b);
+  let reads = spans.length, rowsRead = spans.reduce((a, [s, e]) => a + e - s, 0);
+  const others = columns.filter(c => c !== column);
+  if (rowNums.length && others.length) {
+    // the groups holding matches, with their matched rows
+    const touched = []; // one pass: groups and matched rows are both in file order
+    for (let g = 0, r = 0; g < groups.length && r < rowNums.length; g++) {
+      const { start, n } = groups[g], rows = [];
+      while (r < rowNums.length && rowNums[r] < start + n) rows.push(rowNums[r++]);
+      if (rows.length) touched.push({ ...groups[g], rows });
+    }
+    await Promise.all(others.map(async c => {
+      const ci = columnAt(metadata, c), own = [];
+      const bounds = await pool(touched, concurrency, async ({ rg, start, n }) => {
+        const m = rg.columns[ci];
+        if (!m.offset_index_length) return [start, start + n];
+        const oi = readOffsetIndex({ view: await view(file, Number(m.offset_index_offset), m.offset_index_length), offset: 0 });
+        return [...oi.page_locations.map(l => start + Number(l.first_row_index)), start + n];
+      });
+      touched.forEach(({ rows }, t) => {
+        const b = bounds[t];
+        for (let r = 0, p = 0; r < rows.length; r++) { while (b[p + 1] <= rows[r]) p++; addSpan(own, b[p], b[p + 1], 0); }
+      });
+      reads += own.length; rowsRead += own.reduce((a, [s, e]) => a + e - s, 0);
+      await pool(own, concurrency, sp => read(c, sp, (row, v) => { const h = hits.get(row); if (h) h[c] = v; }));
     }));
-    out.sort((x, y) => x[ROW] - y[ROW]); // file order (ranges complete concurrently)
-    return { rows: out, ranges: ranges.length, pagesRows: ranges.reduce((a, [s, e]) => a + e - s, 0) };
   }
-  // 4b) Column pages are sized in bytes, so one key-column page can span thousands of payload rows.
-  //     Read just the key column over the candidate ranges to get exact row numbers, then map those rows to
-  //     the payload column's own pages (its offset index) and read only those row ranges.
-  const hitRows = [];
-  await pool(ranges, concurrency, ([rowStart, rowEnd]) => parquetRead({
-    file, metadata, columns: [column], compressors, rowStart, rowEnd, rowFormat: "object", useOffsetIndex: true, utf8,
-    onComplete: rows => rows.forEach((r, i) => { if (want.has(String(r[column]))) hitRows.push(rowStart + i); }),
-  }));
-  hitRows.sort((a, b) => a - b);
-  const payIdx = metadata.row_groups[0].columns.findIndex(c => c.meta_data.path_in_schema[0] === payloadColumn);
-  const payRanges = [];
-  let gStart = 0, h = 0;
-  for (const rg of metadata.row_groups) {
-    const n = Number(rg.num_rows), gEnd = gStart + n;
-    if (h < hitRows.length && hitRows[h] < gEnd) {
-      const c = rg.columns[payIdx];
-      let bounds = [0, n];
-      if (c.offset_index_length) {
-        const view = new DataView(await file.slice(Number(c.offset_index_offset), Number(c.offset_index_offset) + c.offset_index_length));
-        bounds = [...readOffsetIndex({ view, offset: 0 }).page_locations.map(l => Number(l.first_row_index)), n];
-      }
-      for (; h < hitRows.length && hitRows[h] < gEnd; h++) {
-        const r = hitRows[h] - gStart; let p = 0;
-        while (bounds[p + 1] <= r) p++;
-        const s = gStart + bounds[p], e = gStart + bounds[p + 1], last = payRanges.at(-1);
-        if (last && s <= last[1]) last[1] = Math.max(last[1], e); else payRanges.push([s, e]);
-      }
-    }
-    gStart = gEnd;
-  }
-  await pool(payRanges, concurrency, ([rowStart, rowEnd]) => parquetRead({
-    file, metadata, columns, compressors, rowStart, rowEnd, rowFormat: "object", useOffsetIndex: true, utf8,
-    onComplete: rows => rows.forEach((r, i) => { if (want.has(String(r[column]))) out.push({ ...r, [ROW]: rowStart + i }); }),
-  }));
-  out.sort((x, y) => x[ROW] - y[ROW]);
-  return { rows: out, ranges: payRanges.length, pagesRows: payRanges.reduce((a, [s, e]) => a + e - s, 0) };
+  const rows = rowNums.map(r => { const h = hits.get(r), x = {}; for (const c of columns) x[c] = h[c]; x[ROW] = r; return x; });
+  return { rows, reads, rowsRead };
 }
 
 /**
- * Range read on a file sorted by `column`: rows with lo <= column <= hi, in file order. Uses row-group statistics,
- * then the key column's page index (ColumnIndex min/max + OffsetIndex) to read only the overlapping pages of the
- * requested columns. (hyparquet's `filter` option prunes row groups but not pages; with large row groups that
- * reads whole column chunks.)
+ * Point lookup on a Parquet file sorted by `column`: every row whose key is one of `keys` (unsorted, duplicates
+ * allowed; matched by String value, so BigInt and Number keys compare alike), file order. utf8 = false: hyparquet
+ * decodes BYTE_ARRAY columns WITHOUT a UTF8/STRING annotation as text by default, which corrupts binary columns
+ * (genotype `haps` in the sparse tier, `missing` bitsets); annotated string columns stay strings.
+ * → { rows, reads, rowsRead } (matchRows)
+ */
+export async function sortedLookup({ file, metadata, column, keys, columns, compressors, maxGapRows = 0, concurrency = 16, utf8 = false }) {
+  const sorted = [...new Set(keys)].sort(cmp), want = new Set(sorted.map(String));
+  return matchRows({ file, metadata, column, columns, compressors, maxGapRows, concurrency, utf8,
+    may: (lo, hi) => anyInRange(sorted, lo, hi), match: v => want.has(String(v)) });
+}
+
+/**
+ * Range read on a file sorted by `column`: rows with lo <= column <= hi, in file order. (hyparquet's `filter` option
+ * prunes row groups but not pages; with large row groups that reads whole column chunks.)
  */
 export async function rangeScan({ file, metadata, column, lo, hi, columns, compressors, concurrency = 16, utf8 = false }) {
-  const colIdx = metadata.row_groups[0].columns.findIndex(c => c.meta_data.path_in_schema.join(".") === column);
-  const schemaEl = metadata.schema.find(s => s.name === column);
-  let groupStart = 0; const groups = [];
-  for (const rg of metadata.row_groups) {
-    const st = rg.columns[colIdx].meta_data.statistics, mn = st.min_value ?? st.min, mx = st.max_value ?? st.max;
-    if (!(mx < lo || mn > hi)) groups.push({ rg, groupStart });
-    groupStart += Number(rg.num_rows);
-  }
-  const ranges = [];
-  const idx = await pool(groups, concurrency, async ({ rg }) => {
-    const c = rg.columns[colIdx];
-    if (!c.column_index_length || !c.offset_index_length) return null;
-    const [ciBuf, oiBuf] = await Promise.all([file.slice(Number(c.column_index_offset), Number(c.column_index_offset) + c.column_index_length),
-      file.slice(Number(c.offset_index_offset), Number(c.offset_index_offset) + c.offset_index_length)]);
-    return { ci: readColumnIndex({ view: new DataView(ciBuf), offset: 0 }, schemaEl), oi: readOffsetIndex({ view: new DataView(oiBuf), offset: 0 }) };
-  });
-  groups.forEach(({ rg, groupStart }, g) => {
-    const n = Number(rg.num_rows);
-    if (!idx[g]) { ranges.push([groupStart, groupStart + n]); return; }
-    const { ci, oi } = idx[g], locs = oi.page_locations;
-    for (let p = 0; p < locs.length; p++) {
-      if (ci.max_values[p] < lo || ci.min_values[p] > hi) continue;
-      const s = groupStart + Number(locs[p].first_row_index), e = groupStart + (p + 1 < locs.length ? Number(locs[p + 1].first_row_index) : n);
-      const last = ranges.at(-1);
-      if (last && s <= last[1]) last[1] = e; else ranges.push([s, e]);
-    }
-  });
-  const parts = await pool(ranges, concurrency, async ([rowStart, rowEnd]) => {
-    let rows = [];
-    await parquetRead({ file, metadata, columns: columns.includes(column) ? columns : [column, ...columns], compressors, rowStart, rowEnd, rowFormat: "object", useOffsetIndex: true, utf8, onComplete: r => { rows = r; } });
-    return rows.filter(r => r[column] >= lo && r[column] <= hi);
-  });
-  return parts.flat();
+  return (await matchRows({ file, metadata, column, columns, compressors, concurrency, utf8,
+    whole: true,
+    may: (mn, mx) => !(mx < lo || mn > hi), match: v => v >= lo && v <= hi })).rows;
 }
 
 /**

@@ -6,16 +6,16 @@ import { compressors } from "hyparquet-compressors";
 import { rangeScan, sortedLookup } from "./parquet.js";
 import { BUILDS, key as gkey, keyPos } from "./genome.js";
 import { once, required } from "./source.js";
+import { firstRows, groupBy } from "./collect.js";
 
 /** over a source's file(rel) → { file, metadata } (e.g. planner.file) */
 export function createAnnotations(file) {
   const need = required(file);
   /** first row per key in file (= dump) order: Map(String(key) → row) */
   async function firstBy(path, column, keys, columns) {
-    const m = new Map(); if (!keys.length) return m;
+    if (!keys.length) return new Map();
     const { file: f, metadata } = await need(path);
-    for (const r of (await sortedLookup({ file: f, metadata, column, keys, columns, compressors })).rows) { const k = String(r[column]); if (!m.has(k)) m.set(k, r); }
-    return m;
+    return firstRows((await sortedLookup({ file: f, metadata, column, keys, columns, compressors })).rows, column);
   }
   /** FORGEdb find_one({snp_id}) per rsID digits → Map(id → score) */
   const forge = async ids => new Map([...(await firstBy("annotations/forge_rsid.parquet", "rsid", [...new Set(ids)].map(BigInt), ["rsid", "score"]))].map(([k, r]) => [k, r.score]));
@@ -37,7 +37,7 @@ export function createAnnotations(file) {
   /** LDlink's population sample lists (annotations/panels.parquet, read once): Map(pop → [sample IDs in file order]) */
   const panels = once(async () => { const { file: f, metadata } = await need("annotations/panels.parquet"); let r = [];
     await parquetRead({ file: f, metadata, compressors, columns: ["pop", "sample"], rowFormat: "object", onComplete: x => { r = x; } });
-    const m = new Map(); for (const { pop, sample } of r) { if (!m.has(pop)) m.set(pop, []); m.get(pop).push(sample); } return m; });
+    return new Map([...groupBy(r, x => x.pop)].map(([pop, xs]) => [pop, xs.map(x => x.sample)])); });
   /** db.snp_col.find({chromosome, position}) → Map("chrom:pos" → [platforms "a|b" per doc, dump order]) */
   async function arrays(build, points) {
     const { file: f, metadata } = await need(`annotations/${BUILDS[build].positions}/arrays.parquet`), out = new Map();

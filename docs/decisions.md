@@ -67,7 +67,8 @@ rsID with several dump docs (`duplicated_rsids`) falls back to the exact `find_o
 ## Our page-index lookups, not hyparquet's (2026-11-23)
 
 **What:** `src/parquet.js` `sortedLookup` stays. hyparquet 1.33's own pruning (`parquetScan` with a `$in`
-`pruningFilter` and `usePageIndex: true`) returned identical rows in every case of `bench/pruning.js`, but it did not
+`pruningFilter` and `usePageIndex: true`) returned identical rows in every case of bench/pruning.js (since deleted; in
+git history), but it did not
 win on every measure (cold reads, local release; `$LD_DATA/bench/results/pruning.json`):
 
 | case | ours: requests / bytes / ms | hyparquet: requests / bytes / ms |
@@ -87,3 +88,24 @@ the follow-up.
 
 **Revisit if:** hyparquet batches row reads per page (its per-row `readColumn` decodes a page once per row), or the
 follow-up above lands and a re-run favours either side.
+
+**Follow-up (2026-11-23, cleanup slice 6):** done. `sortedLookup` and `rangeScan` share one read path
+(`src/parquet.js` `matchRows`): the key column alone over its candidate pages gives the exact matched rows, and every
+other column is read on its own pages (its offset index) holding those rows. A range keeps one read of all columns
+over the key pages, because a range's rows are contiguous and every column's pages there are needed anyway
+(per-column reads measured 3 → 11 reads for a 1 Mb genotype window). Measured as the app reads, one cached
+AsyncBuffer per file, before → after (reads / MB):
+
+| case | before | after |
+|---|---|---|
+| rsID index, 32 keys | 240 / 2.40 | 300 / 1.82 |
+| rsID index, 512 keys | 2,634 / 13.8 | 2,644 / 8.38 (hyparquet, uncached: 3,109 / 8.6) |
+| dbSNP by position, 200 keys | 542 / 2.27 | 473 / 2.17 |
+| genotypes, 50 points | 149 / 1.77 | 137 / 1.74 |
+| genotypes 1 Mb window (rangeScan) | 3 / 1.16 | 3 / 1.16 |
+| recombination 3 Mb (rangeScan) | 5 / 0.04 | 4 / 0.08 (the column and offset indexes in one span) |
+
+Single-column reads take hyparquet's decoded arrays (`onChunk`), not row objects: building objects for whole page
+spans was 3x slower than before and ran the parity check out of memory. With arrays, CPU falls too (local, 200
+position keys: 1.18 → 0.62 s; 512 rsIDs: 1.49 → 1.17 s). The `payloadColumn` option is gone (every column now gets
+that treatment).

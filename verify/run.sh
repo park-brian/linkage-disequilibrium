@@ -8,6 +8,7 @@ set -uo pipefail
 WHAT=${1:-data}
 V="$REPO/verify" L="$LD_DATA/verify"
 G="$LD_VCF/GRCh37" REL=${LD_RELEASE#$LD_DATA/}
+FAILED=""
 mkdir -p "$L"; cd "$LD_DATA"; [ "$WHAT" = ldlink ] || : > "$L/summary.txt"
 step() { # name cmd...
   local name=$1; shift; local t0=$(date +%s)

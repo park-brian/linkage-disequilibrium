@@ -43,7 +43,7 @@ for (const t of Object.keys(want)) {
 const rows = [];
 for (const { t, file, metadata } of tiers) {
   const keys = picks.filter(p => p.tier === t).map(p => p.pos);
-  const r = await sortedLookup({ file, metadata, column: "pos", keys, columns: ["pos", "ref", "alt", "haps", "missing", "male_haploid"], compressors, payloadColumn: "haps" });
+  const r = await sortedLookup({ file, metadata, column: "pos", keys, columns: ["pos", "ref", "alt", "haps", "missing", "male_haploid"], compressors });
   rows.push(...r.rows.map(x => ({ ...x, tier: t })));
 }
 rows.sort((a, b) => a.pos - b.pos);

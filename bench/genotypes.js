@@ -1,5 +1,5 @@
 // Benchmark v2 tier files: window scans (1/10 Mb) and point reads (scattered positions) through a cached
-// AsyncBuffer, plus per-page compressed sizes from the offset index. usage: node bench_v2.js <dir>
+// AsyncBuffer, plus per-page compressed sizes from the offset index. usage: node bench/genotypes.js <dir>
 import { openSync, readSync, fstatSync, readdirSync, writeFileSync } from "node:fs";
 import { parquetMetadataAsync, parquetRead, cachedAsyncBuffer, readOffsetIndex } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
@@ -42,7 +42,7 @@ async function scan(path, lo, hi) {
 }
 async function points(path, keys) {
   const { raw, file, metadata } = await open(path), t0 = performance.now();
-  const r = await sortedLookup({ file, metadata, column: "pos", keys, columns: COLUMNS, compressors, payloadColumn: "haps" });
+  const r = await sortedLookup({ file, metadata, column: "pos", keys, columns: COLUMNS, compressors,  });
   return { found: r.rows.length, ranges: r.ranges, requests: raw.stats.requests, KB: Math.round(raw.stats.bytes / 1024), KB_per_point: +(raw.stats.bytes / 1024 / keys.length).toFixed(1), ms: Math.round(performance.now() - t0) };
 }
 // positions to probe: sample real positions from each file so every probe hits

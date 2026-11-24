@@ -137,7 +137,7 @@ test("readers return binary haps/missing as bytes, not UTF-8 strings (sparse tie
   const scan = await rangeScan({ file, metadata, column: "pos", lo: 16050000, hi: 16060000, columns: ["pos", "haps", "missing"], compressors });
   assert.ok(scan.length > 0);
   for (const r of scan) assert.ok(r.haps instanceof Uint8Array, "rangeScan haps");
-  const look = await sortedLookup({ file, metadata, column: "pos", keys: [scan[0].pos], columns: ["pos", "haps"], compressors, payloadColumn: "haps" });
+  const look = await sortedLookup({ file, metadata, column: "pos", keys: [scan[0].pos], columns: ["pos", "haps"], compressors });
   assert.ok(look.rows[0].haps instanceof Uint8Array, "sortedLookup haps");
   assert.deepEqual([...look.rows[0].haps], [...scan.find(r => r.pos === scan[0].pos).haps]);
 });

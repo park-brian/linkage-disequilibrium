@@ -8,6 +8,7 @@ import { compressors } from "hyparquet-compressors";
 import { sortedLookup } from "./parquet.js";
 import { BUILDS, chromName, firstToken, parseCoord, key as gkey, keyPos } from "./genome.js";
 import { createSource, once } from "./source.js";
+import { firstRows, groupBy } from "./collect.js";
 
 /**
  * createResolver(source) or createResolver(root, openFile, { exists }): source = { file(rel) → { file, metadata } | null }
@@ -20,8 +21,7 @@ export function createResolver(root, openFile, { exists } = {}) {
   /** rsIDs → [{ input, rsid, chrom, pos, ref_rsid, found }] in input order (one entry per input, parity: first doc) */
   async function resolveRsids(inputs, build) {
     const ids = inputs.map(s => { const t = firstToken(s).replace(/^[rs]+|[rs]+$/g, "").trim(); return /^[+]?\d+(_\d+)*$/.test(t) ? BigInt(t.replace(/[+_]/g, "")) : null; }); // rsid.strip("rs"); int()
-    const byPart = new Map();
-    ids.forEach(id => { if (id !== null) { const p = Number(id >> 26n); if (!byPart.has(p)) byPart.set(p, []); byPart.get(p).push(id); } });
+    const byPart = groupBy(ids.filter(id => id !== null), id => Number(id >> 26n)); // the rsid partition files
     const first = new Map();
     await Promise.all([...byPart].map(async ([p, keys]) => {
       const f = await open(`dbsnp/rsid/part-${String(p).padStart(2, "0")}.parquet`);
@@ -83,9 +83,8 @@ export function createResolver(root, openFile, { exists } = {}) {
   }
   /** first row per key in file (= dump) order: Map(String(key) → row) */
   async function firstBy(path, column, keys, columns) {
-    const m = new Map(), f = keys.length ? await open(path) : null; if (!f) return m;
-    for (const r of (await sortedLookup({ file: f.file, metadata: f.metadata, column, keys, columns, compressors })).rows) { const k = String(r[column]); if (!m.has(k)) m.set(k, r); }
-    return m;
+    const f = keys.length ? await open(path) : null; // absent file: no rows
+    return f ? firstRows((await sortedLookup({ file: f.file, metadata: f.metadata, column, keys, columns, compressors })).rows, column) : new Map();
   }
   /** db.dbsnp.find_one({chromosome, position}) per position → Map(pos → { rsid, function } | null) */
   async function findAt(build, chrom, positions) {
@@ -94,7 +93,7 @@ export function createResolver(root, openFile, { exists } = {}) {
   }
   /** db.dbsnp.find_one({id}) per rsID digits → Map(id → { function } | null): the first doc, then its row at its position */
   async function findById(ids) {
-    const parts = new Map(); for (const id of new Set(ids)) { const p = Number(BigInt(id) >> 26n); if (!parts.has(p)) parts.set(p, []); parts.get(p).push(BigInt(id)); }
+    const parts = groupBy([...new Set(ids)].map(id => BigInt(id)), id => Number(id >> 26n));
     const docs = new Map();
     for (const [p, keys] of parts) for (const [k, v] of await firstBy(`dbsnp/rsid/part-${String(p).padStart(2, "0")}.parquet`, "rsid", keys, ["rsid", "chrom", "key37", "key38"])) docs.set(k, v);
     const out = new Map(ids.map(id => [String(id), null]));
