@@ -14,6 +14,7 @@ import { POPS } from "../src/parity/ldlink/common.js";
 import { ldherit } from "../src/parity/ldlink/ldherit.js";
 import { ldcorrelation } from "../src/parity/ldlink/ldcorrelation.js";
 import { ldscore } from "../src/parity/ldlink/ldscore.js";
+import { secureFilename } from "../src/parity/ldsc/normalize.js";
 import { region } from "./region.js";
 import { $, join, show, notice, showText, showPair, showPyramid, showMatrix, showProxy, showAssoc, showLog } from "./render.js";
 
@@ -46,9 +47,20 @@ async function example(ctx, name) {
   if (!res.ok) throw new Error(`could not read the example ${name} (HTTP ${res.status})`);
   return res.blob();
 }
+/**
+ * an uploaded sumstats file's text as LDlink's normalizer reads it: gunzipped when the name ends in .gz, UTF-8 with a
+ * BOM kept (Python reads it as a character); a file that is not UTF-8 fails as LDlink's validation does
+ */
+async function uploadText(file) {
+  let stream = file.stream();
+  if (file.name.endsWith(".gz")) stream = stream.pipeThrough(new DecompressionStream("gzip"));
+  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes); }
+  catch { throw new Error("An error occurred while validating the file."); }
+}
 /** a sumstats input: the uploaded file, or LDlink's example from the release → { text, filename, isExample } */
 async function sumstats(ctx, file, name) {
-  if (file) return { text: await file.text(), filename: file.name, isExample: false };
+  if (file) return { text: await uploadText(file), filename: file.name, isExample: false };
   return { text: await (await example(ctx, name)).text(), filename: name, isExample: true };
 }
 
@@ -154,8 +166,8 @@ export const MODULES = {
       const picked = a.files?.length ? a.files : null, names = picked ? picked.map(f => f.name) : ["22.bed", "22.bim", "22.fam"],
         files = {};
       for (const [k, n] of names.entries()) {
-        const blob = picked ? picked[k] : await example(ctx, n);
-        files[n] = n.endsWith(".bed") ? new Uint8Array(await blob.arrayBuffer()) : await blob.text();
+        const blob = picked ? picked[k] : await example(ctx, n), key = picked ? secureFilename(n) : n; // the name LDlink saves it under
+        files[key] = n.endsWith(".bed") ? new Uint8Array(await blob.arrayBuffer()) : await blob.text();
       }
       return ldscore({ filename: names.join(","), ldwindow: a.ldwindow, windUnit: a.windUnit, isExample: !picked, files });
     },

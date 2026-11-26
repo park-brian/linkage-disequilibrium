@@ -5,6 +5,7 @@
 // Four lines carry the time ("Conversion finished at", "Beginning analysis at", "Analysis finished at", "Total time
 // elapsed"); they are written as ldsc would write them now, and the comparer masks them.
 // Errors come back as { error } (LDlink's JSON), with details? for the 422 an ldsc failure produces.
+import { prepareUpload } from "../ldsc/normalize.js";
 import { cFormatG, pyRound, pyStr, npStr4 } from "../pyfmt.js";
 import { mungeSumstats } from "../ldsc/munge.js";
 import { estimateH2, h2ObsToLiab, parseSumstats } from "../ldsc/regress.js";
@@ -92,7 +93,8 @@ export function hsqSummary(h, P, K) {
  *   contents (the example's, or the upload); filename: its name as LDlink sees it
  * → the REST text, or { error, details? }
  */
-export async function ldherit(ctx, { pop, filename, text, isExample = false, scale = "observed", samp_prev = "", pop_prev = "" }) {
+export async function ldherit(ctx, { pop, filename, text, isExample = false, scale = "observed", samp_prev = "", pop_prev = "",
+  format }) {
   // structural_input_guard (_validate_choice_value), then the route's own checks
   if (scale != null && !["observed", "liability"].includes(String(scale))) return { error: "Invalid scale parameter." };
   if (pop && !LDSC_POP.test(String(pop).trim())) return { error: "Invalid pop parameter." };
@@ -103,6 +105,11 @@ export async function ldherit(ctx, { pop, filename, text, isExample = false, sca
     try { P = probability(samp_prev, "samp_prev"); K = probability(pop_prev, "pop_prev"); } catch (e) { return { error: e.message }; }
   }
   if (isExample && text == null) return { error: `Example file '${filename}' was not found.` };
+  if (!isExample) { // an upload: normalized first, then analysed as LDlink's web client does it (src/parity/ldsc/normalize.js)
+    const u = prepareUpload(text ?? "", filename, format);
+    if (u.failed) return { error: u.failed, details: u.errors.join("; ") };
+    ({ text, filename } = u);
+  }
   const t0 = Date.now(), base = String(filename).replace(/\.[^.]*$/, ""),
     sumstatsPath = isExample ? `${EXAMPLE_DIR}/${filename}` : filename;
   const lpop = String(pop).trim().toLowerCase(), [ma, counts] = await Promise.all([ctx.mergeAlleles(), ctx.ldscCounts()]);

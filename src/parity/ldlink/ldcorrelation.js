@@ -3,6 +3,7 @@
 // route returns the output from the first "Total Observed scale" (or, on the liability scale, "Total Liability scale")
 // onward: phenotype 1's h2 summary, phenotype 2's, the genetic covariance and correlation, the pandas summary table, and
 // ldsc's two closing time lines (written now; the comparer masks them). Errors come back as { error, details? }.
+import { prepareUpload } from "../ldsc/normalize.js";
 import { npStr4 } from "../pyfmt.js";
 import { pdRow } from "../ldsc/pandas.js";
 import { mungeSumstats } from "../ldsc/munge.js";
@@ -54,7 +55,7 @@ function rgTable(r, files, P, K) {
  * → the REST text, or { error, details? }
  */
 export async function ldcorrelation(ctx, { pop, filename, filename2, text, text2, isExample = false, scale = "observed", samp_prev = "",
-  pop_prev = "" }) {
+  pop_prev = "", format, format2 }) {
   if (scale != null && !["observed", "liability"].includes(String(scale))) return { error: "Invalid scale parameter." };
   if (pop && !LDSC_POP.test(String(pop).trim())) return { error: "Invalid pop parameter." };
   let P = null, K = null;
@@ -66,6 +67,12 @@ export async function ldcorrelation(ctx, { pop, filename, filename2, text, text2
   }
   for (const [f, t] of [[filename, text], [filename2,
     text2]]) if (isExample && t == null) return { error: `Example file '${f}' was not found.` };
+  if (!isExample) { // uploads: both normalized first, then analysed (src/parity/ldsc/normalize.js)
+    const u1 = prepareUpload(text ?? "", filename, format), u2 = prepareUpload(text2 ?? "", filename2, format2);
+    const failed = [u1, u2].filter(u => u.failed);
+    if (failed.length) return { error: failed.map(u => u.failed).join("; "), details: failed.flatMap(u => u.errors).join("; ") };
+    ({ text, filename } = u1); ({ text: text2, filename: filename2 } = u2);
+  }
   const t1 = Date.now(), base = f => String(f).replace(/\.[^.]*$/, ""), lpop = String(pop).trim().toLowerCase();
   const [ma, counts] = await Promise.all([ctx.mergeAlleles(), ctx.ldscCounts()]);
   let m1, m2;

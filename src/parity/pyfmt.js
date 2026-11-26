@@ -32,6 +32,15 @@ export function pyStr(x) {
 /** str(round(x, nd)) */
 export const pyRoundRepr = (x, nd) => pyStr(pyRound(x, nd));
 /** C printf("%.{p}g") (GTEx's text format; every GTEx v8 slope/pval_nominal string round-trips through %.6g) */
+/** what Python's float() accepts (digits with _ separators, an exponent, inf / infinity / nan, any case, surrounding space) */
+export const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
+/** float(s), or null where Python raises ValueError */
+export function pyFloat(s) {
+  if (!PYFLOAT.test(s)) return null;
+  const t = String(s).trim().toLowerCase(), sign = t.startsWith("-") ? -1 : 1;
+  if (/inf/.test(t)) return sign * Infinity;
+  return /nan/.test(t) ? NaN : Number(t.replaceAll("_", ""));
+}
 export function cFormatG(x, p = 6) {
   if (!Number.isFinite(x)) return Number.isNaN(x) ? "nan" : x > 0 ? "inf" : "-inf";
   if (x === 0) return Object.is(x, -0) ? "-0" : "0";

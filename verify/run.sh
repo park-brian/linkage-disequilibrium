@@ -31,7 +31,7 @@ if [ "$WHAT" != ldlink ]; then
   step ldsc_regress   node "$V/ldsc/regress.js" ldsc_runs/h2rg "$REL/ldscore"
 fi
 if [ "$WHAT" != data ]; then
-  for m in ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc ldherit ldcorrelation ldscore; do
+  for m in ldmatrix ldpair ldpop ldhap ldproxy snpclip snpchip ldtrait ldexpress ldassoc sumstats ldherit ldcorrelation ldscore; do
     step "$m" node "$V/ldlink/compare.js" "$m"
   done
 fi

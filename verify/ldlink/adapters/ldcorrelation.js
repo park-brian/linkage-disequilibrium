@@ -1,13 +1,14 @@
 // LDcorrelation: the REST text (GET /LDlinkRest/ldcorrelation) on LDlink's example sumstats (isExample=true): the pair in
 // both orders and the same file twice, for each population LDlink offers; the liability scale; bad inputs. The time
-// lines are masked (ldherit.js); errors compare on `error`.
+// lines are masked (ldherit.js); errors compare on `error`. Upload pairs go as LDlink's web client sends them (ldherit.js).
 import { ldcorrelation } from "../../../src/parity/ldlink/ldcorrelation.js";
-import { get, asText, example } from "../lib.js";
+import { get, asText, example, uploadSumstats } from "../lib.js";
+import { uploadFiles } from "./sumstats.js";
 import { verdict as textVerdict } from "./ldherit.js";
 
 const POPS = ["EUR", "EAS", "AFR", "AMR", "ASJ", "EST", "FIN", "NFE", "NWE", "SEU"];
 const H = "BBJ_HDLC22.txt", L = "BBJ_LDLC22.txt";
-export function cases() {
+export async function cases(ctx) {
   const cs = [];
   for (const pop of POPS) cs.push({ name: `HDL x LDL ${pop}`, pop, filename: H, filename2: L });
   for (const pop of ["EAS", "EUR"]) cs.push({ name: `LDL x HDL ${pop}`, pop, filename: L, filename2: H });
@@ -23,16 +24,34 @@ export function cases() {
   cs.push({ name: "liability without pop_prev", pop: "EAS", filename: H, filename2: L, scale: "liability", samp_prev: "0.3,0.4" });
   cs.push({ name: "bad scale", pop: "EAS", filename: H, filename2: L, scale: "Observed" });
   cs.push({ name: "unknown population", pop: "XYZ", filename: H, filename2: L });
+  const files = async f => { const rows = (await example(ctx, f)).split(/\r?\n/).filter(Boolean).map(l => l.split("\t"));
+    return uploadFiles(rows.slice(1).map(r => Object.fromEntries(rows[0].map((h, k) => [h, r[k]])))); };
+  const hdl = await files(H), ldl = await files(L), rename = (f, name) => ({ ...f, name });
+  cs.push({ name: "upload plink x regenie EUR", pop: "EUR", uploads: [hdl.plink, rename(ldl.regenie, "ldl.regenie")] });
+  cs.push({ name: "upload ldsc x saige EAS", pop: "EAS", uploads: [hdl.ldsc, rename(ldl.saige, "ldl.saige")] });
+  cs.push({ name: "upload pair, second fails validation", pop: "EUR", uploads: [hdl.plink_or,
+    { name: "ldl_N.txt", text: ldl.plink.text.replace("OBS_CT", "N") }] });
+  cs.push({ name: "upload pair, both fail validation", pop: "EUR", uploads: [{ name: "a_N.txt", text: hdl.plink.text.replace("OBS_CT",
+    "N") },
+    { name: "b.txt", text: "rsid\tchr\n" }] });
   return cs;
 }
 const query = c => new URLSearchParams({ pop: c.pop, genome_build: "grch37", filename: c.filename, filename2: c.filename2,
   isExample: "true",
   ...(c.scale ? { scale: c.scale } : {}), ...(c.samp_prev ? { samp_prev: c.samp_prev } : {}),
     ...(c.pop_prev ? { pop_prev: c.pop_prev } : {}) });
-export const ldlink = cs => Promise.all(cs.map(async c => asText(await get("ldcorrelation", query(c)))));
+export const ldlink = cs => Promise.all(cs.map(async c => {
+  if (!c.uploads) return asText(await get("ldcorrelation", query(c)));
+  const { reference, files } = await uploadSumstats(c.uploads), [f1,
+    f2] = files.map(f => (f.fileValid.valid ? f.fileValid.normalized_filename
+    : f.name));
+  return asText(await get("ldcorrelation", new URLSearchParams({ pop: c.pop, genome_build: "grch37", filename: f1, filename2: f2, reference,
+    isExample: "false" })));
+}));
 export async function ours(ctx, c) {
-  const o = await ldcorrelation(ctx, { ...c, text: await example(ctx, c.filename), text2: await example(ctx, c.filename2),
-    isExample: true });
+  const o = c.uploads ? await ldcorrelation(ctx, { ...c, filename: c.uploads[0].name, text: c.uploads[0].text, filename2: c.uploads[1].name,
+    text2: c.uploads[1].text, isExample: false })
+    : await ldcorrelation(ctx, { ...c, text: await example(ctx, c.filename), text2: await example(ctx, c.filename2), isExample: true });
   return typeof o === "string" ? { text: o } : { error: o.error };
 }
 const FAIL = /^An error occurred while running the (second )?command \(exit \d+\): /;
@@ -45,7 +64,8 @@ const zMask = s => s.replace(/^Z-score: .*$/m, "Z-score: …").replace(/^(\S+\.s
  */
 export function verdict(l, o, c) {
   if (l.text && o.text && FAIL.test(l.text) && FAIL.test(o.text))
-    return l.text.match(FAIL)[0] === o.text.match(FAIL)[0] ? { verdict: "identical" } : { verdict: "differ", detail: { ldlink: l.text.slice(0, 200), ours: o.text.slice(0, 200) } };
+    return l.text.match(FAIL)[0] === o.text.match(FAIL)[0] ? { verdict: "identical" } : { verdict: "differ",
+      detail: { ldlink: l.text.slice(0, 200), ours: o.text.slice(0, 200) } };
   if (c?.degenerate && l.text && o.text) { const r = textVerdict({ text: zMask(l.text) }, { text: zMask(o.text) });
     return r.verdict === "identical" ? { verdict: "degenerate_z" } : r; }
   return textVerdict(l, o);

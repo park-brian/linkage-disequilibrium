@@ -12,7 +12,7 @@
 //  - sort |distance| then p ascending (stable); first line: the top row with the origin's Coord/Alleles and MAF
 //  - Correlated_Alleles is written proxy-first, with the allele indexes crossed (allele_n[q] = allele[p], sic)
 //  - a coordinate origin raises KeyError in LDlink (var_coord has 'position', not 'position_grchNN')
-import { pyRound, pyStr } from "../pyfmt.js";
+import { pyRound, pyStr, PYFLOAT } from "../pyfmt.js";
 import { decodeHaps } from "../../core/haps.js";
 import { overlapping } from "../../core/genotypes.js";
 import { TITLE, BUILDS, CHROMS } from "../../core/genome.js";
@@ -20,7 +20,6 @@ import { chrYMessage, vcfAlleles, vcfId, rsAnnotations, cells, table2x2, check }
 
 const INTERNAL = { error: "Internal server error. Please contact LDlink admin." };
 const stripChr = s => s.replace(/^[chr]+|[chr]+$/g, ""); // str.strip("chr")
-const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
 const pyFloat = s => (/inf/i.test(s) ? (s.includes("-") ? -Infinity : Infinity) : /nan/i.test(s) ? NaN : Number(s.trim().replace(/_/g,
   "")));
 const PYINT = /^\s*[+-]?\d(_?\d)*\s*$/;

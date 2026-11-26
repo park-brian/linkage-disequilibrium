@@ -7,12 +7,11 @@
 //  - R2 and D′ printed unrounded (str(float)); Alleles are the GWAS variant's, "A=0.692, G=0.308" ("NA" for a
 //    frequency of 1); columns: RAF ("Risk Allele"), float(OR or BETA) ("Effect Size"), the CI with brackets, letters and
 //    spaces removed ("Beta or OR"), P-VALUE verbatim
-import { pyRound, pyStr } from "../pyfmt.js";
+import { pyRound, pyStr, PYFLOAT } from "../pyfmt.js";
 import { TITLE } from "../../core/genome.js";
 import { dedupeLists, vcfAlleles, addWarning, check, failFirst, routeLines, screen, WARNED, table2x2 } from "./common.js";
 import { overlapping } from "../../core/genotypes.js";
 
-const PYFLOAT = /^\s*[+-]?((\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)([eE][+-]?\d(_?\d)*)?|inf(inity)?|nan)\s*$/i;
 /** castFloat: str(float(v)) when Python's float() accepts v, else v */
 const castFloat = v => (PYFLOAT.test(v) ? pyStr(/inf/i.test(v) ? (v.includes("-") ? -Infinity : Infinity) : /nan/i.test(v) ? NaN : Number(v.trim().replace(/_/g, ""))) : v);
 const rangeString = v => v.replace(/\[*\]*[a-zA-Z]*\s*/g, "") || "NA"; // findRangeString

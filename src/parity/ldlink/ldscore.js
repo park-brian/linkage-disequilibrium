@@ -6,8 +6,19 @@
 import { readBim, readFamCount, ldscoreL2 } from "../ldsc/l2.js";
 import { pdFrame, describe, corr } from "../ldsc/pandas.js";
 import { ctime, secToStr } from "../ldsc/log.js";
+import { secureFilename } from "../ldsc/normalize.js";
 
 const PYINT = /^\s*[+-]?\d+(_\d+)*\s*$/; // what Python's int() accepts
+const BUILDS = ["grch37", "grch38", "grch38_high_coverage"];
+const CHROMS = new Set(Array.from({ length: 22 }, (_, i) => String(i + 1)));
+/** ldscore_compatibility._find_unambiguous_chromosome_token: one chromosome named by "chrN" parts, else by bare numbers */
+function chromosomeOf(base) {
+  const parts = base.replaceAll("_", ".").replaceAll("-", ".").split(".");
+  const explicit = new Set(parts.filter(x => x.slice(0, 3).toLowerCase() === "chr" && CHROMS.has(x.slice(3))).map(x => x.slice(3)));
+  if (explicit.size) return explicit.size === 1 ? [...explicit][0] : null;
+  const bare = new Set(parts.filter(x => CHROMS.has(x)));
+  return bare.size === 1 ? [...bare][0] : null;
+}
 
 /**
  * @param {{ filename: string, ldwindow?, windUnit?, isExample?, files: { [name]: Uint8Array | string } }} a  filename:
@@ -15,18 +26,25 @@ const PYINT = /^\s*[+-]?\d+(_\d+)*\s*$/; // what Python's int() accepts
  *   absent)
  * → the REST text, or { error }
  */
-export function ldscore({ filename = "", ldwindow = "1", windUnit = "cm", isExample = false, files }) {
+export function ldscore({ filename = "", ldwindow = "1", windUnit = "cm", isExample = false, files, build = "grch37" }) {
   // structural_input_guard: _validate_number_value(minimum=0), _validate_choice_value({cm, cM, kb})
   const w = Number(String(ldwindow).trim());
   if (String(ldwindow).trim() === "" || Number.isNaN(w) || w < 0) return { error: "Invalid ldwindow parameter." };
   if (!["cm", "cM", "kb"].includes(String(windUnit))) return { error: "Invalid windUnit parameter." };
-  const names = String(filename).replace(/;/g, ",").split(",").map(f => f.trim()).filter(Boolean);
-  const base = names.length ? names[0].replace(/\.[^.]*$/, "") : "22";
+  // the route saves and reads each name as secure_filename makes it; the base is the first file's
+  const listed = String(filename).replace(/;/g, ",").split(",").map(f => secureFilename(f.trim())), names = listed.filter(Boolean);
+  const base = filename && listed.length ? listed[0].replace(/\.[^.]*$/, "") : "22";
   // LDlink builds an "All uploaded files must have the same base name" message for a mixed list but only logs it; the
   // request goes on to copy each example (failing on the first absent one) and then checks <base>.bed/.bim/.fam
   for (const f of names) if (isExample && files[f] == null) return { error: `Example file '${f}' was not found.` };
-  const missing = [".bed", ".bim", ".fam"].map(e => `${base}${e}`).filter(f => files[f] == null);
-  if (missing.length) return { error: `Missing files: ${missing.join(", ")}` };
+  // validate_bfile_compatibility (examples too): the build, the three files, a chromosome the name implies; then
+  // ldsc's validBfile schema checks (not reproduced: their messages carry server paths)
+  const errors = [], missing = [".bed", ".bim", ".fam"].map(e => `${base}${e}`).filter(f => files[f] == null);
+  if (!BUILDS.includes(build)) errors.push(`Unsupported genome build for LD score compatibility validation: ${build}`);
+  if (missing.length) errors.push(`Missing files: ${missing.join(", ")}`);
+  if (chromosomeOf(base.split("/").at(-1)) === null) errors.push("Chromosome coverage could not be inferred from the LD score file name. "
+    + "Use chromosome-specific files such as 22.bed/22.bim/22.fam or an approved chromosome template.");
+  if (errors.length) return { error: errors.join("; ") };
   // run_ldsc_command: int(ldwindow) or 1, at least 1; 'kb' → --ld-wind-kb, anything else --ld-wind-cm
   const win = PYINT.test(String(ldwindow)) && +String(ldwindow).replace(/_/g, "") > 0 ? +String(ldwindow).replace(/_/g, "") : 1;
   const t0 = Date.now();

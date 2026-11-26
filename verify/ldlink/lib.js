@@ -2,6 +2,7 @@
 // Python functions (tools/ldlink-local/drive.py), and output normalization. Paths come from tools/config.js.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { asyncBufferFromFile, asyncBufferFromUrl, cachedAsyncBuffer } from "hyparquet";
 import { cached, coalesce } from "../../src/core/parquet.js";
 import { loadKernel, KERNEL_WASM } from "../../src/core/ld/kernel.js";
@@ -11,7 +12,7 @@ import * as CONFIG from "../../tools/config.js";
 export { CONFIG };
 /** the comparisons, in run order (compare.js, snapshot.js) */
 export const MODULES = ["ldmatrix", "ldpair", "ldpop", "ldhap", "ldproxy", "snpclip", "snpchip", "ldtrait", "ldexpress", "ldassoc",
-  "ldherit",
+  "sumstats", "ldherit",
   "ldcorrelation", "ldscore"];
 export const BASE = CONFIG.LDLINK_URL;
 
@@ -73,6 +74,31 @@ async function limited(f) {
 export const get = (path, query) => limited(async () => (await fetch(`${BASE}/LDlinkRest/${path}?${query}`)).text());
 export const post = (path, body) => limited(async () => (await fetch(`${BASE}/LDlinkRest/${path}`,
   { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).text());
+/** POST /upload: files [{ name, text | bytes }] under a fresh UUID reference → { reference, saved: names as LDlink saved them } */
+export async function upload(files) {
+  const reference = randomUUID(), fd = new FormData();
+  fd.append("reference", reference);
+  files.forEach((f, k) => fd.append(`file${k}`, new Blob([f.bytes ?? f.text]), f.name));
+  const up = await limited(async () => (await fetch(`${BASE}/LDlinkRestWeb/upload`, { method: "POST", body: fd })).text());
+  return { reference, saved: up.trimStart().startsWith("{") ? JSON.parse(up).uploaded_files : files.map(f => f.name) };
+}
+/**
+ * an upload as LDlink's web client makes one: POST /upload (the files under a fresh UUID reference), then
+ * validate_sumstats per file (the normalizer) → { reference, files: [{ name (as saved), fileValid }] }
+ */
+export async function uploadSumstats(files, format) {
+  const { reference, saved } = await upload(files), out = [];
+  for (const [k, name] of saved.entries()) {
+    const q = new URLSearchParams({ filename: name, reference, ...(format ? { summary_stats_format: format } : {}), trait: String(k + 1) });
+    out.push({ name, fileValid: (await (await limited(() => fetch(`${BASE}/LDlinkRestWeb/validate_sumstats?${q}`))).json()).fileValid });
+  }
+  return { reference, files: out };
+}
+/** a file in an upload's folder (the normalized file LDlink wrote), or null */
+export const uploadedFile = (reference, name) => limited(async () => {
+  const r = await fetch(`${BASE}/LDlinkRestWeb/tmp/uploads/${reference}/${encodeURIComponent(name)}`);
+  return r.ok ? r.text() : null;
+});
 /** LDlink's API answer: a JSON error, or the text body */
 export const asText = body => (body.trimStart().startsWith("{") ? { error: JSON.parse(body).error } : { text: body });
 
