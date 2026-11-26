@@ -74,6 +74,13 @@ leaves fewer concepts, not just fewer lines; a check that can't run on every pus
    compared). Add G3 cases that upload through LDlink's upload route (a modified copy of an example, plus files
    that trip `sumstats_normalizer` and the compatibility checks), port what differs, refresh the snapshot after a
    full G3. Gate: G3 with the new cases, 0 differ.
+   - **Done** (`b5a4d57`): the gap was larger than one route. LDlink normalizes every uploaded sumstats file
+     (`sumstats_normalizer.py`, via `validate_sumstats`) and analyses the normalized file; our ports munged the upload
+     as is, so any PLINK, REGENIE or SAIGE upload differed (the example renamed to PLINK columns: h2 0.2642 against our
+     error). Ported as `src/parity/ldsc/normalize.js`; LDscore got the bfile compatibility checks. A new comparison
+     module `sumstats` (30 cases, the normalized file byte for byte) and 18 upload cases in LDherit, LDcorrelation and
+     LDscore, all through LDlink's own upload route. Full G3 0 differ; the snapshot gained exactly those 48 hashes
+     (1,488). Not reproduced: ldsc's `validBfile` messages (server paths in them).
 6. **Docs that match the code.** `docs/REQUIREMENTS.md` still describes the target of the first phase ("one LD module");
    mark what `core/ld.js` and the app now cover, and keep the rest as the short list of open feature work, or move
    it to history and keep that list in STATUS. Close the open decisions in STATUS (below). Gate: G1 (docs check).

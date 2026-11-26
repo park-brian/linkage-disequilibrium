@@ -59,7 +59,13 @@ The LDscore family's time lines ("Conversion finished at", "Beginning analysis a
 
 - **The REST shells:** the ports implement module behaviour, plus the REST layer's parameter checks (`Invalid r2_d
   parameter.`, `Invalid window parameter.`). They do not implement tokens, rate limits or the web-only routes, such
-  as LDtrait's "too many pairs" prompt. For the LDscore family, uploads are compared through the examples only (the
-  oracle needs its upload route for anything else), and an ldsc crash's Python traceback (`details`) is not reproduced.
+  as LDtrait's "too many pairs" prompt. An ldsc crash's Python traceback (`details`) is not reproduced.
+- **Uploads (the LDscore family):** reproduced as LDlink's web client runs them. A summary statistics upload is
+  normalized first (`src/parity/ldsc/normalize.js`, LDlink's `sumstats_normalizer.py`: the format, the rewrite to
+  SNP A1 A2 N P BETA, the row errors) and analysed as the normalized file; an upload that fails returns "Summary
+  statistics validation failed for <name>." (the validation's own errors are in `details`). An LDscore fileset gets
+  LDlink's compatibility checks (build, the three files, a chromosome its name implies); ldsc's `validBfile` schema
+  checks are not reproduced, because their messages carry server paths. Compared through LDlink's upload route
+  (`sumstats` and the upload cases of `ldherit`, `ldcorrelation`, `ldscore`).
 - **Allele-aware selection:** `select: "allele"` is opt-in. Instead of LDlink's overlapping row, it picks the row
   whose NCBI alleles match the rsID; the default is parity.

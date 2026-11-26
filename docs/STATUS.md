@@ -25,8 +25,8 @@
 |---|---|---|---|
 | G1 | `npm test` | 37 / 37 (docs and usage lines, line length, layers, the correctness lint, K5, D1 panels, F1 numpy formatting, the core LD API against the ports) | 2026-11-24 |
 | G2 | `npm run verify` | planner, parity (12 checks), annotations (incl. 34,805 range-track rows): 0 differences · kernel vs LDlink math, chr1 and chrX (masked): 0 failures · row selection 22,000 / 22,000 (parity and allele) · ldsc ≤ 3e-14 relative | 2026-11-23 (final code) |
-| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 419/429 + 10 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 · LDherit 29/29 · LDcorrelation 19/20 + 1 degenerate_z (rg = 1, se ≈ 1e-7) · LDscore 19/19 | 2026-11-23 (cleanup slice 10, `25c749b`; slice 9 after it only inserts line breaks) |
-| G3s | `npm run verify:snapshot` | 1,440 / 1,440 hashes after every slice of the cleanup; over HTTP (`--http`, dev server): LDmatrix, LDassoc, LDscore, LDherit 99 / 99 | 2026-11-23 (final code) |
+| G3 | `npm run verify:ldlink` | LDmatrix 30/30 · LDpair 418/429 + 11 tie order (LDlink randomizes ties) · LDpop 537/537 · LDhap 70/70 · LDproxy 57/57 · SNPclip 49/49 · SNPchip 66/66 · LDtrait 55/55 · LDexpress 58/58 · LDassoc 21/21 · sumstats (the upload normalizer) 30/30 · LDherit 36/36 · LDcorrelation 23/24 + 1 degenerate_z (rg = 1, se ≈ 1e-7) · LDscore 26/26, uploads included | 2026-11-26 |
+| G3s | `npm run verify:snapshot` | 1,488 / 1,488 hashes (48 added for uploads, none changed); also in CI over CloudFront | 2026-11-26 |
 | G4 | `npm run verify:app` | 14 / 14 views in headless Chromium, no page or console errors, every figure's pixels unchanged through the cleanup, a run abandoned by a module switch shows nothing, back returns to the inputs; coverage `app/` 94.9%, `src/` 87% (snapshot: 92%); the built site ran LDproxy on the local release | 2026-11-23 (final code) |
 | CI | `.github/workflows/checks.yml` (every pull request and push; Pages deploys only after it) | unit tests without data; the parity snapshot over CloudFront, 1,440 / 1,440 (20 min, 1.1 GB); every view against CloudFront, 14 / 14. A one-word change to an LDpair message turns it red | 2026-11-24 |
 
@@ -84,8 +84,8 @@ Eleven slices, committed on `restructure`, not pushed. What changed for a reader
 - **LDproxy over CloudFront** took 14 s (505 requests) before the cleanup's read path; not re-measured over the CDN.
 - **Annotations** moved to the parity layer whole: the core has no annotation reads of its own yet (`core/ld.js`
   has no `annotate`).
-- **LDscore family uploads** beyond the examples are untested against LDlink (its upload route); `sumstats_normalizer`
-  and the upload compatibility checks are not ported.
+- **LDscore uploads:** ldsc's `validBfile` schema messages (malformed .bim / .fam) are not reproduced; they embed
+  LDlink's server paths.
 
 ## Open decisions (yours)
 

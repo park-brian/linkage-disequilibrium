@@ -1420,7 +1420,14 @@
   ["samp_prev out of range","d0b4e8964a92944b"],
   ["samp_prev not a number","24d1f57c29d6e5ef"],
   ["unknown population","b0c2c49a9fe7e31a"],
-  ["missing example","44b09a6235c39be3"]
+  ["missing example","44b09a6235c39be3"],
+  ["upload ldsc EUR","532389a82bf9b699"],
+  ["upload plink EUR","532389a82bf9b699"],
+  ["upload plink_or EUR","532389a82bf9b699"],
+  ["upload regenie EUR","532389a82bf9b699"],
+  ["upload saige EUR","532389a82bf9b699"],
+  ["upload regenie liability EAS 0.3 / 0.1","38e07b9c4efad5bc"],
+  ["upload that fails validation","ccbf16eb12f3bccd"]
  ],
  "ldcorrelation": [
   ["HDL x LDL EUR","73629cc24d8994db"],
@@ -1442,7 +1449,11 @@
   ["liability pop_prev out of range","6588654716860e5b"],
   ["liability without pop_prev","6b7b32eba4f3f35e"],
   ["bad scale","b139ea411cfdd6d1"],
-  ["unknown population","2cb1727a7d012111"]
+  ["unknown population","2cb1727a7d012111"],
+  ["upload plink x regenie EUR","52e0e2c5fd7fc528"],
+  ["upload ldsc x saige EAS","87e8a16c588be287"],
+  ["upload pair, second fails validation","e81b1ffb6b295aaf"],
+  ["upload pair, both fail validation","447d769d46ee9385"]
  ],
  "ldscore": [
   ["cM 1","a558bdf40c89b760"],
@@ -1463,6 +1474,45 @@
   ["windUnit Mb","81e6f56f8111e3c4"],
   ["no .fam","c620cea0229981a6"],
   ["mixed base names","a85642b143f45a36"],
-  ["missing example","0342a1140b55fcfd"]
+  ["missing example","0342a1140b55fcfd"],
+  ["upload renamed cohort_chr22","615250a87e8e058f"],
+  ["upload first 4000 SNPs, kb 200","b048a84a471cd90c"],
+  ["upload name with no chromosome","fcbd4fdea58b3f2f"],
+  ["upload name with two chromosomes","fcbd4fdea58b3f2f"],
+  ["upload chr22 wins over a bare 1","aceeecc0acfb0599"],
+  ["upload a name with spaces","dc192f8c9fe1084a"],
+  ["upload missing .fam","e32aa1828a53afd6"]
+ ],
+ "sumstats": [
+  ["format ldsc","2b9eb1f26f673fd7"],
+  ["format plink","570e74f23081a80f"],
+  ["format plink_or","65f4e64d43d61680"],
+  ["format plink_a2","ca98fad8070c1cf6"],
+  ["format regenie","0483d3d081f63326"],
+  ["format saige","5d518492c66d385e"],
+  ["plink N not OBS_CT","6aea4f04b206500a"],
+  ["plink A1 matches neither","f0317998a678e5cc"],
+  ["plink REF only, A1 is REF","c09e882032c8c159"],
+  ["plink ALT only","53a8a7520e8b6b6f"],
+  ["plink lower-case alleles","64b72960f5bd3946"],
+  ["p values","e6ddb25dd6035acb"],
+  ["regenie LOG10P edges","f304401301ea146b"],
+  ["odds ratios","72f1d35a84990089"],
+  ["too many bad rows (10 kept)","cb2f7467a61ded18"],
+  ["csv with quotes and CRLF","05baa3d0241e6bce"],
+  ["csv header with spaces","dbb31de41ca46a91"],
+  ["short and long rows","d6b5e780171452a5"],
+  ["whitespace, blank lines","940a0e930e0145b5"],
+  ["duplicate columns","77163c512f85f86f"],
+  ["mixed-case LDSC headers","c76e3c5e16e76568"],
+  ["BOM in header","961b4bfb20ebb965"],
+  ["header only","4ac7c07cf44ddc73"],
+  ["empty file","79683d66eb789295"],
+  ["no format matches","1ca030a7fb3c3e9b"],
+  ["selected plink_raw on a REGENIE file","3daa68b5ad5724a3"],
+  ["selected regenie_raw","0483d3d081f63326"],
+  ["selected pre_munged on a PLINK file","d4bb5e63aa3a10ed"],
+  ["selected unknown format","ef5920e172b4e4c4"],
+  ["a name with spaces and accents","07b90feb313e2cad"]
  ]
 }
