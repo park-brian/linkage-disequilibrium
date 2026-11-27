@@ -79,6 +79,12 @@ Eleven slices, committed on `restructure`, not pushed. What changed for a reader
 
 [history/RESTRUCTURE.md](history/RESTRUCTURE.md) (outcome in §12) and [history/PLAN.md](history/PLAN.md) (outcome in §9).
 
+## Done: smaller, checked on every push ([history/PLAN_2026-11-24.md](history/PLAN_2026-11-24.md), outcome at its end)
+
+The planner without its unused row fetch and a manifest half the size; the parity snapshot and the app checked in CI
+before every deploy; a correctness lint; LDlink's upload path for the LDscore family (its sumstats normalizer); docs
+reconciled. Where the one-module goal stands: [REQUIREMENTS.md](REQUIREMENTS.md).
+
 ## Follow-ups
 
 - **LDproxy over CloudFront** took 14 s (505 requests) before the cleanup's read path; not re-measured over the CDN.
@@ -89,7 +95,6 @@ Eleven slices, committed on `restructure`, not pushed. What changed for a reader
 
 ## Open decisions (yours)
 
-- **Push `restructure` to `main`** (it redeploys the site): the cleanup is local.
 - **The published verifier reports** under the bucket's `ldlink-parquet/v5/` (slice 1 moved them out of the
   release locally): delete them from the bucket, or keep.
 - **Scratch output of the slice 8 gate** in `$LD_DATA`: `scratch_gate_release/`, `phaseB/geno_gate/` (about 200 MB).

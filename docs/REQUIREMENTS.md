@@ -22,8 +22,22 @@ become presets and views of the same engine instead of separate code paths:
 The LDlink limits in §2 are reference behaviour to compare against, not limits we keep. The data layout and fetch
 strategy for large windows are in [DATA.md](DATA.md) (the release contract) and [history/PARQUET_LAYOUT.md](history/PARQUET_LAYOUT.md) (the measurements).
 
-- Runtime: browser only. Static Parquet (see [DATA.md](DATA.md) §5) read with **hyparquet** over HTTP Range;
-  LD math in a Web Worker. No query server.
+**Where it stands (2026-11-26).** Built toward the one module:
+- the engine: one LD kernel (WASM and JS, identical results) with banded and tiled computation, on Parquet reads that
+  return every matching row (`src/core`, docs/ARCHITECTURE.md);
+- LDlink itself: all thirteen modules reproduced byte for byte, uploads included (`src/parity`, [PARITY.md](PARITY.md));
+- `src/core/ld.js`: pair, matrix and proxy over any variant list with no count limit, numbers and typed errors, the
+  allele-aware row by default;
+- the region view: an LD pyramid up to 5 Mb under the annotation tracks, on a pool of Web Workers;
+- the set page (`app/set.html`, the visual work in progress): one variant set, the view chosen by what is held, on
+  the parity layer's context and ports.
+
+Open: the views on `core/ld.js` rather than the ports (so LDlink's limits stop applying); annotations as core reads
+(they are LDlink's queries in `src/parity/annotations.js`); regions and streamed tiles in the core API; pruning,
+haplotype tables and per-population comparison outside the ports.
+
+- Runtime: browser only. Static Parquet (DATA.md) read with **hyparquet** over HTTP Range; the region view's LD in
+  Web Workers. No query server.
 - Build: Parquet produced from the sources in DATA.md with **hyparquet-writer**.
 - Reference implementation: `../nci-webtools-dceg-linkage` (paths below are relative to its `server/`).
 
@@ -38,16 +52,17 @@ strategy for large windows are in [DATA.md](DATA.md) (the release contract) and 
 | statistic | `r2` or `d` (D′) for thresholds/sorting/colors | `LDlink.py` param validation ~599-736 |
 
 ### 1.2 Variant resolution
-1. `rsN` → dbSNP record by id; if several records, prefer `id == ref_id`; warn "Multiple rsIDs" (`LDcommon.py:378-442`).
-2. `chr:pos` → dbSNP records at that position for the build → rsID (`LDcommon.py:220`).
+1. `rsN` → the first dbSNP record with that id, in dump order (`find_one`; `LDcommon.py:378-442`).
+2. `chr:pos` → the dbSNP records at that position for the build → the first with `id == ref_id` (warn "Multiple
+   rsIDs" when several), else the first record (`LDcommon.py:220`).
 3. Errors/warnings to reproduce: position `NA` for the build; chrY with a GRCh38 build; not all on one chromosome
    (LDmatrix, LDhap, SNPclip); span > 1 Mb → "switch rate errors" warning (LDmatrix).
-4. Genotype row lookup is **by position** (VCF IDs are absent in GRCh38). Reference behaviour with duplicate rows:
-   keep the row whose POS equals the query, else the last row (`LDcommon.py:592-605`). Warnings: "missing from
-   1000G", "Genomic position does not match RS number at 1000G position", "variant is not a biallelic",
-   "monoallelic in the chosen population(s)" (`LDcommon.py:504-571`).
-   *New behaviour (improvement)*: when several biallelic rows share the position, prefer the one whose alleles match
-   dbSNP; report ambiguity instead of silently picking.
+4. Genotype row lookup is **by position** (VCF IDs are absent in GRCh38). Reference behaviour with several rows:
+   the last row overlapping the position in VCF order (`LDcommon.py:590-605`; its POS check is dead code). Warnings:
+   "missing from 1000G", "Genomic position does not match RS number at 1000G position", "variant is not a
+   biallelic", "monoallelic in the chosen population(s)" (`LDcommon.py:504-571`).
+   *New behaviour (built: `pickAllele`, the default of `core/ld.js`)*: the row whose alleles match the rsID's NCBI
+   alleles; several matches or none are reported instead of silently picking.
 
 ### 1.3 Alleles and haplotypes
 - Allele normalization `set_alleles` (`LDcommon.py:486-499`): SNV unchanged; insertion → `-`/`ALT[1:]`; deletion →
@@ -78,14 +93,14 @@ keys can collide for normalized indels (e.g. `"T"+"TA"` vs `"TT"+"A"`) or MNPs t
 document any such divergence instead of copying it. D′ and r² are invariant to allele relabeling, so index order is
 safe for every case where the reference is well-defined.
 
-### 1.5 Performance targets (browser), from measurements in history/PARQUET_LAYOUT.md
-- **10 Mb window, common variants (~45k):** about 7.6 MB in about 15 requests, decoded in 0.15 s.
-- **10 Mb window, all variants (~300k):** about 11.5 MB.
-- **Any SNP list:** resolve it to regions first (the hybrid in history/PARQUET_LAYOUT.md §3), then scan those regions. Cost
-  then grows with window size, not list length.
-- **Pairwise math** is the bottleneck. A 500 kb band over 10 Mb of common variants is 103M pairs, which takes 4 s for
-  CEU and 46 s for ALL in plain JS. We need WASM SIMD or WebGPU popcount, banded or tiled computation, and pyramid
-  tiles aggregated to screen resolution, never a full N×N matrix.
+### 1.5 Performance (browser)
+The targets were set from history/PARQUET_LAYOUT.md; what was built and measured is in [STATUS.md](STATUS.md) ("Speed",
+"Requests") and [decisions.md](decisions.md):
+- **Any SNP list:** resolved to regions first when that is cheaper (the planner's hybrid rsID strategy), so cost grows
+  with the regions, not the list length.
+- **Pairwise math:** a WASM kernel with scalar popcount (SIMD was never faster in V8), banded and tiled, with pyramid
+  pixels aggregated in Web Workers (a 3 Mb pyramid over ALL, 228 M pairs: 1.0 s on 8 workers); never a full N×N
+  matrix.
 
 ## 2. Modules
 
@@ -103,14 +118,16 @@ These are LDlink's own limits and outputs. Use them for parity tests; the new en
 | **LDassoc** | user GWAS file (chr, pos, p columns); mode variant / gene / region; windows 500 kb / 100 kb / 0; region ≤ 3,000,000 bp | LD vs index variant (given or lowest p) for every file variant: same columns as LDproxy + p; Manhattan-style plot with LD colouring, recombination, genes; example dataset available | `LDassoc.py:342-344` |
 | **SNPclip** | ≤ 5000 variants, one chromosome; r² threshold 0.1; MAF threshold 0.01 | greedy LD pruning in input order: kept list + per-variant reason (MAF, monoallelic, in LD with X, not in 1000G) | `SNPclip.py:20, 143-171` |
 | **SNPchip** | ≤ 5000 variants; platform list | per variant: position + arrays containing it | `SNPchip.py:66` |
-| LDscore / LDherit / LDcorrelation | PLINK bed/bim/fam, sumstats | runs external `ldsc` | **out of scope** for browser v1 |
+| **LDscore** | PLINK bed/bim/fam (the example or an upload); cM or kb window | ldsc `--l2` log from "Summary of LD Scores" | `LDlink.py` ldscore route, `ldsc_utils.run_ldsc_command` |
+| **LDherit** | sumstats (example or upload, normalized as LDlink does); LD score population; observed or liability scale | ldsc `--h2` log | `LDlink.py` ldherit route, `sumstats_normalizer.py` |
+| **LDcorrelation** | two sumstats; population; scale | ldsc `--rg` log | `LDlink.py` ldcorrelation route |
 
 ## 3. Annotation track contract
 
 Every annotation is a source that, given `(build, chrom, start, end)` or a list of rsIDs, returns rows the plots can
 draw. Tracks are independent of the LD computation and can be attached to any view.
 
-| track | key | fields a view needs | source (DATA.md §3) |
+| track | key | fields a view needs | source (DATA.md, "annotations/") |
 |---|---|---|---|
 | genes | region | symbol, transcript, strand, tx/cds bounds, exons; collapse-by-symbol option | `refGene_grch37/38` |
 | recombination | region | pos, rate (cM/Mb) | `recomb` |
@@ -124,8 +141,10 @@ draw. Tracks are independent of the LD computation and can be attached to any vi
 ## 4. Out of scope / deferred
 - API tokens, user registration, rate limiting, email (`ApiAccess.py`), server-side SVG/PDF export (`bokehExport.py`,
   phantomjs) — browser renders and exports directly.
-- LDscore family (needs `ldsc`, PLINK uploads).
-- Byte-identical text outputs are not required; same columns and values (to 3 decimals) are.
+- ldsc's `validBfile` schema messages for malformed uploads (they carry LDlink's server paths; [PARITY.md](PARITY.md)).
+
+The ports go further than this document first asked: their outputs are byte-identical to LDlink's, checked against a
+local LDlink (`npm run verify:ldlink`) and on every push by the parity snapshot.
 
 ## 5. Reference test vectors
 Generated by `verify/reference/ldmatrix_reference.js` — a line-for-line port of the reference LDmatrix math run on
@@ -165,14 +184,16 @@ rs13409592  0.802      0.949      0.949      0.949      0.945      0.951     1  
 rs12622536  0.819      0.848      0.848      0.848      0.857      0.845     0.858      0.848     1          1
 ```
 
-Status: **not yet cross-checked against ldlink.nih.gov** (its web endpoint requires a signed browser session; the
-REST API requires a token). To confirm, run LDmatrix on ldlink.nih.gov with these 10 rsIDs, CEU, GRCh37, and
-compare the downloaded `r2_*.txt` / `d_prime_*.txt`. These vectors only exercise common biallelic SNVs; the next
-phase should add cases for indels, a multi-allelic site, chrX males, an `NA` (monomorphic) pair, and a
-High-Coverage-only duplicate position.
+Status: these vectors only exercise common biallelic SNVs. The LDmatrix port is compared against a local LDlink (the
+same code and data as ldlink.nih.gov) on 15 variant lists (30 cases: both statistics), which include indel labels,
+the 12-ALT multi-allelic site on chr1, chrX inside and outside PAR1, coordinates, a merged rsID, GRCh38 and High
+Coverage (`verify/ldlink/cases/ldmatrix_cases.json`); `test/ld.test.js` checks `core/ld.js` against the port on the
+example SNPs.
 
 ## 6. Open questions
 1. GRCh38 (2019) chrX has only ~107k records and no haploid calls — keep, replace with another release, or hide?
-2. GWAS Catalog: use the 2025-10 backup in S3, or pull fresh from the EBI "alternative" download at build time?
+2. ~~GWAS Catalog source~~ **Decided:** the 2025-10 backup in LDlink's S3 (`pipeline/annotations/fetch.sh`), as LDlink
+   serves it.
 3. ~~dbSNP source~~ **Decided:** keep the 2023 b155 mongodump. It is LDlink's own data and is needed to reproduce LDlink's exact rsID resolution and LD values. See PLAN_REVIEW.md finding 4 for the join rule and parity mode.
-4. Should rare variants (MAF < 0.1%, ~55–63% of rows) live in a separate genotype file to keep common queries fast?
+4. ~~Rare variants in a separate file~~ **Decided:** the genotypes are split into MAF tiers (`common`, `low`, `rare`
+   files per chromosome; DATA.md), so common queries read only the common tier.
